@@ -17,10 +17,12 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await close_mongo_connection()
 from app.routes.auth import router as auth_router
+from app.routes.users import router as users_router
 
 app = FastAPI(title="SmartMeal API", lifespan=lifespan)
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(users_router, prefix="/api/users", tags=["users"])
 
 # Configure CORS
 origins = [
