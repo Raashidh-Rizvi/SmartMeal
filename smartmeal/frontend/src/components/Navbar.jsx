@@ -19,8 +19,14 @@ function Navbar() {
       <div className="navbar-menu">
         {user ? (
           <>
-            <span className="navbar-user">Hi, {user.name}</span>
-            <Link to="/profile" className="navbar-link">Profile</Link>
+            <Link to="/inventory" className="navbar-link">Inventory</Link>
+            <Link to="/recommendations" className="navbar-link">Recommendations</Link>
+            <Link to="/mealplan" className="navbar-link">Meal Plan</Link>
+            <Link to="/shoppinglist" className="navbar-link">Shopping List</Link>
+            
+            <Link to="/profile" className="navbar-link" style={{ marginLeft: '1rem' }}>
+              <span className="navbar-user">👤 {user.name}</span>
+            </Link>
             <button onClick={handleLogout} className="btn-secondary btn-small">Logout</button>
           </>
         ) : (
