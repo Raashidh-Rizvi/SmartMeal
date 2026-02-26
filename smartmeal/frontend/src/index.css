@@ -1,5 +1,19 @@
 :root {
-  /* Option A — Emerald + Slate (premium, calm, modern) */
+  /* Light Theme (Default) - Clean, Minimalist, Premium */
+  --bg: #FFFFFF;
+  --card: #F9FAFB;
+  --border: #E5E7EB;
+  --text: #111827;
+  --muted: #6B7280;
+  --primary: #10B981;
+  --primary-hover: #059669;
+  --accent: #34D399;
+  --danger: #EF4444;
+  --shadow-color: rgba(17, 24, 39, 0.05);
+}
+
+.dark {
+  /* Dark Theme - Emerald + Slate (premium, calm, modern) */
   --bg: #0B1220;
   --card: #0F1B2D;
   --border: #1E2A3B;
@@ -9,7 +23,10 @@
   --primary-hover: #16A34A;
   --accent: #34D399;
   --danger: #EF4444;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
 
+body {
   /* Typography */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
@@ -22,13 +39,10 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
 
-body {
   margin: 0;
   display: flex;
   min-height: 100vh;
-  background-color: var(--bg);
 }
 
 #root {
@@ -68,14 +82,14 @@ button {
   color: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 6px rgba(11, 18, 32, 0.4); /* subtle shadow based on deep slate */
+  box-shadow: 0 4px 6px var(--shadow-color);
   width: 100%;
   margin-top: 1rem;
 }
 
 button:hover {
   background-color: var(--primary-hover);
-  box-shadow: 0 6px 12px rgba(11, 18, 32, 0.6);
+  box-shadow: 0 6px 12px var(--shadow-color);
   transform: translateY(-1px);
 }
 
@@ -91,7 +105,7 @@ input {
   padding: 0.75em 1em;
   font-size: 1rem;
   font-family: inherit;
-  background-color: #0A101C; /* Slightly darker than card for inset feel */
+  background-color: var(--bg); /* Use bg color to contrast with the card */
   color: var(--text);
   margin-top: 0.5rem;
   margin-bottom: 1.25rem;
@@ -125,7 +139,7 @@ label {
   padding: 2.5rem;
   background-color: var(--card);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px var(--shadow-color), 0 1px 3px var(--shadow-color);
   border: 1px solid var(--border);
   box-sizing: border-box;
 }
@@ -189,7 +203,7 @@ nav ul li a:hover {
   max-width: 800px;
   margin: 0 auto;
   text-align: left;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 30px var(--shadow-color);
 }
 
 .dashboard-content button, .profile-content button {
