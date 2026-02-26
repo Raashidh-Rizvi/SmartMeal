@@ -18,6 +18,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class PasswordUpdate(BaseModel):
+    oldPassword: str
+    newPassword: str
+
 class UserInDB(UserBase):
     id: Optional[str] = Field(alias="_id", default=None)
     password_hash: str

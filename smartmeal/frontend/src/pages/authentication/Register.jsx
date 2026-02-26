@@ -5,6 +5,7 @@ import api from '../../api/axios';
 function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -12,6 +13,12 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     try {
       await api.post('/api/auth/register', { name, email, password });
       
@@ -53,6 +60,15 @@ function Register() {
             type="password" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
+            required 
+          />
+        </div>
+        <div>
+          <label>Confirm Password: </label>
+          <input 
+            type="password" 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)} 
             required 
           />
         </div>

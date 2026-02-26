@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
         try {
           // api.js automatically attaches the token interceptor
           const response = await api.get('/api/auth/me');
-          setUser(response.data);
+          setUser(response.data.user);
         } catch (error) {
           console.error("Failed to fetch user profile", error);
           // Token might be invalid or expired
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, token, login, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

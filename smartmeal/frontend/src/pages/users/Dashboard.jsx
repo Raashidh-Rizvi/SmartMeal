@@ -4,7 +4,7 @@ import { ThemeContext } from '../../context/ThemeContext';
 import { Link } from 'react-router-dom';
 
 function Dashboard() {
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const { isDark, toggleTheme } = useContext(ThemeContext);
 
   return (
@@ -21,13 +21,7 @@ function Dashboard() {
       
       <p>Welcome to your SmartRecipe dashboard, {user ? user.name : 'User'}!</p>
       
-      <nav style={{ marginTop: '2rem' }}>
-        <ul>
-          <li><Link to="/profile">My Profile</Link></li>
-        </ul>
-      </nav>
-
-      <button onClick={logout} style={{ marginTop: '2rem', backgroundColor: 'var(--danger)' }}>Log Out</button>
+      <p>Welcome to your SmartRecipe dashboard, {user ? user.name : 'User'}!</p>
     </div>
   );
 }

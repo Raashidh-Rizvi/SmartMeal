@@ -22,15 +22,10 @@ function Login() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
       
-      const { accessToken } = response.data;
+      const { accessToken, user } = response.data;
       
-      // Fetch user profile securely
-      const meResponse = await api.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      
-      login(meResponse.data, accessToken);
-      navigate('/dashboard');
+      login(user, accessToken);
+      navigate('/profile');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid email or password');
     }

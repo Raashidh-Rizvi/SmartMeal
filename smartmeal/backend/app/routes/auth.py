@@ -11,29 +11,7 @@ from bson import ObjectId
 
 router = APIRouter()
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(user_in: UserCreate) -> Any:
-    db = get_db()
-    user_exists = await db["users"].find_one({"email": user_in.email})
-    if user_exists:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system.",
-        )
-    
-    user_dict = user_in.model_dump()
-    password = user_dict.pop("password")
-    user_dict["password_hash"] = get_password_hash(password)
-    user_dict["createdAt"] = datetime.now(timezone.utc)
-    user_dict["updatedAt"] = datetime.now(timezone.utc)
-    
-    new_user = await db["users"].insert_one(user_dict)
-    
-    created_user = await db["users"].find_one({"_id": new_user.inserted_id})
-    created_user["_id"] = str(created_user["_id"])
-    return UserResponse(**created_user)
-
-@router.post("/login", response_model=Token)
+@router.post("/login")
 async def login_access_token(
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
@@ -52,29 +30,38 @@ async def login_access_token(
         "accessToken": create_access_token(
             subject=user.email, expires_delta=access_token_expires
         ),
-        "token_type": "bearer",
+        "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
     }
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=dict)
 async def read_users_me(
     current_user: UserInDB = Depends(get_current_user),
 ) -> Any:
-    return UserResponse(**current_user.model_dump(by_alias=True))
+    return {"user": UserResponse(**current_user.model_dump(by_alias=True)).model_dump(by_alias=True)}
 
-@router.put("/users/me", response_model=UserResponse)
-async def update_user_me(
-    user_update: UserBase,
-    current_user: UserInDB = Depends(get_current_user),
-) -> Any:
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register_user(user_in: UserCreate) -> Any:
     db = get_db()
-    update_data = user_update.model_dump()
-    update_data["updatedAt"] = datetime.now(timezone.utc)
+    # Case-insensitive email check
+    user_exists = await db["users"].find_one({"email": {"$regex": f"^{user_in.email}$", "$options": "i"}})
+    if user_exists:
+        raise HTTPException(
+            status_code=400,
+            detail="The user with this email already exists in the system.",
+        )
     
-    await db["users"].update_one(
-        {"_id": ObjectId(current_user.id)},
-        {"$set": update_data}
-    )
+    user_dict = user_in.model_dump()
+    password = user_dict.pop("password")
+    user_dict["password_hash"] = get_password_hash(password)
+    user_dict["createdAt"] = datetime.now(timezone.utc)
+    user_dict["updatedAt"] = datetime.now(timezone.utc)
     
-    updated_user = await db["users"].find_one({"_id": ObjectId(current_user.id)})
-    updated_user["_id"] = str(updated_user["_id"])
-    return UserResponse(**updated_user)
+    new_user = await db["users"].insert_one(user_dict)
+    
+    created_user = await db["users"].find_one({"_id": new_user.inserted_id})
+    created_user["_id"] = str(created_user["_id"])
+    
+    return {
+        "message": "registered",
+        "user": UserResponse(**created_user).model_dump(by_alias=True)
+    }
