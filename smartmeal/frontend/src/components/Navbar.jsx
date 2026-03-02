@@ -24,6 +24,10 @@ function Navbar() {
             <Link to="/mealplan" className="navbar-link">Meal Plan</Link>
             <Link to="/shoppinglist" className="navbar-link">Shopping List</Link>
             
+            {user.role === 'ADMIN' && (
+              <Link to="/admin" className="navbar-link" style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Admin</Link>
+            )}
+            
             <Link to="/profile" className="navbar-link" style={{ marginLeft: '1rem' }}>
               <span className="navbar-user">👤 {user.name}</span>
             </Link>

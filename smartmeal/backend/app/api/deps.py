@@ -29,3 +29,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
         
     user_dict["_id"] = str(user_dict["_id"])
     return UserInDB(**user_dict)
+
+async def require_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
+    return current_user

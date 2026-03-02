@@ -65,3 +65,49 @@ async def register_user(user_in: UserCreate) -> Any:
         "message": "registered",
         "user": UserResponse(**created_user).model_dump(by_alias=True)
     }
+
+from app.models.user import GoogleLoginRequest
+import secrets
+import string
+
+def generate_random_password(length=16):
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(secrets.choice(alphabet) for i in range(length))
+
+@router.post("/google")
+async def google_login(req: GoogleLoginRequest) -> Any:
+    db = get_db()
+    # Find user by email (case-insensitive)
+    user_dict = await db["users"].find_one({"email": {"$regex": f"^{req.email}$", "$options": "i"}})
+    
+    if not user_dict:
+        # Create a new user since they don't exist
+        random_pwd = generate_random_password()
+        new_user_data = {
+            "name": req.name,
+            "email": req.email.lower(),
+            "role": "USER",
+            "preferences": {}, # defaults
+            "password_hash": get_password_hash(random_pwd),
+            "createdAt": datetime.now(timezone.utc),
+            "updatedAt": datetime.now(timezone.utc)
+        }
+        insert_result = await db["users"].insert_one(new_user_data)
+        user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
+    else:
+        # Update name if missing
+        if not user_dict.get("name"):
+            await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": {"name": req.name}})
+            user_dict["name"] = req.name
+            
+    user_dict["_id"] = str(user_dict["_id"])
+    user = UserInDB(**user_dict)
+    
+    # Generate SmartMeal token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return {
+        "accessToken": create_access_token(
+            subject=user.email, expires_delta=access_token_expires
+        ),
+        "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
+    }

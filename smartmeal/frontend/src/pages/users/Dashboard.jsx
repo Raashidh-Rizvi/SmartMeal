@@ -21,7 +21,7 @@ function Dashboard() {
       
       <p>Welcome to your SmartRecipe dashboard, {user ? user.name : 'User'}!</p>
       
-      <p>Welcome to your SmartRecipe dashboard, {user ? user.name : 'User'}!</p>
+      
     </div>
   );
 }
