@@ -25,6 +25,7 @@
 
   --glass-blur: blur(16px);
   --navbar-bg: rgba(255, 255, 255, 0.75);
+  --mobile-menu-bg: #f8fafc; /* Solid background for mobile menu */
 }
 
 .dark {
@@ -48,6 +49,7 @@
 
   --glass-blur: blur(20px);
   --navbar-bg: rgba(15, 23, 42, 0.65);
+  --mobile-menu-bg: #0f172a; /* Solid dark background for mobile menu */
 }
 
 body {
@@ -297,6 +299,44 @@ button:disabled {
   margin-top: 2.5rem;
 }
 
+/* Onboarding Banner — shown to new users after registration */
+.onboarding-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(16, 185, 129, 0.06) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  animation: slideDown 0.4s ease-out;
+}
+
+.onboarding-banner__icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.onboarding-banner__body h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.onboarding-banner__body p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .onboarding-banner { flex-direction: column; gap: 0.5rem; padding: 1rem; }
+}
+
+
 /* Premium Navbar */
 .navbar {
   display: flex;
@@ -309,7 +349,7 @@ button:disabled {
   border-bottom: 1px solid var(--card-border);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 200;
 }
 
 .navbar-brand a {
@@ -322,8 +362,68 @@ button:disabled {
 }
 
 .navbar-brand a::before {
-  content: "🌿";
+  content: "🍽️";
   font-size: 1.6rem;
+}
+
+/* Hamburger Toggle Button (hidden on desktop) */
+.navbar-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  width: auto;
+  padding: 0.5rem;
+  cursor: pointer;
+  box-shadow: none;
+  z-index: 210;
+  flex-shrink: 0;
+}
+
+.navbar-toggle:hover {
+  transform: none;
+  filter: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hamburger-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  position: relative;
+}
+
+.hamburger-icon span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--text-main);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+/* Animate to X when open */
+.hamburger-icon.open span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+.hamburger-icon.open span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburger-icon.open span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+.navbar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 202;
+  cursor: pointer;
+  animation: fadeIn 0.25s ease;
 }
 
 .navbar-menu {
@@ -331,6 +431,7 @@ button:disabled {
   align-items: center;
   gap: 2rem;
 }
+
 
 .navbar-user {
   font-weight: 500;
@@ -660,51 +761,147 @@ button:disabled {
 /* ========================================================================= */
 /*                          MOBILE RESPONSIVENESS                            */
 /* ========================================================================= */
+
+/* --- Tablet breakpoint (768px) --- */
 @media (max-width: 768px) {
   /* Typography & Main Layout Space */
+  h1 { font-size: 1.8rem; }
   h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.1rem; }
   .main-content { padding: 1.5rem 1rem; }
-  .card, .auth-container, .profile-container, .dashboard-content { padding: 1.5rem; }
-  
-  /* Navbar */
-  .navbar { flex-direction: column; gap: 1rem; padding: 1rem; }
-  .navbar-menu { width: 100%; flex-wrap: wrap; justify-content: center; gap: 1rem; }
-  
+  .card, .dashboard-content { padding: 1.5rem; }
+  .auth-container { padding: 1.75rem; margin: 2rem auto; }
+  .profile-container { padding: 1.5rem; }
+
+  /* Navbar — Hamburger Menu */
+  .navbar { padding: 1rem 1.25rem; position: sticky; }
+  .navbar-toggle { display: flex; align-items: center; justify-content: center; }
+
+  .navbar-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: min(300px, 85vw);
+    height: 100vh;
+    background: var(--mobile-menu-bg);
+    border-left: 1px solid var(--card-border);
+    padding: 5rem 1.5rem 2rem;
+    z-index: 205;
+    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -8px 0 32px rgba(0,0,0,0.18);
+    overflow-y: auto;
+  }
+
+  .navbar-menu--open {
+    right: 0;
+  }
+
+
+  .navbar-link {
+    width: 100%;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 1rem;
+  }
+
+  .navbar-link::after { display: none; }
+
+  .navbar-menu .btn-primary,
+  .navbar-menu .btn-secondary {
+    width: 100%;
+    margin-top: 0.5rem;
+    justify-content: center;
+  }
+
+  .navbar-menu button.btn-secondary {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  /* Dashboard header row */
+  .dashboard-content > div:first-child {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  /* Profile links stack on mobile */
+  .profile-links {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
   /* Admin Dashboard Layout */
   .admin-layout { flex-direction: column; }
-  .admin-sidebar { 
-    width: 100%; 
-    border-right: none; 
-    border-bottom: 1px solid var(--card-border); 
-    padding: 1rem; 
+  .admin-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--card-border);
+    padding: 1rem;
   }
   .admin-logo h2 { margin-bottom: 1rem; }
   .admin-nav { flex-direction: row; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.5rem; }
   .admin-nav a { white-space: nowrap; flex: 0 0 auto; }
-  
+
   /* Admin Content Area */
   .admin-content { padding: 1rem; }
   .admin-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .metrics-grid { grid-template-columns: 1fr; }
-  
+  .metrics-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+
   /* Tables (Inventory, Users) */
-  .admin-table-container { 
-    width: 100%; 
-    overflow-x: auto; 
-    -webkit-overflow-scrolling: touch; 
+  .admin-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     margin-bottom: 1rem;
     border: 1px solid var(--card-border);
     border-radius: 12px;
   }
-  .admin-table { border: none; /* Let container handle border */ }
+  .admin-table { border: none; }
   .admin-table th, .admin-table td { padding: 0.75rem 1rem; font-size: 0.9rem; }
-  
+
   /* Form Layouts / Filters */
   .admin-filters { flex-direction: column; align-items: stretch; }
   .admin-filters > * { width: 100%; }
-  
+  .search-form { flex-direction: row; }
+
   /* Footer */
   .footer { padding: 2rem 1rem 1rem; }
   .footer-content { flex-direction: column; align-items: stretch; gap: 2rem; }
   .footer-links { flex-direction: column; gap: 1.5rem; margin-top: 1rem; }
+}
+
+/* --- Small Mobile breakpoint (480px) --- */
+@media (max-width: 480px) {
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.3rem; }
+  
+  .main-content { padding: 1rem 0.75rem; }
+  .card, .dashboard-content { padding: 1.25rem; }
+  .auth-container { padding: 1.25rem; margin: 1rem auto; }
+
+  .auth-container h2 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+
+  .metric-value { font-size: 2rem; }
+
+  .admin-pagination { gap: 0.5rem; }
+  .admin-pagination button { padding: 0.5rem 0.75rem; font-size: 0.85rem; }
+
+  /* Action buttons in tables should wrap */
+  .action-buttons { flex-wrap: wrap; }
+}
+
+/* --- Touch device optimization --- */
+@media (hover: none) and (pointer: coarse) {
+  button, .btn-primary, .btn-secondary, .btn-danger {
+    min-height: 44px; /* iOS tap target guideline */
+  }
+  .navbar-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
 }

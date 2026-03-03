@@ -8,7 +8,7 @@ function Footer() {
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-brand">
-          <h3>🌿 SmartMeal</h3>
+          <h3>🍽️ Smart Meal</h3>
           <p>Your intelligent recipe and meal planning assistant.</p>
         </div>
         
@@ -30,7 +30,7 @@ function Footer() {
       </div>
       
       <div className="footer-bottom">
-        <p>&copy; {currentYear} SmartMeal. All rights reserved.</p>
+        <p>&copy; {currentYear} Smart Meal. All rights reserved.</p>
       </div>
     </footer>
   );
