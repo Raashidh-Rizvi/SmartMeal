@@ -15,7 +15,7 @@ function Login() {
       setError('');
       await loginWithGoogle();
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       setError('Google Sign-In failed. Please try again.');
     }
   };
@@ -66,25 +66,27 @@ function Login() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email: </label>
+        <div className="form-group">
+          <label>Email</label>
           <input 
             type="email" 
             value={email} 
             onChange={(e) => setEmail(e.target.value)} 
+            placeholder="you@example.com"
             required 
           />
         </div>
-        <div>
-          <label>Password: </label>
+        <div className="form-group">
+          <label>Password</label>
           <input 
             type="password" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
+            placeholder="Enter your password"
             required 
           />
         </div>
-        <button type="submit">Log In</button>
+        <button type="submit" className="btn-primary" style={{ marginTop: '0.5rem' }}>Log In</button>
       </form>
       <p>
         Don't have an account? <Link to="/register">Register here</Link>
