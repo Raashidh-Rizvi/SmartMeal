@@ -1,10 +1,13 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
 
 function Profile() {
   const { user, setUser } = useContext(AuthContext);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isNewUser = searchParams.get('welcome') === '1';
+
   const [formData, setFormData] = useState({
     name: '',
     dietType: '',
@@ -42,7 +45,7 @@ function Profile() {
     try {
       const updatePayload = {
         name: formData.name,
-        email: user.email, // Kept for UserBase validation
+        email: user.email,
         preferences: {
           dietType: formData.dietType,
           allergies: formData.allergies.split(',').map(i => i.trim()).filter(i => i),
@@ -54,7 +57,12 @@ function Profile() {
 
       const response = await api.put('/api/users/me', updatePayload);
       setUser(response.data.user);
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: isNewUser ? '🎉 Preferences saved! You\'re all set.' : 'Profile updated successfully!' });
+
+      // Remove the welcome flag from the URL once they save
+      if (isNewUser) {
+        setSearchParams({});
+      }
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to update profile' });
     } finally {
@@ -66,7 +74,23 @@ function Profile() {
 
   return (
     <div className="profile-container card">
-      <h2>My Profile</h2>
+
+      {/* Welcome / Onboarding Banner for new users */}
+      {isNewUser && (
+        <div className="onboarding-banner">
+          <div className="onboarding-banner__icon">🎉</div>
+          <div className="onboarding-banner__body">
+            <h3>Welcome to Smart Meal, {user.name}!</h3>
+            <p>
+              To get personalised recipe recommendations, please fill in your dietary preferences below.
+              This only takes a minute and helps us suggest meals you'll love.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <h2>{isNewUser ? 'Set Up Your Dietary Preferences' : 'My Profile'}</h2>
+
       {message.text && (
         <div className={`alert alert-${message.type}`}>
           {message.text}
@@ -155,15 +179,17 @@ function Profile() {
 
         <div className="form-actions">
           <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading ? 'Saving...' : isNewUser ? '✓ Save & Get Started' : 'Save Changes'}
           </button>
         </div>
       </form>
 
-      <div className="profile-links">
-         <Link to="/change-password">Change Password</Link>
-         <Link to="/delete-account" className="text-danger">Delete Account</Link>
-      </div>
+      {!isNewUser && (
+        <div className="profile-links">
+           <Link to="/change-password">Change Password</Link>
+           <Link to="/delete-account" className="text-danger">Delete Account</Link>
+        </div>
+      )}
     </div>
   );
 }
