@@ -123,7 +123,7 @@ function Register() {
             required 
           />
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
       </form>

@@ -9,19 +9,42 @@ function Dashboard() {
 
   return (
     <div className="dashboard-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Dashboard</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h2 style={{ marginBottom: '0.25rem' }}>Welcome back, {user ? user.name : 'User'} 👋</h2>
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>Here's what's happening with your meals today.</p>
+        </div>
         <button 
           onClick={toggleTheme} 
-          style={{ width: 'auto', margin: 0, padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+          className="btn-secondary"
+          style={{ width: 'auto', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
-          {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          {isDark ? '☀️ Light' : '🌙 Dark'}
         </button>
       </div>
       
-      <p>Welcome to your SmartRecipe dashboard, {user ? user.name : 'User'}!</p>
-      
-      
+      <div className="dashboard-grid">
+        <Link to="/inventory" className="dashboard-card">
+          <div className="card-icon">🥑</div>
+          <h3>Inventory</h3>
+          <p>Manage your ingredients</p>
+        </Link>
+        <Link to="/recommendations" className="dashboard-card">
+          <div className="card-icon">✨</div>
+          <h3>Recipes</h3>
+          <p>Get personalized meals</p>
+        </Link>
+        <Link to="/mealplan" className="dashboard-card">
+          <div className="card-icon">📅</div>
+          <h3>Meal Plan</h3>
+          <p>Organize your week</p>
+        </Link>
+        <Link to="/shoppinglist" className="dashboard-card">
+          <div className="card-icon">🛒</div>
+          <h3>Shopping List</h3>
+          <p>What you need to buy</p>
+        </Link>
+      </div>
     </div>
   );
 }
