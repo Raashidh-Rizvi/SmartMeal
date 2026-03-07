@@ -832,9 +832,18 @@ button:disabled::after { display: none; }
 .btn-icon {
   background: transparent;
   border: none;
+  color: var(--primary);
   font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
+  box-shadow: none;
+  width: auto;
+}
+.btn-icon:hover {
+  text-decoration: underline;
+  transform: none;
+  box-shadow: none;
 }
 
 .admin-pagination {
@@ -842,8 +851,14 @@ button:disabled::after { display: none; }
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin-top: 1.5rem;
-  padding: 1rem 0;
+  margin-top: auto;
+  padding: 2rem 0 1rem;
+  width: 100%;
+}
+
+.admin-pagination button {
+  width: auto;
+  padding: 0.5rem 1.5rem;
 }
 
 .row-danger { background: rgba(239, 68, 68, 0.05) !important; }

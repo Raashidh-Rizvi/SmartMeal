@@ -12,6 +12,7 @@ function AdminLayout() {
           <NavLink to="/admin" end className={({isActive}) => isActive ? "active" : ""}>Dashboard</NavLink>
           <NavLink to="/admin/users" className={({isActive}) => isActive ? "active" : ""}>Users</NavLink>
           <NavLink to="/admin/inventory" className={({isActive}) => isActive ? "active" : ""}>Inventory</NavLink>
+          <NavLink to="/admin/ingredients" className={({isActive}) => isActive ? "active" : ""}>Ingredients</NavLink>
           <NavLink to="/admin/notifications" className={({isActive}) => isActive ? "active" : ""}>Notifications</NavLink>
         </nav>
       </aside>
