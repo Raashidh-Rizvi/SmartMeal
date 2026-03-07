@@ -27,6 +27,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminUserEdit from './pages/admin/AdminUserEdit';
 import AdminInventory from './pages/admin/AdminInventory';
+import AdminIngredients from './pages/admin/AdminIngredients';
 import AdminNotifications from './pages/admin/AdminNotifications';
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
                     <Route path="users" element={<AdminUsers />} />
                     <Route path="users/:id" element={<AdminUserEdit />} />
                     <Route path="inventory" element={<AdminInventory />} />
+                    <Route path="ingredients" element={<AdminIngredients />} />
                     <Route path="notifications" element={<AdminNotifications />} />
                   </Route>
                 </Route>

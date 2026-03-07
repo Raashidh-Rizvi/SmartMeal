@@ -10,8 +10,19 @@ class InventoryItemBase(BaseModel):
     expiryDate: Optional[datetime] = None
     notes: Optional[str] = None
 
-class InventoryItemCreate(InventoryItemBase):
-    pass
+class InventoryItemCreate(BaseModel):
+    name: str
+    quantity: int = 1
+    category: Optional[str] = None
+    expiryDate: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class InventoryItemUpdate(BaseModel):
+    name: Optional[str] = None
+    quantity: Optional[int] = None
+    category: Optional[str] = None
+    expiryDate: Optional[datetime] = None
+    notes: Optional[str] = None
 
 class InventoryItemInDB(InventoryItemBase):
     id: Optional[str] = Field(alias="_id", default=None)
