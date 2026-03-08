@@ -1,0 +1,281 @@
+/* ========================================
+   Component Styles
+   Buttons · Cards · Forms · Badges · Stats
+   ======================================== */
+
+/* ── Buttons ── */
+.btn-primary, .btn-secondary, .btn-add {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: var(--white);
+    color: var(--primary-green);
+}
+
+.btn-primary:hover {
+    background: var(--pale-green);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-secondary {
+    background: var(--light-gray);
+    color: var(--text-dark);
+}
+
+.btn-secondary:hover {
+    background: var(--gray);
+    transform: translateY(-2px);
+}
+
+.btn-add {
+    background: linear-gradient(135deg, var(--light-green) 0%, var(--primary-green) 100%);
+    color: var(--white);
+    width: 100%;
+    justify-content: center;
+}
+
+.btn-add:hover {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+}
+
+.btn-mark-bought {
+    background: var(--success);
+    color: var(--white);
+}
+
+.btn-mark-bought:hover { background: var(--dark-green); }
+
+.btn-edit {
+    background: var(--warning);
+    color: var(--white);
+}
+
+.btn-edit:hover { background: #e65100; }
+
+.btn-delete {
+    background: var(--danger);
+    color: var(--white);
+}
+
+.btn-delete:hover { background: #b71c1c; }
+
+/* ── Cards ── */
+.card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 25px;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.card:hover { box-shadow: var(--shadow-hover); }
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+    color: var(--white);
+    padding: 20px 25px;
+}
+
+.card-header h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.card-body { padding: 25px; }
+
+/* ── Add Item Card ── */
+.add-item-card .card-header {
+    background: linear-gradient(135deg, var(--light-green) 0%, var(--primary-green) 100%);
+}
+
+/* ── Form ── */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: var(--dark-gray);
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px 15px;
+    border: 2px solid var(--light-gray);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: var(--transition);
+    background: var(--white);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--light-green);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.btn-group { justify-content: flex-end; }
+
+/* ── Stat Cards ── */
+.stat-card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    border-left: 4px solid var(--primary-green);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.stat-card.pending { border-left-color: var(--warning); }
+.stat-card.bought  { border-left-color: var(--success); }
+
+.stat-icon {
+    font-size: 2.5rem;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pale-green);
+    border-radius: 50%;
+}
+
+.stat-card.pending .stat-icon { background: #fff3e0; }
+.stat-card.bought  .stat-icon { background: #e8f5e9; }
+
+.stat-info h3 {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+/* ── Status & Source Badges ── */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-pending {
+    background: #fff3e0;
+    color: var(--warning);
+}
+
+.status-bought {
+    background: #e8f5e9;
+    color: var(--success);
+}
+
+.source-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    background: var(--pale-green);
+    color: var(--primary-green);
+}
+
+/* ── Modal ── */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: var(--white);
+    margin: 5% auto;
+    padding: 0;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+    color: var(--white);
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.modal-header h2 { font-size: 1.3rem; }
+
+.close {
+    color: var(--white);
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+    line-height: 1;
+}
+
+.close:hover { color: var(--accent-green); }
+
+.modal-body { padding: 25px; }
+
+.modal-body .form-group { margin-bottom: 20px; }
+
+.modal-body .btn-add {
+    width: 100%;
+    margin-top: 10px;
+}
