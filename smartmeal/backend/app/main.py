@@ -11,6 +11,7 @@ from app.routes.users import router as users_router
 from app.routes.admin_routes import router as admin_router
 from app.routes.admin_ingredient_routes import router as admin_ingredient_router
 from app.routes.inventory_routes import router as inventory_router
+from app.routes.shopping_routes import router as shopping_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ app.include_router(users_router, prefix="/api/users", tags=["users"])
 app.include_router(inventory_router, prefix="/api/inventory", tags=["user-inventory"])
 app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
 app.include_router(admin_ingredient_router, prefix="/api/admin", tags=["admin-ingredients"])
+app.include_router(shopping_router, prefix="/api", tags=["shopping"])
 
 @app.get("/")
 async def root():

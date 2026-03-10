@@ -1019,3 +1019,277 @@ button:disabled::after { display: none; }
     align-items: center;
   }
 }
+
+/* ========================================================================= */
+/*                        SHOPPING LIST PAGE STYLES                          */
+/* ========================================================================= */
+.shopping-page {
+  width: 100%;
+}
+
+.shopping-page-header {
+  margin-bottom: 2rem;
+}
+
+.shopping-page-header h1 {
+  font-size: 2rem;
+  background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.4rem;
+}
+
+.shopping-add-btn-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.shopping-add-btn {
+  width: auto;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+}
+
+/* Stats Section */
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
+.stat-icon { font-size: 1.75rem; }
+
+.stat-info h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-group label { margin-bottom: 0; font-weight: 500; color: var(--text-muted); }
+.filter-group select { width: auto; margin: 0; padding: 0.5rem 1rem; }
+
+.action-buttons .btn-secondary { width: auto; padding: 0.5rem 1rem; font-size: 0.875rem; border-radius: 8px; }
+
+/* Card overrides for shopping sub-cards */
+.card-header {
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-header h2 { margin: 0; font-size: 1.2rem; }
+
+/* Table */
+.table-container { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--card-border);
+  font-size: 0.95rem;
+}
+
+th {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+
+tr:hover td { background: rgba(5, 150, 105, 0.04); }
+
+.empty-message {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 3rem 1rem;
+}
+
+/* Badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-bought {
+  background: rgba(5, 150, 105, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+.source-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: rgba(100, 116, 139, 0.1);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Action buttons in table cells */
+.action-buttons-cell {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn-edit, .btn-mark-bought, .btn-delete {
+  width: auto;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.btn-edit { background: rgba(5, 150, 105, 0.1); color: var(--primary); }
+.btn-mark-bought { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
+.btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+.btn-edit:hover { background: rgba(5, 150, 105, 0.2); }
+.btn-mark-bought:hover { background: rgba(16, 185, 129, 0.25); }
+.btn-delete:hover { background: rgba(239, 68, 68, 0.2); }
+
+/* Charts */
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.chart-card .card-body { padding: 0.5rem 0; }
+
+.chart-container {
+  position: relative;
+  height: 260px;
+}
+
+/* Single-view (add / edit) */
+.shopping-single-view { max-width: 700px; margin: 0 auto; }
+
+.shopping-back-btn { margin-bottom: 1.5rem; }
+
+.shopping-form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.shopping-form-actions button { flex: 1; }
+
+.edit-action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.edit-action-buttons button { width: auto; }
+
+/* Form row layout for edit form */
+.form-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-row .form-group { flex: 1; margin-bottom: 0; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 1rem 1.5rem;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  z-index: 9999;
+  animation: slideUp 0.3s ease-out;
+  box-shadow: var(--shadow-lg);
+  max-width: 360px;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast-success {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: #fff;
+}
+
+.toast-error {
+  background: linear-gradient(135deg, var(--danger), var(--danger-hover));
+  color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .filter-section { flex-direction: column; align-items: flex-start; }
+  .form-row { flex-direction: column; gap: 0; }
+  .shopping-form-actions { flex-direction: column; }
+  .edit-action-buttons { flex-direction: column; }
+}
+

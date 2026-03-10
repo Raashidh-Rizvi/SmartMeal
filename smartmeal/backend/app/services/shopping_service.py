@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from app.models.shopping_model import ShoppingItemCreate, ShoppingItemUpdate, ItemSource
-from app.config.database import get_collection
+from app.db.database import get_db
 
 # MongoDB collection name - use snake_case for consistency
 SHOPPING_COLLECTION = "shopping_items"
@@ -38,7 +38,7 @@ def serialize_item(item) -> dict:
 
 async def get_all_items(user_id: str, status_filter: Optional[str] = None) -> List[dict]:
     """Return all shopping items for a user, optionally filtered by status."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     query = {"user_id": user_id}
     if status_filter:
         query["status"] = status_filter
@@ -48,7 +48,7 @@ async def get_all_items(user_id: str, status_filter: Optional[str] = None) -> Li
 
 async def get_pending_items(user_id: str) -> List[dict]:
     """Return all pending items for a user."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     items = await collection.find(
         {"user_id": user_id, "status": "Pending"}
     ).sort("created_at", -1).to_list(length=100)
@@ -57,7 +57,7 @@ async def get_pending_items(user_id: str) -> List[dict]:
 
 async def get_bought_items(user_id: str) -> List[dict]:
     """Return all bought items for a user."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     items = await collection.find(
         {"user_id": user_id, "status": "Bought"}
     ).sort("created_at", -1).to_list(length=100)
@@ -70,7 +70,7 @@ async def add_item(item: ShoppingItemCreate) -> dict:
     If a pending item with the same name already exists for the user,
     the quantity is merged instead of creating a duplicate.
     """
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
 
     # Duplicate check (case-insensitive)
     existing = await collection.find_one({
@@ -104,12 +104,19 @@ async def add_item(item: ShoppingItemCreate) -> dict:
 
 async def update_item(item_id: str, update_data: ShoppingItemUpdate) -> Optional[dict]:
     """Update fields on an existing shopping item. Returns None if not found."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
 
     try:
-        update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
+        raw = update_data.model_dump()
     except AttributeError:
-        update_dict = {k: v for k, v in update_data.dict().items() if v is not None}
+        raw = update_data.dict()
+
+    # Filter out None values, then convert any enum to its .value for MongoDB
+    update_dict = {}
+    for k, v in raw.items():
+        if v is None:
+            continue
+        update_dict[k] = v.value if hasattr(v, "value") else v
 
     if not update_dict:
         return None  # caller should raise 400
@@ -124,7 +131,7 @@ async def update_item(item_id: str, update_data: ShoppingItemUpdate) -> Optional
 
 async def mark_item_bought(item_id: str) -> Optional[dict]:
     """Mark a single item as Bought. Returns None if not found."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     result = await collection.find_one_and_update(
         {"_id": ObjectId(item_id)},
         {"$set": {"status": "Bought"}},
@@ -135,14 +142,14 @@ async def mark_item_bought(item_id: str) -> Optional[dict]:
 
 async def delete_item(item_id: str) -> bool:
     """Delete a shopping item. Returns True if deleted, False if not found."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     result = await collection.delete_one({"_id": ObjectId(item_id)})
     return result.deleted_count > 0
 
 
 async def get_stats(user_id: str) -> dict:
     """Return aggregate statistics for a user's shopping list."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     total         = await collection.count_documents({"user_id": user_id})
     pending       = await collection.count_documents({"user_id": user_id, "status": "Pending"})
     bought        = await collection.count_documents({"user_id": user_id, "status": "Bought"})
@@ -165,7 +172,7 @@ async def add_items_from_meal_plan(user_id: str, items: list) -> dict:
     Batch-add items from a meal plan.
     Merges quantities for existing pending items; creates new ones otherwise.
     """
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     added_items   = []
     updated_items = []
 
@@ -209,6 +216,6 @@ async def add_items_from_meal_plan(user_id: str, items: list) -> dict:
 
 async def clear_bought_items(user_id: str) -> dict:
     """Delete all bought items for a user. Returns deletion count."""
-    collection = get_collection(SHOPPING_COLLECTION)
+    collection = get_db()[SHOPPING_COLLECTION]
     result = await collection.delete_many({"user_id": user_id, "status": "Bought"})
     return {"message": f"Deleted {result.deleted_count} bought items"}

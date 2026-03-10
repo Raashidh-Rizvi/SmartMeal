@@ -2,6 +2,7 @@
  * StatsSection Component
  * Displays summary stat cards: Total Items, Pending, Bought
  */
+import React from 'react';
 
 function StatsSection({ stats }) {
   return (
@@ -30,3 +31,5 @@ function StatsSection({ stats }) {
     </section>
   );
 }
+
+export default StatsSection;
