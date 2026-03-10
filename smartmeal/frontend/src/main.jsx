@@ -1,8 +1,10 @@
-/**
- * Main Entry Point
- * Shopping List Management System
- */
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App.jsx';
 
-// Mount the React application
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<ShoppingPage />);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

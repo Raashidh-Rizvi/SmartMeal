@@ -1,19 +1,15 @@
 /**
  * ShoppingTable Component
- * Displays the shopping list in a table with inline editing,
- * mark-as-bought, and delete functionality
+ * Displays the shopping list in a table with edit, mark-as-bought, and delete.
  */
+import React from 'react';
 
 function ShoppingTable({ items, loading, onMarkBought, onUpdateItem, onDeleteItem }) {
-  const { useState } = React;
-
-  // Helper to get item ID (supports both 'id' and '_id' field names)
   const getItemId = (item) => item.id || item._id || null;
 
   const startEdit = (item) => {
     const itemId = getItemId(item);
     if (!itemId) return;
-    // Call parent's onUpdateItem to navigate to edit view
     onUpdateItem(itemId, {});
   };
 
@@ -21,9 +17,7 @@ function ShoppingTable({ items, loading, onMarkBought, onUpdateItem, onDeleteIte
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+      month: 'short', day: 'numeric', year: 'numeric',
     });
   };
 
@@ -74,29 +68,11 @@ function ShoppingTable({ items, loading, onMarkBought, onUpdateItem, onDeleteIte
                       <td>{formatDate(item.created_at)}</td>
                       <td>
                         <div className="action-buttons-cell">
-                          <button 
-                            className="btn-small btn-edit" 
-                            onClick={() => startEdit(item)} 
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
+                          <button className="btn-small btn-edit" onClick={() => startEdit(item)} title="Edit">✏️</button>
                           {item.status === 'Pending' && (
-                            <button 
-                              className="btn-small btn-mark-bought" 
-                              onClick={() => onMarkBought(getItemId(item))} 
-                              title="Mark as Bought"
-                            >
-                              ✓
-                            </button>
+                            <button className="btn-small btn-mark-bought" onClick={() => onMarkBought(getItemId(item))} title="Mark as Bought">✓</button>
                           )}
-                          <button 
-                            className="btn-small btn-delete" 
-                            onClick={() => onDeleteItem(getItemId(item))} 
-                            title="Delete"
-                          >
-                            🗑
-                          </button>
+                          <button className="btn-small btn-delete" onClick={() => onDeleteItem(getItemId(item))} title="Delete">🗑</button>
                         </div>
                       </td>
                     </tr>
@@ -110,3 +86,5 @@ function ShoppingTable({ items, loading, onMarkBought, onUpdateItem, onDeleteIte
     </section>
   );
 }
+
+export default ShoppingTable;

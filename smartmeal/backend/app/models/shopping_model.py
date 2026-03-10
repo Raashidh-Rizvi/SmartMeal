@@ -58,6 +58,7 @@ class ShoppingItemUpdate(BaseModel):
     quantity: Optional[float] = None
     unit: Optional[str] = None
     status: Optional[ItemStatus] = None
+    source: Optional[ItemSource] = None
 
     class Config:
         populate_by_name = True
