@@ -7,8 +7,6 @@ export const ThemeProvider = ({ children }) => {
     // Check local storage for preference, default false (light mode)
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
-    
-    // Fallback: don't check OS preference anymore, user wants default light
     return false;
   });
 
