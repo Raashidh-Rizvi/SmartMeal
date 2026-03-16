@@ -30,6 +30,10 @@ import AdminInventory from './pages/admin/AdminInventory';
 import AdminIngredients from './pages/admin/AdminIngredients';
 import AdminNotifications from './pages/admin/AdminNotifications';
 
+// Recipe Components
+import RecipeManagement from './pages/recipes/RecipeManagement';
+import MyRecipes from './pages/recipes/MyRecipes';
+
 function App() {
   return (
     <ThemeProvider>
@@ -54,6 +58,8 @@ function App() {
                   <Route path="/recommendations" element={<Recommendations />} />
                   <Route path="/mealplan" element={<MealPlan />} />
                   <Route path="/shoppinglist" element={<ShoppingList />} />
+                  <Route path="/recipes" element={<RecipeManagement />} />
+                  <Route path="/my-recipes" element={<MyRecipes />} />
                 </Route>
 
                 {/* Admin Routes */}

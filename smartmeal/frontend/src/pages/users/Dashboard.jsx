@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { ThemeContext } from '../../context/ThemeContext';
-import { Link } from 'react-router-dom';
 
 function Dashboard() {
   const { user } = useContext(AuthContext);
@@ -43,6 +43,21 @@ function Dashboard() {
           <div className="card-icon">🛒</div>
           <h3>Shopping List</h3>
           <p>What you need to buy</p>
+        </Link>
+        <Link to="/recipes" className="dashboard-card">
+          <div className="card-icon">📖</div>
+          <h3>Recipe Repository</h3>
+          <p>Browse &amp; manage all recipes</p>
+        </Link>
+        <Link to="/my-recipes" className="dashboard-card">
+          <div className="card-icon">🍳</div>
+          <h3>My Recipes</h3>
+          <p>Recipes you have created</p>
+        </Link>
+        <Link to="/profile" className="dashboard-card">
+          <div className="card-icon">👤</div>
+          <h3>My Profile</h3>
+          <p>View and update your details</p>
         </Link>
       </div>
     </div>

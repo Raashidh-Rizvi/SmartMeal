@@ -1,11 +1,14 @@
 import React, { useContext, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 function Navbar() {
   const { user, logout } = useContext(AuthContext);
+  const { isDark, toggleTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -45,6 +48,8 @@ function Navbar() {
               <Link to="/recommendations" className="navbar-link" onClick={closeMenu}>Recommendations</Link>
               <Link to="/mealplan" className="navbar-link" onClick={closeMenu}>Meal Plan</Link>
               <Link to="/shoppinglist" className="navbar-link" onClick={closeMenu}>Shopping List</Link>
+              <Link to="/recipes" className={`navbar-link${location.pathname === '/recipes' ? ' active' : ''}`} onClick={closeMenu}>Recipes</Link>
+              <Link to="/my-recipes" className={`navbar-link${location.pathname === '/my-recipes' ? ' active' : ''}`} onClick={closeMenu}>My Recipes</Link>
 
               {user.role === 'ADMIN' && (
                 <Link to="/admin" className="navbar-link" style={{ color: 'var(--primary)', fontWeight: 'bold' }} onClick={closeMenu}>Admin</Link>
@@ -53,6 +58,14 @@ function Navbar() {
               <Link to="/profile" className="navbar-link" onClick={closeMenu}>
                 <span className="navbar-user">👤 {user.name}</span>
               </Link>
+              <button
+                className="btn-icon"
+                onClick={toggleTheme}
+                title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                style={{ fontSize: '1.2rem', padding: '0.2rem', background: 'transparent', border: 'none', cursor: 'pointer' }}
+              >
+                {isDark ? '☀️' : '🌙'}
+              </button>
               <button onClick={handleLogout} className="btn-secondary btn-small">Logout</button>
             </>
           ) : (
