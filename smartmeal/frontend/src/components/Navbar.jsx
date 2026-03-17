@@ -49,7 +49,6 @@ function Navbar() {
               <Link to="/mealplan" className="navbar-link" onClick={closeMenu}>Meal Plan</Link>
               <Link to="/shoppinglist" className="navbar-link" onClick={closeMenu}>Shopping List</Link>
               <Link to="/recipes" className={`navbar-link${location.pathname === '/recipes' ? ' active' : ''}`} onClick={closeMenu}>Recipes</Link>
-              <Link to="/my-recipes" className={`navbar-link${location.pathname === '/my-recipes' ? ' active' : ''}`} onClick={closeMenu}>My Recipes</Link>
 
               {user.role === 'ADMIN' && (
                 <Link to="/admin" className="navbar-link" style={{ color: 'var(--primary)', fontWeight: 'bold' }} onClick={closeMenu}>Admin</Link>

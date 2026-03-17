@@ -49,11 +49,6 @@ function Dashboard() {
           <h3>Recipe Repository</h3>
           <p>Browse &amp; manage all recipes</p>
         </Link>
-        <Link to="/my-recipes" className="dashboard-card">
-          <div className="card-icon">🍳</div>
-          <h3>My Recipes</h3>
-          <p>Recipes you have created</p>
-        </Link>
         <Link to="/profile" className="dashboard-card">
           <div className="card-icon">👤</div>
           <h3>My Profile</h3>

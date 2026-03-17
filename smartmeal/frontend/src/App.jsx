@@ -32,7 +32,6 @@ import AdminNotifications from './pages/admin/AdminNotifications';
 
 // Recipe Components
 import RecipeManagement from './pages/recipes/RecipeManagement';
-import MyRecipes from './pages/recipes/MyRecipes';
 
 function App() {
   return (
@@ -59,7 +58,6 @@ function App() {
                   <Route path="/mealplan" element={<MealPlan />} />
                   <Route path="/shoppinglist" element={<ShoppingList />} />
                   <Route path="/recipes" element={<RecipeManagement />} />
-                  <Route path="/my-recipes" element={<MyRecipes />} />
                 </Route>
 
                 {/* Admin Routes */}
