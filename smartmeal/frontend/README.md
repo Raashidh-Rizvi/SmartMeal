@@ -1,44 +1,110 @@
-# SmartMeal Frontend Server
+# SmartMeal — Frontend
 
-This is the React frontend for the SmartMeal application. It is constructed using Vite, React Router, and Axios, with a responsive UI built on standard CSS.
+React frontend for SmartMeal, built with Vite and React Router. Communicates with the FastAPI backend over REST (Axios) and uses Firebase for Google Sign-In.
 
-## Requirements
+## Stack
 
-- Node.js (Version 18+ recommended)
-- NPM or Yarn
+- **React 19** — UI library
+- **React Router v7** — client-side routing
+- **Axios** — HTTP client (configured for `http://localhost:8001`)
+- **Firebase** — Google Auth (popup-based sign-in)
+- **Vite 7** — build tool & dev server
+- **ESLint 9** — linting
 
-## Installation & Setup
+## Setup
 
-1. **Navigate to the Frontend Directory:**
-   In your terminal, navigate to the `frontend` folder:
+### 1. Install dependencies
 
-   ```bash
-   cd d:\Project\SmartRecipe\smartmeal\frontend
-   ```
+```powershell
+cd d:\Project\SmartRecipe\smartmeal\frontend
+npm install
+```
 
-2. **Install Dependencies:**
-   ```bash
-   npm install
-   ```
-   _(If you've just generated the template or cloned the repo, you must run this step!)_
+### 2. Configure environment (optional)
 
-## Running the Application
+To override the backend URL, create a `.env` file:
 
-To start the Vite development server with hot-module replacement (HMR), run the following command from inside the `frontend` folder:
+```env
+VITE_API_BASE_URL=http://localhost:8001
+```
 
-```bash
+If this variable is not set, the Axios client defaults to `http://localhost:8001`.
+
+### 3. Start the development server
+
+```powershell
 npm run dev
 ```
 
-- The local development server will start on `http://localhost:7001/`.
-- **Note:** Ensure your backend API is also running on port `8001`, as the Axios API client is configured to send requests there (`http://localhost:8001`).
+App runs at → `http://localhost:7001`
+
+> Make sure the backend is running at `http://localhost:8001` before using the app.
+
+## Available Scripts
+
+| Command           | Description                          |
+| ----------------- | ------------------------------------ |
+| `npm run dev`     | Start Vite dev server with HMR       |
+| `npm run build`   | Production build → `dist/`           |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint`    | Lint with ESLint 9                   |
+
+## Project Structure
+
+```
+frontend/
+├── public/
+├── src/
+│   ├── api/
+│   │   └── axios.js                  # Axios instance (baseURL, auth header injection)
+│   ├── components/
+│   │   ├── AdminRoute.jsx            # Guard: redirects non-admins
+│   │   ├── Footer.jsx                # Site-wide footer
+│   │   ├── Navbar.jsx                # Top navigation bar
+│   │   └── ProtectedRoute.jsx        # Guard: redirects unauthenticated users
+│   ├── context/
+│   │   ├── AuthContext.jsx           # Auth state (JWT + Firebase Google login)
+│   │   ├── ThemeContext.jsx          # Dark/light mode state
+│   │   └── firebase.js               # Firebase app initialisation
+│   ├── pages/
+│   │   ├── authentication/
+│   │   │   ├── Login.jsx
+│   │   │   └── Register.jsx
+│   │   ├── users/
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Profile.jsx
+│   │   │   ├── ChangePassword.jsx
+│   │   │   └── DeleteAccount.jsx
+│   │   ├── admin/
+│   │   │   ├── AdminLayout.jsx
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   ├── AdminUsers.jsx
+│   │   │   ├── AdminUserEdit.jsx
+│   │   │   ├── AdminInventory.jsx
+│   │   │   └── AdminNotifications.jsx
+│   │   ├── Inventory.jsx
+│   │   ├── MealPlan.jsx
+│   │   ├── Recommendations.jsx
+│   │   └── ShoppingList.jsx
+│   ├── App.jsx                       # Route definitions
+│   ├── App.css
+│   ├── index.css
+│   └── main.jsx                      # App entry point
+├── index.html
+├── vite.config.js
+└── package.json
+```
+
+## Backend Connection
+
+The Axios client in `src/api/axios.js` sends every request to `http://localhost:8001/api` and automatically attaches the JWT token from `localStorage` as a `Bearer` header.
+
+To change the backend URL, set `VITE_API_BASE_URL` in a `.env` file (see Setup above).
 
 ## Building for Production
 
-If you need to compile the application for production deployment, run:
-
-```bash
+```powershell
 npm run build
 ```
 
-This generates an optimized static build inside of the `dist` directory.
+Output is written to `frontend/dist/`. Serve it with any static host or run `npm run preview` to test the build locally.

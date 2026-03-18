@@ -1,5 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../api/axios';
+import { auth, googleProvider } from './firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 export const AuthContext = createContext();
 
@@ -14,7 +16,7 @@ export const AuthProvider = ({ children }) => {
         try {
           // api.js automatically attaches the token interceptor
           const response = await api.get('/api/auth/me');
-          setUser(response.data);
+          setUser(response.data.user);
         } catch (error) {
           console.error("Failed to fetch user profile", error);
           // Token might be invalid or expired
@@ -40,8 +42,34 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      
+      // Get the firebase token
+      const firebaseToken = await firebaseUser.getIdToken();
+      
+      // Send it to your backend to be verified and to get your own app's JWT
+      const response = await api.post('/api/auth/google', {
+        email: firebaseUser.email,
+        name: firebaseUser.displayName,
+        firebaseToken: firebaseToken,
+        uid: firebaseUser.uid
+      });
+      
+      // Assuming the backend returns the same shape as normal login
+      login(response.data.user, response.data.accessToken);
+      return response.data;
+      
+    } catch (error) {
+      console.error("Google login failed", error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, token, login, logout, loginWithGoogle, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
