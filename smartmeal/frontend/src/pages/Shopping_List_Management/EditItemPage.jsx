@@ -1,13 +1,9 @@
-/**
- * EditItemPage
- * Dedicated page for editing existing shopping items
- * Clean, focused interface for item modification
- */
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ShoppingAPI } from '../../api/axios';
+import Toast from '../../components/Toast';
 
 function EditItemPage() {
-  const { useState, useEffect } = React;
-  const { useNavigate, useParams } = ReactRouterDOM;
-
   const navigate = useNavigate();
   const { itemId } = useParams();
   
@@ -20,13 +16,7 @@ function EditItemPage() {
   const [fetching, setFetching] = useState(true);
   const [toast, setToast] = useState(null);
   const [originalItem, setOriginalItem] = useState(null);
-
   const showToast = (message, type = 'success') => setToast({ message, type });
-
-  // Load item data on mount
-  useEffect(() => {
-    loadItem();
-  }, [itemId]);
 
   const loadItem = async () => {
     if (!itemId) return;
@@ -55,6 +45,12 @@ function EditItemPage() {
     }
     setFetching(false);
   };
+
+  // Load item data on mount
+  useEffect(() => {
+    loadItem();
+  }, [itemId]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -278,3 +274,5 @@ function EditItemPage() {
     </div>
   );
 }
+
+export default EditItemPage;

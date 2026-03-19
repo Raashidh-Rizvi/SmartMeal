@@ -34,9 +34,9 @@ function Dashboard() {
           <h3>Recipes</h3>
           <p>Get personalized meals</p>
         </Link>
-        <Link to="/mealplan" className="dashboard-card">
+        <Link to="/meals" className="dashboard-card">
           <div className="card-icon">📅</div>
-          <h3>Meal Plan</h3>
+          <h3>Meal Schedule</h3>
           <p>Organize your week</p>
         </Link>
         <Link to="/shoppinglist" className="dashboard-card">

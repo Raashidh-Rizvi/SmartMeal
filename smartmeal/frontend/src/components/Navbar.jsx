@@ -46,7 +46,7 @@ function Navbar() {
             <>
               <Link to="/inventory" className="navbar-link" onClick={closeMenu}>Inventory</Link>
               <Link to="/recommendations" className="navbar-link" onClick={closeMenu}>Recommendations</Link>
-              <Link to="/mealplan" className="navbar-link" onClick={closeMenu}>Meal Plan</Link>
+              <Link to="/meals" className="navbar-link" onClick={closeMenu}>Meal Schedule</Link>
               <Link to="/shoppinglist" className="navbar-link" onClick={closeMenu}>Shopping List</Link>
               <Link to="/recipes" className={`navbar-link${location.pathname === '/recipes' ? ' active' : ''}`} onClick={closeMenu}>Recipes</Link>
 

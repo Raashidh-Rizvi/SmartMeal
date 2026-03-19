@@ -14,6 +14,7 @@ from app.routes.inventory_routes import router as inventory_router
 from app.routes.shopping_routes import router as shopping_router
 from app.routes.recipes import router as recipes_router
 from app.routes.upload import router as upload_router
+from app.routes.meal_schedule_routes import router as meal_schedule_router
 import logging
 import os
 
@@ -59,6 +60,7 @@ app.include_router(admin_ingredient_router, prefix="/api/admin", tags=["admin-in
 app.include_router(shopping_router, prefix="/api", tags=["shopping"])
 app.include_router(recipes_router, prefix="/api/recipes", tags=["recipes"])
 app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
+app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["meal-schedules"])
 
 @app.get("/")
 async def root():

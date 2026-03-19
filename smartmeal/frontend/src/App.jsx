@@ -18,7 +18,9 @@ import DeleteAccount from './pages/users/DeleteAccount';
 import Inventory from './pages/Inventory';
 import Recommendations from './pages/Recommendations';
 import MealPlan from './pages/MealPlan';
-import ShoppingList from './pages/ShoppingList';
+import ShoppingList from './pages/Shopping_List_Management/ShoppingPage';
+import MealSchedulePage from './pages/MealSchedulePage';
+import AddMealPage from './pages/AddMealPage';
 
 // Admin Components
 import AdminRoute from './components/AdminRoute';
@@ -56,6 +58,8 @@ function App() {
                   <Route path="/inventory" element={<Inventory />} />
                   <Route path="/recommendations" element={<Recommendations />} />
                   <Route path="/mealplan" element={<MealPlan />} />
+                  <Route path="/meals" element={<MealSchedulePage />} />
+                  <Route path="/add-meal" element={<AddMealPage />} />
                   <Route path="/shoppinglist" element={<ShoppingList />} />
                   <Route path="/recipes" element={<RecipeManagement />} />
                 </Route>

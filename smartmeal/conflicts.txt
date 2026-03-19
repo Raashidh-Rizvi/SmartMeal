@@ -1,0 +1,7 @@
+﻿smartmeal/backend/app/db/init_db.py
+smartmeal/backend/app/main.py
+smartmeal/frontend/src/App.jsx
+smartmeal/frontend/src/components/Navbar.jsx
+smartmeal/frontend/src/context/ThemeContext.jsx
+smartmeal/frontend/src/index.css
+smartmeal/frontend/src/pages/users/Dashboard.jsx

@@ -1,13 +1,9 @@
-/**
- * AddItemPage
- * Dedicated page for adding new shopping items
- * Clean, focused interface for item creation
- */
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ShoppingAPI } from '../../api/axios';
+import Toast from '../../components/Toast';
 
 function AddItemPage() {
-  const { useState, useEffect } = React;
-  const { useNavigate } = ReactRouterDOM;
-
   const navigate = useNavigate();
   
   const [item_name, set_item_name] = useState('');
@@ -199,3 +195,5 @@ function AddItemPage() {
     </div>
   );
 }
+
+export default AddItemPage;

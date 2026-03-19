@@ -14,7 +14,7 @@ function Login() {
     try {
       setError('');
       await loginWithGoogle();
-      navigate('/dashboard');
+      navigate('/');
     } catch {
       setError('Google Sign-In failed. Please try again.');
     }
@@ -35,7 +35,7 @@ function Login() {
       const { accessToken, user } = response.data;
       
       login(user, accessToken);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid email or password');
     }

@@ -3,55 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping List Management</title>
+    <title>SmartRecipe - Your AI Kitchen Assistant</title>
+    <link rel="stylesheet" href="/src/index.css">
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- ── Styles (split by concern) ── -->
-    <link rel="stylesheet" href="src/variables.css">
-    <link rel="stylesheet" href="src/layout.css">
-    <link rel="stylesheet" href="src/components.css">
-    <link rel="stylesheet" href="src/table.css">
-    <link rel="stylesheet" href="src/charts.css">
-    <link rel="stylesheet" href="src/animations.css">
-    <link rel="stylesheet" href="src/responsive.css">
-    <link rel="stylesheet" href="src/pages.css">
-
-    <!-- React via CDN (no Node.js required) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- React Router for navigation -->
-    <script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.development.js"></script>
-    <!-- Babel for JSX transformation in browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- ── API Service (plain JS, no JSX) ── -->
-    <script src="src/api/axios.js"></script>
-
-    <!-- ── React Components (loaded in dependency order) ── -->
-    <script type="text/babel" src="src/components/Toast.jsx"></script>
-    <script type="text/babel" src="src/components/ShoppingForm.jsx"></script>
-    <script type="text/babel" src="src/components/EditItemForm.jsx"></script>
-    <script type="text/babel" src="src/components/StatsSection.jsx"></script>
-    <script type="text/babel" src="src/components/FilterSection.jsx"></script>
-    <script type="text/babel" src="src/components/ShoppingTable.jsx"></script>
-    <script type="text/babel" src="src/components/ShoppingChart.jsx"></script>
-
-    <!-- ── Pages ── -->
-    <script type="text/babel" src="src/pages/AddItemPage.jsx"></script>
-    <script type="text/babel" src="src/pages/EditItemPage.jsx"></script>
-    <script type="text/babel" src="src/pages/ShoppingPage.jsx"></script>
-
-    <!-- ── Router ── -->
-    <script type="text/babel" src="src/router.jsx"></script>
-
     <!-- ── App Entry Point ── -->
-    <script type="text/babel" src="src/main.jsx"></script>
+    <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

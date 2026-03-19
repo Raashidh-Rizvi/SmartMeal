@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import ShoppingAPI from '../services/shoppingApi';
+import { ShoppingAPI } from '../api/axios';
 
 function EditItemForm({ itemId, onSave, onCancel, onDelete }) {
   const { user } = useContext(AuthContext);

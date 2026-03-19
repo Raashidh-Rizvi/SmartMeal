@@ -9,6 +9,7 @@ import {
     deleteRecipe,
     uploadRecipeImage,
 } from '../../api/recipes';
+import './recipes.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -386,73 +387,67 @@ function RecipeManagement() {
                                     onClick={() => openDetail(recipe._id)}
                                     id={`recipe-card-${recipe._id}`}
                                 >
-                                    {/* Action Buttons Container (Always visible for structure) */}
+                                    {/* Action Buttons */}
                                     {isOwner(recipe) && (
-                                        <div className="recipe-card-actions inline-actions" onClick={e => e.stopPropagation()}>
+                                        <div className="recipe-card-actions" onClick={e => e.stopPropagation()}>
                                             <button 
-                                                className="btn-icon-sm action-edit" 
+                                                className="action-edit" 
                                                 onClick={() => openEdit(recipe)}
                                                 title="Edit Recipe"
-                                                style={{ width: '36px', height: '36px', padding: 0 }} /* Override global button block style */
                                             >
                                                 ✏️
                                             </button>
                                             <button 
-                                                className="btn-icon-sm action-delete" 
+                                                className="action-delete" 
                                                 onClick={(e) => handleDelete(recipe, e)}
                                                 title="Delete Recipe"
-                                                style={{ width: '36px', height: '36px', padding: 0 }} /* Override global button block style */
                                             >
                                                 🗑️
                                             </button>
                                         </div>
                                     )}
 
-                                    {/* Optional Image */}
-                                    {recipe.image_url && (
-                                        <img
-                                            src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
-                                            alt={recipe.title}
-                                            className="recipe-card-img"
-                                            onError={e => { e.target.style.display = 'none'; }}
-                                        />
-                                    )}
+                                    {/* Recipe Image */}
+                                    <div className="recipe-card-img-wrapper">
+                                        {recipe.image_url ? (
+                                            <img
+                                                src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
+                                                alt={recipe.title}
+                                                className="recipe-card-img"
+                                                onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"></div>'; }}
+                                            />
+                                        ) : (
+                                            <div className="recipe-card-placeholder"></div>
+                                        )}
+                                    </div>
 
-                                    {/* Card Content Base */}
+                                    {/* Card Content */}
                                     <div className="recipe-card-body">
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <div className="recipe-card-category">
                                             <span className={`badge badge-${recipe.category}`}>
                                                 {recipe.category}
                                             </span>
-                                            {recipe.estimated_cooking_time && (
-                                                <span className="recipe-time" style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                    ⏱️ {recipe.estimated_cooking_time} min
-                                                </span>
-                                            )}
                                         </div>
 
                                         <h3 className="recipe-card-title">{recipe.title}</h3>
                                         
                                         {recipe.description && (
                                             <p className="recipe-card-desc">
-                                                {recipe.description.length > 80 ? recipe.description.slice(0, 80) + '...' : recipe.description}
+                                                {recipe.description}
                                             </p>
                                         )}
 
-                                        <div className="recipe-card-footer" style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span className="recipe-ingredient-count" style={{ fontSize: '0.85rem', fontWeight: '500', color: '#059669' }}>
-                                                {recipe.ingredients.length} ingredient{recipe.ingredients.length !== 1 ? 's' : ''}
-                                            </span>
-                                            
-                                            {recipe.dietary_tags?.length > 0 && (
-                                                <div className="tag-chips" style={{ display: 'flex', gap: '4px' }}>
-                                                    {recipe.dietary_tags.slice(0, 2).map(tag => (
-                                                        <span key={tag} className="tag-chip" style={{ background: '#f8fafc', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', color: '#64748b' }}>
-                                                            {tag}
-                                                        </span>
-                                                    ))}
+                                        <div className="recipe-card-meta">
+                                            {recipe.estimated_cooking_time && (
+                                                <div className="meta-item">
+                                                    <span className="meta-icon">⏱️</span>
+                                                    <span>{recipe.estimated_cooking_time} min</span>
                                                 </div>
                                             )}
+                                            <div className="meta-item">
+                                                <span className="meta-icon">🧂</span>
+                                                <span>{recipe.ingredients.length} Ingred.</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

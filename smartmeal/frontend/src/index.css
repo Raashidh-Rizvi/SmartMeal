@@ -29,14 +29,14 @@
 }
 
 .dark {
-  /* Ultra-Premium Dark Theme - Midnight */
-  --bg-gradient: radial-gradient(circle at top right, #1e293b, #0f172a, #020617);
-  --card-bg: rgba(30, 41, 59, 0.45);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
+  /* Ultra-Premium Dark Theme - Greenish Night */
+  --bg-gradient: radial-gradient(circle at top right, #064e3b, #022c22, #011c16);
+  --card-bg: rgba(6, 78, 59, 0.45);
+  --card-border: rgba(52, 211, 153, 0.1);
+  --text-main: #ecfdf5;
+  --text-muted: #6ee7b7;
   
-  --primary: #10b981; /* Vibrant Emerald */
+  --primary: #10b981; /* Vibrant Emerald stays as it is already green */
   --primary-glow: rgba(16, 185, 129, 0.35);
   --primary-hover: #34d399;
   
@@ -48,8 +48,8 @@
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 
   --glass-blur: blur(24px);
-  --navbar-bg: rgba(15, 23, 42, 0.65);
-  --mobile-menu-bg: #0f172a;
+  --navbar-bg: rgba(2, 44, 34, 0.7);
+  --mobile-menu-bg: #022c22;
 }
 
 body {

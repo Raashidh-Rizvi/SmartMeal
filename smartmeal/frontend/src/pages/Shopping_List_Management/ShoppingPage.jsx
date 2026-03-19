@@ -1,23 +1,26 @@
-/**
- * ShoppingPage
- * Root page component that wires together all sub-components and
- * manages application-level state (items, stats, filters, toasts).
- *
- * Depends on:
- *   - ShoppingAPI  (src/services/api.js)
- *   - ShoppingForm (src/components/ShoppingForm.jsx)
- *   - StatsSection (src/components/StatsSection.jsx)
- *   - FilterSection(src/components/FilterSection.jsx)
- *   - ShoppingTable(src/components/ShoppingTable.jsx)
- *   - ShoppingChart(src/components/ShoppingChart.jsx)
- *   - Toast        (src/components/Toast.jsx)
- */
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
+import { ShoppingAPI } from '../../api/axios';
+import ShoppingForm from '../../components/ShoppingForm';
+import StatsSection from '../../components/StatsSection';
+import FilterSection from '../../components/FilterSection';
+import ShoppingTable from '../../components/ShoppingTable';
+import ShoppingChart from '../../components/ShoppingChart';
+import EditItemForm from '../../components/EditItemForm';
+import Toast from '../../components/Toast';
 
 function ShoppingPage() {
-  const { useState, useEffect } = React;
 
   // ── State ────────────────────────────────────────────────────────────────
-  const [user_id, setUser_id]           = useState('user123');
+  const { user } = useContext(AuthContext);
+  const [user_id, setUser_id] = useState(user?.uid || user?.id || user?._id || 'user123');
+
+  // Update user_id when auth user changes
+  useEffect(() => {
+    if (user) {
+      setUser_id(user.uid || user.id || user._id || '');
+    }
+  }, [user]);
   const [items, setItems]             = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -49,10 +52,17 @@ function ShoppingPage() {
   // ── Toast helper ─────────────────────────────────────────────────────────
   const showToast = (message, type = 'success') => setToast({ message, type });
 
-  // ── Load on user_id change ────────────────────────────────────────────────
-  useEffect(() => { loadItems(); }, [user_id]);
-
   // ── Data fetching ────────────────────────────────────────────────────────
+  const loadStats = async () => {
+    if (!user_id.trim()) return;
+    try {
+      const data = await ShoppingAPI.getStats(user_id);
+      setStats(data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
   const loadItems = async () => {
     if (!user_id.trim()) return;
     setLoading(true);
@@ -67,15 +77,9 @@ function ShoppingPage() {
     setLoading(false);
   };
 
-  const loadStats = async () => {
-    if (!user_id.trim()) return;
-    try {
-      const data = await ShoppingAPI.getStats(user_id);
-      setStats(data);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  };
+  // ── Load on user_id change ────────────────────────────────────────────────
+  useEffect(() => { loadItems(); }, [user_id, status_filter]);
+
 
   // ── CRUD handlers ────────────────────────────────────────────────────────
   const addItem = async (itemData) => {
@@ -145,28 +149,8 @@ function ShoppingPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="shopping-page">
-
-      {/* ── Header ── */}
-      <header className="app-header">
-        <div className="header-content">
-          <h1>🛒 Shopping List Manager</h1>
-          <p className="tagline">Your Personal Grocery Planning Assistant</p>
-        </div>
-        <div className="user-section">
-          <input
-            type="text"
-            id="user_id"
-            placeholder="Enter User ID"
-            value={user_id}
-            onChange={(e) => setUser_id(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && loadItems()}
-          />
-          <button onClick={loadItems} className="btn-primary">Load List</button>
-        </div>
-      </header>
-
-      {/* ── Main Content ── */}
-      <main className="main-content">
+      {/* ── Content ── */}
+      <div className="shopping-content-area">
 
         {/* LIST VIEW */}
         {currentView === 'list' && (
@@ -232,12 +216,7 @@ function ShoppingPage() {
           </div>
         )}
 
-      </main>
-
-      {/* ── Footer ── */}
-      <footer className="app-footer">
-        <p>Shopping List Management System</p>
-      </footer>
+      </div>
 
       {/* ── Toast Notification ── */}
       {toast && (
@@ -251,3 +230,5 @@ function ShoppingPage() {
     </div>
   );
 }
+
+export default ShoppingPage;
