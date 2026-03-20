@@ -5,21 +5,33 @@ Thumbs.db
 ## Cursor / VSCode
 .vscode/
 .cursor/
+.idea/
+*.swp
+*.swo
+*~
 
 ## Environment files (do not commit secrets)
 .env
 backend/.env
 frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
 
 ## Python
 __pycache__/
 *.py[cod]
 *.pyo
+*$py.class
+*.so
+.Python
 .pytest_cache/
 .mypy_cache/
 
 ## Virtual environments
 venv/
+ENV/
 backend/venv/
 .venv/
 
@@ -35,4 +47,4 @@ pnpm-debug.log*
 dist/
 build/
 frontend/dist/
-
+/frontend/build

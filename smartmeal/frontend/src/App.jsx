@@ -35,6 +35,10 @@ import AdminNotifications from './pages/admin/AdminNotifications';
 // Recipe Components
 import RecipeManagement from './pages/recipes/RecipeManagement';
 
+// Your Components
+import Leftovers from './pages/Leftovers';
+import BudgetDashboard from './components/BudgetDashboard';
+
 function App() {
   return (
     <ThemeProvider>
@@ -62,6 +66,8 @@ function App() {
                   <Route path="/add-meal" element={<AddMealPage />} />
                   <Route path="/shoppinglist" element={<ShoppingList />} />
                   <Route path="/recipes" element={<RecipeManagement />} />
+                  <Route path="/leftovers" element={<Leftovers />} />
+                  <Route path="/budget" element={<BudgetDashboard />} />
                 </Route>
 
                 {/* Admin Routes */}

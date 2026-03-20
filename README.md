@@ -15,7 +15,7 @@ smartmeal/
 ### 1. Backend
 
 ```powershell
-cd d:\Project\SmartRecipe\smartmeal\backend
+cd backend
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
@@ -27,7 +27,7 @@ Swagger docs → `http://127.0.0.1:8001/docs`
 ### 2. Frontend
 
 ```powershell
-cd d:\Project\SmartRecipe\smartmeal\frontend
+cd frontend
 npm install
 npm run dev
 ```
