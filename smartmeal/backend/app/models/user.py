@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime
 
 class UserPreferences(BaseModel):
     dietType: Optional[str] = None
@@ -18,13 +18,21 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class PasswordUpdate(BaseModel):
+    oldPassword: str
+    newPassword: str
+
 class UserInDB(UserBase):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: Optional[str] = Field(alias="_id", default=None)
     password_hash: str
     createdAt: datetime
     updatedAt: datetime
-    
+
 class UserResponse(UserBase):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: str = Field(alias="_id")
     createdAt: datetime
     updatedAt: datetime
@@ -36,3 +44,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
     userId: Optional[str] = None
+
+class GoogleLoginRequest(BaseModel):
+    email: str
+    name: str
+    firebaseToken: str
+    uid: str
