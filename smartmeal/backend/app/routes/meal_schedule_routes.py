@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @router.get("/", response_model=List[dict])
 async def get_meals():
-    db = await get_db()
+    db = get_db()
     meals = await db.meal_schedules.find().to_list(1000)
     for meal in meals:
         meal["_id"] = str(meal["_id"])
@@ -18,14 +18,14 @@ async def get_meals():
 
 @router.post("/", response_model=dict)
 async def create_meal(meal: MealSchedule):
-    db = await get_db()
+    db = get_db()
     meal_dict = meal.model_dump()
     result = await db.meal_schedules.insert_one(meal_dict)
     return {"_id": str(result.inserted_id), **meal_dict}
 
 @router.put("/{meal_id}", response_model=dict)
 async def update_meal(meal_id: str, meal: MealSchedule):
-    db = await get_db()
+    db = get_db()
     if not ObjectId.is_valid(meal_id):
         raise HTTPException(status_code=400, detail="Invalid meal ID")
     
@@ -41,7 +41,7 @@ async def update_meal(meal_id: str, meal: MealSchedule):
 
 @router.delete("/{meal_id}")
 async def delete_meal(meal_id: str):
-    db = await get_db()
+    db = get_db()
     if not ObjectId.is_valid(meal_id):
         raise HTTPException(status_code=400, detail="Invalid meal ID")
     

@@ -15,6 +15,8 @@ from app.routes.shopping_routes import router as shopping_router
 from app.routes.recipes import router as recipes_router
 from app.routes.upload import router as upload_router
 from app.routes.meal_schedule_routes import router as meal_schedule_router
+from app.routes.leftovers import router as leftovers_router
+from app.routes.budget import router as budget_router
 import logging
 import os
 
@@ -61,6 +63,8 @@ app.include_router(shopping_router, prefix="/api", tags=["shopping"])
 app.include_router(recipes_router, prefix="/api/recipes", tags=["recipes"])
 app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["meal-schedules"])
+app.include_router(leftovers_router)
+app.include_router(budget_router)
 
 @app.get("/")
 async def root():
