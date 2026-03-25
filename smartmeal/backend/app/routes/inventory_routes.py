@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from app.db.database import get_db
 from app.models.user import UserInDB
@@ -8,6 +8,8 @@ from app.models.inventory_models import InventoryItemCreate, InventoryItemUpdate
 from app.api.deps import get_current_user
 
 router = APIRouter()
+
+
 
 @router.get("/", response_model=dict)
 async def get_my_inventory(
@@ -33,6 +35,7 @@ async def get_my_inventory(
         "limit": limit
     }
 
+
 @router.post("/", response_model=InventoryItemResponse)
 async def create_inventory_item(
     item_in: InventoryItemCreate,
@@ -50,6 +53,7 @@ async def create_inventory_item(
     new_item["_id"] = str(result.inserted_id)
     
     return new_item
+
 
 @router.put("/{item_id}", response_model=InventoryItemResponse)
 async def update_inventory_item(
@@ -84,6 +88,7 @@ async def update_inventory_item(
     
     return updated_item
 
+
 @router.delete("/{item_id}")
 async def delete_inventory_item(
     item_id: str,
@@ -103,3 +108,33 @@ async def delete_inventory_item(
     await db["inventory_items"].delete_one({"_id": ObjectId(item_id)})
         
     return {"message": "deleted"}
+
+
+
+@router.get("/expiring-soon", response_model=List[InventoryItemResponse])
+async def get_expiring_soon(
+    days: int = Query(7, ge=1, le=30, description="Number of days to check for expiry"),
+    current_user: UserInDB = Depends(get_current_user)
+):
+    db = get_db()
+    
+    cutoff_date = datetime.now(timezone.utc) + timedelta(days=days)
+
+    
+    cursor = db["inventory_items"].find({
+        "userId": str(current_user.id),
+        "expiryDate": {
+            "$exists": True,
+            "$ne": None,
+            "$gte": datetime.now(timezone.utc),      # not already expired
+            "$lte": cutoff_date
+        }
+    }).sort("expiryDate", 1)   # sort by soonest expiry first
+
+    items = await cursor.to_list(length=50)  # reasonable limit
+
+    # Convert ObjectId to string for JSON response
+    for item in items:
+        item["_id"] = str(item["_id"])
+
+    return items
