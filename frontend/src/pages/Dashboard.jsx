@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import { getMeals } from "../services/mealService";
-import { RECIPES } from "../data/recipes";
+import { getRecipes } from "../services/recipeService";
 
 export default function Dashboard(){
 
     const [meals,setMeals] = useState([]);
+    const [recipes, setRecipes] = useState([]);
 
     const loadMeals = async()=>{
         try{
@@ -16,8 +17,18 @@ export default function Dashboard(){
         }
     };
 
+    const loadRecipes = async()=>{
+        try{
+            const res = await getRecipes();
+            setRecipes(res.data);
+        }catch(err){
+            console.log(err);
+        }
+    };
+
     useEffect(()=>{
         loadMeals();
+        loadRecipes();
     },[]);
 
     return(
@@ -59,7 +70,7 @@ export default function Dashboard(){
                     }}>
                         <h3>Total Recipes Available</h3>
                         <h1 style={{fontSize:"40px", margin:"10px 0"}}>
-                            {RECIPES.length}
+                            {recipes.length}
                         </h1>
                         <p style={{margin:0,color:"#4b5563"}}>
                             Number of different recipe options you can choose from.
