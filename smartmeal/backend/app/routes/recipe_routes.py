@@ -8,13 +8,23 @@ from ..schemas.recipe_schema import RecipeCreate, RecipeUpdate, RecipeResponse
 router = APIRouter()
 
 
+@router.get("/by-type/{meal_type}")
+async def get_recipes_by_type(meal_type: str):
+    db = get_db()
+    cursor = db.recipes.find({"category": meal_type.lower()}).sort("title", 1)
+    recipes = await cursor.to_list(length=None)
+    for r in recipes:
+        r["_id"] = str(r["_id"])
+    return recipes
+
+
 @router.get("/", response_model=List[RecipeResponse])
 async def get_recipes(
     search: Optional[str] = None,
     category: Optional[str] = None,
     created_by: Optional[str] = None,
     skip: int = Query(0, ge=0),
-    limit: int = Query(12, ge=1, le=100)
+    limit: int = Query(12, ge=1, le=200)
 ):
     db = get_db()
     query = {}

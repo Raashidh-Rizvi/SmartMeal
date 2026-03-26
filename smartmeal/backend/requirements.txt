@@ -1,24 +1,11 @@
 fastapi
-<<<<<<< HEAD:backend/requirements.txt
 uvicorn[standard]
 motor
 pymongo
-python-dotenv
-pydantic
-bson
-=======
-uvicorn
-motor
 pydantic
 passlib[bcrypt]
 bcrypt==4.0.1
 python-jose[cryptography]
 python-dotenv
-fastapi-cors
 python-multipart
 certifi
-pandas
-kagglehub[pandas-datasets]
-numpy
-scikit-learn
->>>>>>> main:smartmeal/backend/requirements.txt

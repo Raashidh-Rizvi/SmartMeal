@@ -17,7 +17,7 @@ function Register() {
     try {
       setError('');
       await loginWithGoogle();
-      navigate('/profile?welcome=1');
+      navigate('/dashboard');
     } catch {
       setError('Google Sign-In failed. Please try again.');
     }
@@ -34,22 +34,9 @@ function Register() {
 
     setLoading(true);
     try {
-      // Register the new account
-      await api.post('/api/auth/register', { name, email, password });
-
-      // Auto-login immediately after registration
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-      const loginResponse = await api.post('/api/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-
-      const { accessToken, user } = loginResponse.data;
-      login(user, accessToken);
-
-      // Redirect to profile with welcome flag to prompt dietary preferences
-      navigate('/profile?welcome=1');
+      const { data } = await api.post('/api/auth/register', { name, email, password });
+      login(data.user, data.accessToken);
+      navigate('/dashboard');
     } catch (err) {
       const errMsg = err.response?.data?.detail || 'Registration failed. Please try again.';
       setError(errMsg);
