@@ -9,3 +9,7 @@ python-dotenv
 fastapi-cors
 python-multipart
 certifi
+pandas
+kagglehub[pandas-datasets]
+numpy
+scikit-learn
