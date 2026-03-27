@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from bson import ObjectId
 from datetime import datetime, timezone
 from ..db.database import get_db
@@ -8,13 +9,22 @@ router = APIRouter()
 
 
 @router.get("/ingredients")
-async def admin_list_ingredients():
+async def admin_list_ingredients(
+    page: int = 1,
+    limit: int = 15,
+    search: Optional[str] = None
+):
     db = get_db()
-    cursor = db.ingredients.find({})
-    items = await cursor.to_list(length=None)
+    query = {}
+    if search:
+        query["name"] = {"$regex": search, "$options": "i"}
+    skip = (page - 1) * limit
+    cursor = db.ingredients.find(query).skip(skip).limit(limit)
+    items = await cursor.to_list(length=limit)
+    total = await db.ingredients.count_documents(query)
     for item in items:
         item["_id"] = str(item["_id"])
-    return items
+    return {"items": items, "total": total, "page": page, "limit": limit}
 
 
 @router.post("/ingredients")

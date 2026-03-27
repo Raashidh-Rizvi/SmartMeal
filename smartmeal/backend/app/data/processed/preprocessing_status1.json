@@ -1,0 +1,18 @@
+{
+  "status": "completed",
+  "input_file": "D:\\Project\\SmartRecipe\\smartmeal\\backend\\app\\data\\raw\\cuisines.csv",
+  "working_file": "D:\\Project\\SmartRecipe\\smartmeal\\backend\\app\\data\\processed\\processed_recipes_working1.csv",
+  "final_output_file": "D:\\Project\\SmartRecipe\\smartmeal\\backend\\app\\data\\processed\\processed_recipes1.csv",
+  "removed_rows_file_backup": "D:\\Project\\SmartRecipe\\smartmeal\\backend\\app\\data\\processed\\removed_non_english_rows1.csv",
+  "total_rows_before": 4236,
+  "total_rows_translated": 1022,
+  "final_total_rows": 4225,
+  "non_english_counts_by_column": {
+    "name": 1020,
+    "ingredients": 1016,
+    "cuisine": 0,
+    "course": 0,
+    "diet": 0,
+    "instructions": 1020
+  }
+}

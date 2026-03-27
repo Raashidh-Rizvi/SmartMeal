@@ -23,17 +23,31 @@ class BudgetUpdate(BaseModel):
 
 class ExpenseCreate(BaseModel):
     user_id: Optional[str] = "1"
-    description: str
+    item_name: str
+    description: Optional[str] = None
     amount: float
     category: Optional[str] = "general"
     date: Optional[datetime] = None
+    notes: Optional[str] = None
 
 
 class ExpenseUpdate(BaseModel):
+    item_name: Optional[str] = None
     description: Optional[str] = None
     amount: Optional[float] = None
     category: Optional[str] = None
     date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+def serialize_expense(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    return doc
+
+
+def serialize_budget(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    return doc
 
 
 @router.post("/api/budget/budgets")
@@ -42,8 +56,8 @@ async def create_budget(data: BudgetCreate):
     doc = data.model_dump()
     doc["created_at"] = datetime.now(timezone.utc)
     result = await db.budgets.insert_one(doc)
-    doc["_id"] = str(result.inserted_id)
-    return doc
+    doc["_id"] = result.inserted_id
+    return serialize_budget(doc)
 
 
 @router.get("/api/budget/budgets/current")
@@ -52,8 +66,7 @@ async def get_current_budget():
     doc = await db.budgets.find_one({"user_id": "1"}, sort=[("created_at", -1)])
     if not doc:
         return None
-    doc["_id"] = str(doc["_id"])
-    return doc
+    return serialize_budget(doc)
 
 
 @router.put("/api/budget/budgets/{budget_id}")
@@ -64,8 +77,7 @@ async def update_budget(budget_id: str, data: BudgetUpdate):
     doc = await db.budgets.find_one({"_id": ObjectId(budget_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Budget not found")
-    doc["_id"] = str(doc["_id"])
-    return doc
+    return serialize_budget(doc)
 
 
 @router.delete("/api/budget/budgets/{budget_id}")
@@ -85,8 +97,8 @@ async def create_expense(data: ExpenseCreate):
     if not doc.get("date"):
         doc["date"] = doc["created_at"]
     result = await db.expenses.insert_one(doc)
-    doc["_id"] = str(result.inserted_id)
-    return doc
+    doc["_id"] = result.inserted_id
+    return serialize_expense(doc)
 
 
 @router.get("/api/budget/expenses")
@@ -97,9 +109,7 @@ async def get_expenses(category: Optional[str] = None):
         query["category"] = category
     cursor = db.expenses.find(query).sort("date", -1)
     items = await cursor.to_list(length=None)
-    for item in items:
-        item["_id"] = str(item["_id"])
-    return items
+    return [serialize_expense(item) for item in items]
 
 
 @router.put("/api/budget/expenses/{expense_id}")
@@ -110,8 +120,7 @@ async def update_expense(expense_id: str, data: ExpenseUpdate):
     doc = await db.expenses.find_one({"_id": ObjectId(expense_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Expense not found")
-    doc["_id"] = str(doc["_id"])
-    return doc
+    return serialize_expense(doc)
 
 
 @router.delete("/api/budget/expenses/{expense_id}")
@@ -131,8 +140,22 @@ async def get_summary():
     expenses = await cursor.to_list(length=None)
     total_spent = sum(e.get("amount", 0) for e in expenses)
     budget_amount = budget.get("amount", 0) if budget else 0
+    remaining = budget_amount - total_spent
+    percentage_used = (total_spent / budget_amount * 100) if budget_amount > 0 else 0
+    is_over_budget = remaining < 0
+    warning_threshold_reached = percentage_used >= 80 and not is_over_budget
+
+    budget_data = None
+    if budget:
+        budget["_id"] = str(budget["_id"])
+        budget_data = budget
+
     return {
-        "budget": budget_amount,
-        "spent": total_spent,
-        "remaining": budget_amount - total_spent,
+        "budget": budget_data,
+        "total_spent": total_spent,
+        "remaining": remaining,
+        "percentage_used": percentage_used,
+        "is_over_budget": is_over_budget,
+        "warning_threshold_reached": warning_threshold_reached,
+        "expenses_count": len(expenses),
     }
