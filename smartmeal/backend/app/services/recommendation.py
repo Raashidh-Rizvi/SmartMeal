@@ -9,14 +9,14 @@ _PROCESSED_PATH = Path(__file__).resolve().parent.parent / "data" / "processed" 
 
 def _ensure_data_ready():
     """
-    Safety check by Member 2:
-    If the processed dataset does not exist yet (Member 1 hasn't run preprocessing),
-    automatically generate it from the raw CSV so the AI engine does not crash.
+    Safety check:
+    If the processed dataset does not exist yet.
+    Automatically generate it from the raw CSV so the AI engine does not crash.
     """
     if not _PROCESSED_PATH.exists():
-        print("[Member 2 - Safety] processed_recipes.csv not found. Running preprocessing now...")
+        print("Processed_recipes.csv not found. Running preprocessing now...")
         save_processed_data()
-        print("[Member 2 - Safety] Preprocessing complete. Dataset is ready.")
+        print("Preprocessing complete. Dataset is ready.")
 
 def get_recipe_recommendations(user_input: dict, top_k: int = 5):
     """
@@ -24,7 +24,7 @@ def get_recipe_recommendations(user_input: dict, top_k: int = 5):
     converts to vectors via TF-IDF, calculates Cosine Similarity,
     and returns the top_k matching recipes.
     """
-    # Run safety check — auto-generate processed CSV if Member 1 hasn't done it yet
+    # Run safety check — auto-generate processed CSV if required
     _ensure_data_ready()
 
     try:
