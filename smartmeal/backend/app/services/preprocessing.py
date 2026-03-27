@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import re
 from pathlib import Path
+from deep_translator import GoogleTranslator
 
 # ---------------------------------------------------
 # BASE DIRECTORY SETUP
@@ -39,7 +40,6 @@ TEXT_COLUMNS = [
     "instructions"
 ]
 
-
 # ---------------------------------------------------
 # HELPERS
 # ---------------------------------------------------
@@ -59,6 +59,23 @@ def contains_non_english(text) -> bool:
     if pd.isna(text) or not str(text).strip():
         return False
     return bool(NON_ENGLISH_SCRIPT_PATTERN.search(str(text)))
+
+
+def translate_to_english(text):
+    """Helper to translate text via Google Translate if non-English characters exist."""
+    if pd.isna(text) or not str(text).strip():
+        return text
+    
+    # Skip if it is already purely English
+    if not contains_non_english(text):
+        return text
+        
+    try:
+        translator = GoogleTranslator(source='auto', target='en')
+        return translator.translate(str(text))
+    except Exception as e:
+        print(f"Warning: Translation failed for '{str(text)[:20]}...'. Error: {e}")
+        return text
 
 
 def normalize_ingredients(text):
@@ -163,97 +180,68 @@ def process_dataset():
 
     column_counts, total_non_english_rows = print_non_english_counts(df)
 
+    # 1. Isolate Non-English Rows
     non_english_mask = df.apply(row_has_non_english, axis=1)
+    needs_translation_df = df[non_english_mask].copy()
+    english_only_df = df[~non_english_mask].copy()
 
-    removed_df = df[non_english_mask].copy()
-    cleaned_df = df[~non_english_mask].copy()
+    # Save original non-English rows for auditing/backup
+    needs_translation_df.to_csv(REMOVED_ROWS_PATH, index=False)
 
-    removed_df.to_csv(REMOVED_ROWS_PATH, index=False)
-
-    print(f"\nDropped rows with Tamil/Hindi text: {len(removed_df)}")
-    print(f"Remaining rows after drop: {len(cleaned_df)}")
-
-    for col in TEXT_COLUMNS:
-        cleaned_df[col] = cleaned_df[col].apply(clean_text)
-
-    cleaned_df = cleaned_df[cleaned_df["ingredients"] != ""]
-    cleaned_df = cleaned_df.drop_duplicates()
-
-    cleaned_df["ingredients_clean"] = cleaned_df["ingredients"].apply(normalize_ingredients)
-
-    cleaned_df["combined_features"] = cleaned_df.apply(
-        lambda row: " ".join([
-            row["ingredients_clean"],
-            row["cuisine"],
-            row["diet"],
-            row["course"]
-        ]).strip(),
-        axis=1
-    )
-
-    cleaned_df.to_csv(WORKING_PATH, index=False)
-    cleaned_df.to_csv(FINAL_OUTPUT_PATH, index=False)
-
-    status_data = {
-        "status": "completed",
-        "input_file": str(DATA_PATH),
-        "working_file": str(WORKING_PATH),
-        "final_output_file": str(FINAL_OUTPUT_PATH),
-        "removed_rows_file": str(REMOVED_ROWS_PATH),
-        "total_rows_before": int(total_rows_before),
-        "total_rows_with_non_english": int(total_non_english_rows),
-        "rows_removed": int(len(removed_df)),
-        "rows_remaining_after_drop": int(len(cleaned_df)),
-        "non_english_counts_by_column": column_counts
-    }
-    save_status_file(status_data)
-
-    print(f"\nWorking file saved at: {WORKING_PATH}")
-    print(f"Final processed dataset saved at: {FINAL_OUTPUT_PATH}")
-    print(f"Removed rows saved at: {REMOVED_ROWS_PATH}")
-    print(f"Status file saved at: {STATUS_PATH}")
-
-    cleaned_df = cleaned_df[cleaned_df["ingredients"] != ""]   
-
-    return cleaned_df
+    print(f"\nTranslating {len(needs_translation_df)} rows... (This may take a moment due to API calls)")
     
-    cleaned_df = cleaned_df.drop_duplicates()
+    # 2. Translate isolated rows
+    for col in TEXT_COLUMNS:
+        needs_translation_df[col] = needs_translation_df[col].apply(translate_to_english)
 
-    cleaned_df["ingredients_clean"] = cleaned_df["ingredients"].apply(normalize_ingredients)
+    # 3. Merge Translated Rows back with English Rows
+    print("Merging translated rows back into main dataset...")
+    combined_df = pd.concat([english_only_df, needs_translation_df], ignore_index=True)
 
-    cleaned_df["combined_features"] = cleaned_df.apply(
+    # 4. Standardize and Clean Text for EVERYTHING
+    print("Applying text cleaning and ingredient normalization...")
+    for col in TEXT_COLUMNS:
+        combined_df[col] = combined_df[col].apply(clean_text)
+
+    # Drop any rows where ingredients became empty after translation/cleaning
+    combined_df = combined_df[combined_df["ingredients"] != ""]
+    combined_df = combined_df.drop_duplicates()
+
+    # 5. Feature Engineering
+    combined_df["ingredients_clean"] = combined_df["ingredients"].apply(normalize_ingredients)
+
+    combined_df["combined_features"] = combined_df.apply(
         lambda row: " ".join([
-            row["ingredients_clean"],
-            row["cuisine"],
-            row["diet"],
-            row["course"]
+            str(row.get("ingredients_clean", "")),
+            str(row.get("cuisine", "")),
+            str(row.get("diet", "")),
+            str(row.get("course", ""))
         ]).strip(),
         axis=1
     )
 
-    cleaned_df.to_csv(WORKING_PATH, index=False)
-    cleaned_df.to_csv(FINAL_OUTPUT_PATH, index=False)
+    # 6. Save Data
+    combined_df.to_csv(WORKING_PATH, index=False)
+    combined_df.to_csv(FINAL_OUTPUT_PATH, index=False)
 
     status_data = {
         "status": "completed",
         "input_file": str(DATA_PATH),
         "working_file": str(WORKING_PATH),
         "final_output_file": str(FINAL_OUTPUT_PATH),
-        "removed_rows_file": str(REMOVED_ROWS_PATH),
+        "removed_rows_file_backup": str(REMOVED_ROWS_PATH),
         "total_rows_before": int(total_rows_before),
-        "total_rows_with_non_english": int(total_non_english_rows),
-        "rows_removed": int(len(removed_df)),
-        "rows_remaining_after_drop": int(len(cleaned_df)),
+        "total_rows_translated": int(len(needs_translation_df)),
+        "final_total_rows": int(len(combined_df)),
         "non_english_counts_by_column": column_counts
     }
     save_status_file(status_data)
 
     print(f"\nWorking file saved at: {WORKING_PATH}")
     print(f"Final processed dataset saved at: {FINAL_OUTPUT_PATH}")
-    print(f"Removed rows saved at: {REMOVED_ROWS_PATH}")
     print(f"Status file saved at: {STATUS_PATH}")
 
-    return cleaned_df
+    return combined_df
 
 
 def save_processed_data():
@@ -279,3 +267,6 @@ def process_user_input(user_input: dict):
 
     combined = " ".join([ingredients, cuisine, diet, course]).strip()
     return combined
+
+if __name__ == "__main__":
+    save_processed_data()
