@@ -21,6 +21,7 @@ def leftover_helper(leftover) -> dict:
         "storage_location": leftover["storage_location"],
         "notes": leftover.get("notes"),
         "image_url": leftover.get("image_url"),
+        "ingredients": leftover.get("ingredients", []),
         "is_used": leftover.get("is_used", False),
         "created_at": leftover["created_at"],
         "days_until_expiry": calculate_days_until_expiry(leftover["expiry_date"])
