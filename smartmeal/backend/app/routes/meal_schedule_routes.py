@@ -21,7 +21,9 @@ async def create_meal(meal: MealSchedule):
     db = get_db()
     meal_dict = meal.model_dump()
     result = await db.meal_schedules.insert_one(meal_dict)
-    return {"_id": str(result.inserted_id), **meal_dict}
+    # PyMongo mutates meal_dict by adding an '_id' ObjectId. We must convert it to a string.
+    meal_dict["_id"] = str(meal_dict["_id"])
+    return meal_dict
 
 @router.put("/{meal_id}", response_model=dict)
 async def update_meal(meal_id: str, meal: MealSchedule):

@@ -1,11 +1,19 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import Response
+from pydantic import BaseModel
 from app.db.database import get_db
 from app.models.recipe import Category, RecipeCreate, RecipeUpdate, RecipeResponse
 from app.models.user import UserInDB
 from app.api.deps import get_current_user
 import app.services.recipe_service as recipe_service
+from app.services.recommendation import get_recipe_recommendations
+
+class RecommendationRequest(BaseModel):
+    ingredients: Optional[str] = ""
+    cuisine: Optional[str] = ""
+    diet: Optional[str] = ""
+    course: Optional[str] = ""
 
 router = APIRouter()
 
@@ -18,6 +26,19 @@ async def create_recipe(
     """Create a new recipe (authenticated users only)."""
     db = get_db()
     return await recipe_service.create_recipe(db, recipe_in, current_user.id)
+
+
+@router.post("/recommend", status_code=status.HTTP_200_OK)
+async def recommend_recipes_ai(
+    request: RecommendationRequest,
+) -> Any:
+    """
+    [MEMBER 2: AI INTEGRATION]
+    Uses TF-IDF NLP and Cosine Similarity to compare user preferences 
+    against the pre-processed recipe dataset and returns the top 5 matches.
+    """
+    matches = get_recipe_recommendations(request.dict(), top_k=5)
+    return {"recommendations": matches}
 
 
 @router.get("/", response_model=List[RecipeResponse], status_code=status.HTTP_200_OK)
