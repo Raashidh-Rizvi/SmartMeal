@@ -1,0 +1,238 @@
+/* ── Page ──────────────────────────────────────────────────────────────────── */
+.ms-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.ms-header {
+    margin-bottom: 1.5rem;
+}
+.ms-header h1 { font-size: 1.8rem; color: var(--primary, #16a34a); margin: 0 0 .25rem; }
+.ms-header p  { color: var(--text-muted, #6b7280); margin: 0; }
+
+/* ── Card ──────────────────────────────────────────────────────────────────── */
+.ms-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.ms-card h2 { margin: 0 0 1.25rem; font-size: 1.1rem; color: var(--primary, #16a34a); }
+
+/* ── Form ──────────────────────────────────────────────────────────────────── */
+.ms-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+.ms-field { display: flex; flex-direction: column; gap: .35rem; }
+.ms-field label { font-size: .85rem; font-weight: 600; color: var(--text, #374151); }
+.ms-req { color: #ef4444; margin-left: 2px; }
+
+.ms-input {
+    padding: .55rem .75rem;
+    border: 1.5px solid var(--border, #d1d5db);
+    border-radius: 8px;
+    font-size: .95rem;
+    background: var(--input-bg, #fff);
+    color: var(--text, #111);
+    transition: border-color .2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.ms-input:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+.ms-input-err  { border-color: #ef4444 !important; }
+.ms-err  { font-size: .78rem; color: #ef4444; }
+
+.ms-alert { padding: .65rem 1rem; border-radius: 8px; margin-top: .75rem; font-size: .9rem; }
+.ms-alert-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+
+.ms-form-actions { display: flex; gap: .75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+.ms-btn {
+    padding: .55rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+}
+.ms-btn-primary   { background: #16a34a; color: #fff; }
+.ms-btn-primary:hover { background: #15803d; transform: translateY(-1px); }
+.ms-btn-secondary { background: #f3f4f6; color: #374151; }
+.ms-btn-secondary:hover { background: #e5e7eb; }
+.ms-btn-danger    { background: #ef4444; color: #fff; }
+.ms-btn-danger:hover { background: #dc2626; }
+.ms-btn-ghost     { background: transparent; color: #6b7280; border: 1px solid #d1d5db; }
+.ms-btn-ghost:hover { background: #f3f4f6; }
+.ms-btn-sm        { padding: .35rem .75rem; font-size: .82rem; }
+.ms-btn-edit      { background: #fef3c7; color: #92400e; }
+.ms-btn-edit:hover { background: #fde68a; }
+
+/* ── Filters ───────────────────────────────────────────────────────────────── */
+.ms-filters {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 1rem 1.5rem;
+}
+.ms-filters .ms-input { flex: 1; min-width: 140px; }
+
+/* ── Table ─────────────────────────────────────────────────────────────────── */
+.ms-table-card { padding: 0; overflow: hidden; }
+.ms-table-wrap { overflow-x: auto; }
+.ms-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.ms-table thead tr { background: var(--table-head, #f9fafb); }
+.ms-table th { padding: .85rem 1rem; text-align: left; font-size: .8rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border, #e5e7eb); }
+.ms-table td { padding: .85rem 1rem; border-bottom: 1px solid var(--border, #f3f4f6); vertical-align: middle; }
+.ms-row:hover { background: var(--row-hover, #f9fafb); }
+.ms-actions { display: flex; gap: .5rem; }
+
+.ms-table-footer { padding: .75rem 1rem; font-size: .82rem; color: #9ca3af; border-top: 1px solid var(--border, #e5e7eb); }
+
+/* ── Detail row ────────────────────────────────────────────────────────────── */
+.ms-detail-row td { background: var(--detail-bg, #f0fdf4); padding: 0; }
+.ms-detail { padding: 1rem 1.5rem; }
+.ms-detail p { margin: 0 0 .75rem; color: #6b7280; }
+.ms-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .5rem; margin: .5rem 0 .75rem; font-size: .88rem; }
+.ms-detail-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: .75rem; }
+.ms-detail-section  { background: var(--card-bg, #fff); border-radius: 8px; padding: 1rem; border: 1px solid var(--border, #e5e7eb); }
+.ms-section-title   { margin: 0 0 .75rem; font-size: .9rem; color: var(--primary, #16a34a); }
+.ms-ing-list  { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .35rem; }
+.ms-ing-list li { display: flex; gap: .5rem; font-size: .88rem; align-items: baseline; }
+.ms-ing-qty   { background: #f0fdf4; color: #166534; padding: .1rem .45rem; border-radius: 4px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.ms-ing-name  { color: #374151; }
+.ms-steps-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: .5rem; }
+.ms-step-item  { font-size: .88rem; color: #374151; line-height: 1.5; }
+
+.ms-warn-list { background: #fef3c7; border-radius: 8px; padding: .75rem 1rem; font-size: .88rem; }
+.ms-warn-list ul { margin: .4rem 0 0 1.2rem; }
+
+/* ── Badges ────────────────────────────────────────────────────────────────── */
+.ms-badge { display: inline-block; padding: .25rem .65rem; border-radius: 20px; font-size: .78rem; font-weight: 700; color: #fff; }
+.ms-warn-badge { background: #fef3c7; color: #92400e; padding: .25rem .65rem; border-radius: 20px; font-size: .8rem; font-weight: 600; cursor: default; }
+.ms-ok-badge   { background: #d1fae5; color: #065f46; padding: .25rem .65rem; border-radius: 20px; font-size: .8rem; font-weight: 600; }
+
+/* ── Link button ───────────────────────────────────────────────────────────── */
+.ms-link { background: none; border: none; color: #16a34a; font-weight: 600; cursor: pointer; font-size: .9rem; padding: 0; text-align: left; }
+.ms-link:hover { text-decoration: underline; }
+
+/* ── Skeleton ──────────────────────────────────────────────────────────────── */
+.ms-skeleton-row td { padding: .85rem 1rem; }
+.ms-skeleton { height: 16px; border-radius: 6px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: ms-shimmer 1.4s infinite; }
+@keyframes ms-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Toast ─────────────────────────────────────────────────────────────────── */
+.ms-toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999; display: flex; flex-direction: column; gap: .5rem; }
+.ms-toast { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1.1rem; border-radius: 10px; font-size: .9rem; font-weight: 500; min-width: 260px; box-shadow: 0 4px 16px rgba(0,0,0,.12); animation: ms-slide-in .25s ease; }
+.ms-toast button { background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: .7; }
+.ms-toast-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+.ms-toast-error   { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+.ms-toast-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+.ms-toast-info    { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
+@keyframes ms-slide-in { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ── Modal ─────────────────────────────────────────────────────────────────── */
+.ms-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9998; display: flex; align-items: center; justify-content: center; }
+.ms-modal { background: var(--card-bg, #fff); border-radius: 14px; padding: 2rem; max-width: 400px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.ms-modal p { margin: 0 0 1.5rem; font-size: 1rem; color: var(--text, #374151); }
+.ms-modal-actions { display: flex; gap: .75rem; justify-content: flex-end; }
+
+/* ── Tooltip ───────────────────────────────────────────────────────────────── */
+.ms-tooltip-wrap { position: relative; display: inline-block; }
+.ms-tooltip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: .45rem .75rem; border-radius: 7px; font-size: .78rem; white-space: nowrap; max-width: 280px; white-space: normal; z-index: 100; pointer-events: none; }
+
+/* ── Empty ─────────────────────────────────────────────────────────────────── */
+.ms-empty { text-align: center; padding: 3rem 1rem; color: #9ca3af; }
+.ms-empty p { margin: .5rem 0 0; font-size: .95rem; }
+
+/* ── Calendar View ─────────────────────────────────────────────────────────────── */
+.ms-cal-picker { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.ms-cal-picker label { font-weight: 600; font-size: .9rem; color: var(--text, #374151); white-space: nowrap; }
+.ms-cal-picker .ms-input { max-width: 200px; }
+.ms-cal-hint { color: #9ca3af; font-size: .9rem; text-align: center; padding: 1rem 0; margin: 0; }
+
+.ms-cal-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+.ms-cal-slot { border-radius: 12px; border: 2px solid transparent; overflow: hidden; transition: box-shadow .2s; }
+.ms-cal-slot:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+.ms-cal-slot-filled { border-color: var(--border, #e5e7eb); }
+.ms-cal-slot-empty  { border-style: dashed; border-color: #d1d5db; }
+
+.ms-cal-slot-breakfast { background: #fffbeb; }
+.ms-cal-slot-lunch     { background: #f0fdf4; }
+.ms-cal-slot-dinner    { background: #eff6ff; }
+.ms-cal-slot-snack     { background: #faf5ff; }
+
+.ms-cal-slot-header { display: flex; align-items: center; gap: .5rem; padding: .75rem 1rem; border-bottom: 1px solid rgba(0,0,0,.06); flex-wrap: wrap; }
+.ms-cal-slot-icon  { font-size: 1.2rem; }
+.ms-cal-slot-label { font-weight: 700; font-size: .9rem; color: #374151; flex: 1; }
+
+.ms-cal-slot-body { padding: .75rem 1rem; }
+.ms-cal-recipe-name { font-weight: 600; font-size: .95rem; color: #111827; margin: 0 0 .35rem; }
+.ms-cal-desc  { font-size: .82rem; color: #6b7280; margin: 0 0 .35rem; }
+.ms-cal-warn  { font-size: .82rem; color: #92400e; background: #fef3c7; padding: .25rem .5rem; border-radius: 6px; margin: .35rem 0; }
+.ms-cal-actions { display: flex; gap: .5rem; margin-top: .6rem; }
+
+.ms-cal-empty-body { display: flex; flex-direction: column; align-items: center; gap: .6rem; padding: 1rem; }
+.ms-cal-no-meal { color: #9ca3af; font-size: .88rem; margin: 0; }
+
+/* dark mode calendar */
+.dark .ms-cal-slot-breakfast { background: #1c1a0f; }
+.dark .ms-cal-slot-lunch     { background: #0f1a0f; }
+.dark .ms-cal-slot-dinner    { background: #0f1220; }
+.dark .ms-cal-slot-snack     { background: #160f1c; }
+.dark .ms-cal-recipe-name    { color: #f9fafb; }
+.dark .ms-cal-slot-label     { color: #d1d5db; }
+
+@media (max-width: 768px) {
+    .ms-cal-slots { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+    .ms-cal-slots { grid-template-columns: 1fr; }
+}
+
+
+.ms-textarea { resize: vertical; min-height: 72px; font-family: inherit; }
+.ms-field-full { margin-top: .75rem; }
+.ms-char-count { font-size: .75rem; color: #9ca3af; text-align: right; }
+.ms-optional { font-size: .78rem; color: #9ca3af; font-weight: 400; }
+.ms-hint { font-size: .78rem; color: #f59e0b; margin-top: .2rem; }
+.ms-muted { color: #9ca3af; }
+.ms-desc-cell { max-width: 180px; }
+.ms-desc-preview { color: #6b7280; font-size: .85rem; cursor: default; }
+.ms-recipe-desc { color: #6b7280; margin: 0 0 .75rem; font-size: .9rem; }
+
+/* ── Meal type chips ───────────────────────────────────────────────────────── */
+.ms-type-chip { display: inline-block; padding: .2rem .6rem; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+.ms-type-breakfast { background: #fef3c7; color: #92400e; }
+.ms-type-lunch     { background: #d1fae5; color: #065f46; }
+.ms-type-dinner    { background: #dbeafe; color: #1e40af; }
+.ms-type-snack     { background: #ede9fe; color: #5b21b6; }
+
+/* ── Dark mode ─────────────────────────────────────────────────────────────── */
+.dark .ms-card    { background: #1f2937; border-color: #374151; }
+.dark .ms-input   { background: #111827; border-color: #374151; color: #f9fafb; }
+.dark .ms-table thead tr { background: #111827; }
+.dark .ms-table th, .dark .ms-table td { border-color: #374151; }
+.dark .ms-row:hover { background: #111827; }
+.dark .ms-detail-row td { background: #111827; }
+.dark .ms-modal   { background: #1f2937; }
+.dark .ms-detail-section { background: #111827; border-color: #374151; }
+.dark .ms-ing-qty { background: #14532d; color: #86efac; }
+.dark .ms-ing-name, .dark .ms-step-item { color: #d1d5db; }
+.dark .ms-skeleton { background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%); background-size: 200% 100%; }
+
+@media (max-width: 640px) {
+    .ms-form-grid { grid-template-columns: 1fr; }
+    .ms-filters   { flex-direction: column; }
+    .ms-filters .ms-input { min-width: unset; width: 100%; }
+    .ms-actions   { flex-direction: column; }
+    .ms-detail-sections { grid-template-columns: 1fr; }
+}

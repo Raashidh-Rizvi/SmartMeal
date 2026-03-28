@@ -1,14 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 motor
+pymongo
 pydantic
 bcrypt==4.0.1
 python-jose[cryptography]
 python-dotenv
-fastapi-cors
 python-multipart
 certifi
-pandas
-kagglehub[pandas-datasets]
-numpy
-scikit-learn

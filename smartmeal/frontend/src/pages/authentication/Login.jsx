@@ -24,16 +24,8 @@ function Login() {
     e.preventDefault();
     setError('');
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', email); // OAuth2 expects 'username' field
-      formData.append('password', password);
-
-      const response = await api.post('/api/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-      
+      const response = await api.post('/api/auth/login', { email, password });
       const { accessToken, user } = response.data;
-      
       login(user, accessToken);
       navigate('/');
     } catch (err) {

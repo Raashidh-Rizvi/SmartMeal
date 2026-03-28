@@ -3,7 +3,7 @@ from typing import List, Optional
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException, status
-from app.models.recipe import RecipeCreate, RecipeUpdate, RecipeResponse
+from ..models.recipe import RecipeCreate, RecipeUpdate, RecipeResponse
 
 
 def _validate_object_id(recipe_id: str) -> ObjectId:
