@@ -1,23 +1,16 @@
-// ============================================================
-// MEMBER 6 — UI + Feedback
-// This page is owned by Member 6.
-//
-// Your responsibilities:
-// 1. Build the input form (ingredients, diet, cuisine, course)
-// 2. Call POST http://localhost:8001/api/recipes/recommend
-//    with body: { ingredients, diet, cuisine }
-// 3. Display results (name, cuisine, diet, course, similarity_score)
-// 4. Add 👍 / 👎 feedback buttons on each result
-// 5. Store feedback in the database
-// ============================================================
+// AI recommendations UI: Member 4 (integration) + Member 6 (feedback) — not Member 2.
+// Backend: POST /api/recipes/recommend (Member 2 engine) is available when this page is wired up.
 
 import React from 'react';
 
 function Recommendations() {
   return (
     <div className="card">
-      <h2>Recipe Recommendations</h2>
-      <p>Member 6 — please build this page.</p>
+      <h2>Recipe recommendations</h2>
+      <p style={{ color: 'var(--text-muted)' }}>
+        This screen will connect to the recommendation API built by Member 2. Member 4 should
+        implement the form, API calls, and results list; Member 6 may add feedback controls.
+      </p>
     </div>
   );
 }

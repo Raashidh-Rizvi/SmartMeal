@@ -37,7 +37,7 @@ async def recommend_recipes_ai(
     Uses TF-IDF NLP and Cosine Similarity to compare user preferences 
     against the pre-processed recipe dataset and returns the top 5 matches.
     """
-    matches = get_recipe_recommendations(request.dict(), top_k=5)
+    matches = get_recipe_recommendations(request.model_dump(), top_k=5)
     return {"recommendations": matches}
 
 

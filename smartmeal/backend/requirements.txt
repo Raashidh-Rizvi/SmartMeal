@@ -12,3 +12,4 @@ pandas
 kagglehub[pandas-datasets]
 numpy
 scikit-learn
+deep-translator

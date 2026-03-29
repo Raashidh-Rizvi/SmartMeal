@@ -37,7 +37,11 @@ function Login() {
       login(user, accessToken);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid email or password');
+      if (!err.response) {
+        setError('Unable to reach server. Please check backend is running on port 8001.');
+      } else {
+        setError(err.response?.data?.detail || 'Invalid email or password');
+      }
     }
   };
 

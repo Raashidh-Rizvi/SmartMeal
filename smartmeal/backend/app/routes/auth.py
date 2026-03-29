@@ -16,7 +16,8 @@ async def login_access_token(
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     db = get_db()
-    user_dict = await db["users"].find_one({"email": form_data.username})
+    login_email = form_data.username.strip().lower()
+    user_dict = await db["users"].find_one({"email": {"$regex": f"^{login_email}$", "$options": "i"}})
     if not user_dict:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
@@ -42,8 +43,9 @@ async def read_users_me(
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(user_in: UserCreate) -> Any:
     db = get_db()
+    normalized_email = user_in.email.strip().lower()
     # Case-insensitive email check
-    user_exists = await db["users"].find_one({"email": {"$regex": f"^{user_in.email}$", "$options": "i"}})
+    user_exists = await db["users"].find_one({"email": {"$regex": f"^{normalized_email}$", "$options": "i"}})
     if user_exists:
         raise HTTPException(
             status_code=400,
@@ -51,6 +53,7 @@ async def register_user(user_in: UserCreate) -> Any:
         )
     
     user_dict = user_in.model_dump()
+    user_dict["email"] = normalized_email
     password = user_dict.pop("password")
     user_dict["password_hash"] = get_password_hash(password)
     user_dict["createdAt"] = datetime.now(timezone.utc)
