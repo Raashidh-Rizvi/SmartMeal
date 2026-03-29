@@ -12,14 +12,12 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (token) {
+      if (token && !user) {
         try {
-          // api.js automatically attaches the token interceptor
           const response = await api.get('/api/auth/me');
           setUser(response.data.user);
         } catch (error) {
           console.error("Failed to fetch user profile", error);
-          // Token might be invalid or expired
           setToken(null);
           localStorage.removeItem('token');
         }
@@ -28,7 +26,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     fetchUser();
-  }, [token]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = (userData, jwtToken) => {
     setUser(userData);
@@ -53,7 +51,7 @@ export const AuthProvider = ({ children }) => {
       // Send it to your backend to be verified and to get your own app's JWT
       const response = await api.post('/api/auth/google', {
         email: firebaseUser.email,
-        name: firebaseUser.displayName,
+        name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
         firebaseToken: firebaseToken,
         uid: firebaseUser.uid
       });
@@ -70,7 +68,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, setUser, token, login, logout, loginWithGoogle, loading }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

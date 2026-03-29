@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -17,6 +17,7 @@ class LeftoverBase(BaseModel):
     storage_location: StorageLocation
     notes: Optional[str] = Field(None, max_length=500)
     image_url: Optional[str] = Field(None, max_length=500)
+    ingredients: Optional[List[str]] = Field(default_factory=list)
 
     @field_validator('name')
     @classmethod
@@ -53,6 +54,7 @@ class LeftoverUpdate(BaseModel):
     notes: Optional[str] = Field(None, max_length=500)
     is_used: Optional[bool] = None
     image_url: Optional[str] = Field(None, max_length=500)
+    ingredients: Optional[List[str]] = None
 
     @field_validator('cooked_date')
     @classmethod

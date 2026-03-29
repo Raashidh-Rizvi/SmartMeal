@@ -1,132 +1,104 @@
-"""
-Shopping Routes
-Thin HTTP layer — delegates all business logic to shopping_service.
-"""
-
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime, timezone
 from bson import ObjectId
+from ..db.database import get_db
 
-from app.models.shopping_model import (
-    ShoppingItem,
-    ShoppingItemCreate,
-    ShoppingItemUpdate,
-)
-from app.services.shopping_service import (
-    get_all_items,
-    get_pending_items,
-    get_bought_items,
-    add_item,
-    update_item,
-    mark_item_bought,
-    delete_item,
-    get_stats,
-    add_items_from_meal_plan,
-    clear_bought_items,
-)
-
-router = APIRouter(prefix="/shopping", tags=["Shopping List"])
+router = APIRouter()
 
 
-# ── Read ─────────────────────────────────────────────────────────────────────
-
-@router.get("/all", response_model=List[ShoppingItem])
-async def route_get_all_items(
-    user_id: str = Query(..., description="User ID to filter shopping items"),
-    status_filter: Optional[str] = Query(None, description="Filter by status: Pending or Bought"),
-):
-    """Get all shopping items for a user (optional status filter)."""
-    return await get_all_items(user_id, status_filter)
-
-
-@router.get("/pending", response_model=List[ShoppingItem])
-async def route_get_pending_items(user_id: str = Query(...)):
-    """Get all pending items for a user."""
-    return await get_pending_items(user_id)
+class ShoppingItemCreate(BaseModel):
+    user_id: str
+    name: str
+    quantity: Optional[float] = 1
+    unit: Optional[str] = ""
+    category: Optional[str] = ""
+    notes: Optional[str] = ""
+    status: Optional[str] = "pending"
 
 
-@router.get("/bought", response_model=List[ShoppingItem])
-async def route_get_bought_items(user_id: str = Query(...)):
-    """Get all bought items for a user."""
-    return await get_bought_items(user_id)
+class ShoppingItemUpdate(BaseModel):
+    name: Optional[str] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    category: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
 
 
-@router.get("/stats")
-async def route_get_stats(user_id: str = Query(...)):
-    """Get shopping statistics for charts."""
-    return await get_stats(user_id)
+@router.get("/shopping/all")
+async def get_items(user_id: str, status_filter: Optional[str] = None):
+    db = get_db()
+    query = {"user_id": user_id}
+    if status_filter:
+        query["status"] = status_filter
+    cursor = db.shopping_items.find(query).sort("created_at", -1)
+    items = await cursor.to_list(length=None)
+    for item in items:
+        item["_id"] = str(item["_id"])
+    return items
 
 
-# ── Create ───────────────────────────────────────────────────────────────────
-
-@router.post("/add", response_model=ShoppingItem)
-async def route_add_item(item: ShoppingItemCreate):
-    """
-    Add a new shopping item.
-    Prevents duplicates — merges quantity if a pending item with the same
-    name already exists for the user.
-    """
-    return await add_item(item)
+@router.get("/shopping/stats")
+async def get_stats(user_id: str):
+    db = get_db()
+    total = await db.shopping_items.count_documents({"user_id": user_id})
+    bought = await db.shopping_items.count_documents({"user_id": user_id, "status": "bought"})
+    pending = await db.shopping_items.count_documents({"user_id": user_id, "status": "pending"})
+    return {"total": total, "bought": bought, "pending": pending}
 
 
-@router.post("/add-from-meal-plan")
-async def route_add_from_meal_plan(user_id: str, items: List[ShoppingItemCreate]):
-    """Add multiple items from a meal plan (batch add)."""
-    return await add_items_from_meal_plan(user_id, items)
+@router.post("/shopping/add")
+async def add_item(item: ShoppingItemCreate):
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    doc = item.model_dump()
+    doc["created_at"] = now
+    doc["updated_at"] = now
+    result = await db.shopping_items.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return doc
 
 
-# ── Update ───────────────────────────────────────────────────────────────────
-
-@router.put("/update/{item_id}", response_model=ShoppingItem)
-async def route_update_item(item_id: str, update_data: ShoppingItemUpdate):
-    """Update a shopping item (quantity, status, etc.)."""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid item ID")
-
-    result = await update_item(item_id, update_data)
-
-    if result is None:
-        # update_item returns None for both "no fields" and "not found"
-        # Distinguish by checking if the update_dict would be empty
-        try:
-            has_fields = any(v is not None for v in update_data.model_dump().values())
-        except AttributeError:
-            has_fields = any(v is not None for v in update_data.dict().values())
-
-        if not has_fields:
-            raise HTTPException(status_code=400, detail="No valid fields to update")
+@router.put("/shopping/update/{item_id}")
+async def update_item(item_id: str, item: ShoppingItemUpdate):
+    db = get_db()
+    update = item.model_dump(exclude_unset=True)
+    update["updated_at"] = datetime.now(timezone.utc)
+    result = await db.shopping_items.update_one({"_id": ObjectId(item_id)}, {"$set": update})
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Item not found")
+    doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
+    doc["_id"] = str(doc["_id"])
+    return doc
 
-    return result
 
-
-@router.patch("/mark-bought/{item_id}", response_model=ShoppingItem)
-async def route_mark_bought(item_id: str):
-    """Mark an item as bought."""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid item ID")
-
-    result = await mark_item_bought(item_id)
-    if result is None:
+@router.patch("/shopping/mark-bought/{item_id}")
+async def mark_bought(item_id: str):
+    db = get_db()
+    result = await db.shopping_items.update_one(
+        {"_id": ObjectId(item_id)},
+        {"$set": {"status": "bought", "updated_at": datetime.now(timezone.utc)}}
+    )
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Item not found")
-    return result
+    doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
+    doc["_id"] = str(doc["_id"])
+    return doc
 
 
-# ── Delete ───────────────────────────────────────────────────────────────────
-
-@router.delete("/delete/{item_id}")
-async def route_delete_item(item_id: str):
-    """Delete a shopping item."""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid item ID")
-
-    deleted = await delete_item(item_id)
-    if not deleted:
+@router.delete("/shopping/delete/{item_id}")
+async def delete_item(item_id: str):
+    db = get_db()
+    result = await db.shopping_items.delete_one({"_id": ObjectId(item_id)})
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Item not found")
-    return {"message": "Item deleted successfully", "item_id": item_id}
+    return {"message": "deleted"}
 
 
-@router.delete("/clear-bought")
-async def route_clear_bought(user_id: str = Query(...)):
-    """Clear all bought items for a user."""
-    return await clear_bought_items(user_id)
+@router.delete("/shopping/clear-bought")
+async def clear_bought(user_id: str):
+    db = get_db()
+    result = await db.shopping_items.delete_many({"user_id": user_id, "status": "bought"})
+    return {"deleted": result.deleted_count}

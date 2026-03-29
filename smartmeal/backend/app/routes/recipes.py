@@ -9,11 +9,13 @@ from app.api.deps import get_current_user
 import app.services.recipe_service as recipe_service
 from app.services.recommendation import get_recipe_recommendations
 
+
 class RecommendationRequest(BaseModel):
     ingredients: Optional[str] = ""
     cuisine: Optional[str] = ""
     diet: Optional[str] = ""
     course: Optional[str] = ""
+
 
 router = APIRouter()
 
@@ -34,11 +36,18 @@ async def recommend_recipes_ai(
 ) -> Any:
     """
     [MEMBER 2: AI INTEGRATION]
-    Uses TF-IDF NLP and Cosine Similarity to compare user preferences 
+    Uses TF-IDF NLP and Cosine Similarity to compare user preferences
     against the pre-processed recipe dataset and returns the top 5 matches.
     """
     matches = get_recipe_recommendations(request.model_dump(), top_k=5)
     return {"recommendations": matches}
+
+
+@router.get("/by-type/{meal_type}")
+async def list_recipes_by_type(meal_type: str) -> Any:
+    """Used by meal schedule UI: recipes filtered by category (e.g. breakfast)."""
+    db = get_db()
+    return await recipe_service.get_recipes_by_meal_type(db, meal_type)
 
 
 @router.get("/", response_model=List[RecipeResponse], status_code=status.HTTP_200_OK)

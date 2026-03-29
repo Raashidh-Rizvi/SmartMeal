@@ -1,20 +1,37 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import api from '../../api/axios';
+import api, { postOAuthLogin } from '../../api/axios';
+
+function formatApiError(err) {
+  const d = err.response?.data?.detail;
+  if (Array.isArray(d)) {
+    return d.map((x) => (typeof x === 'object' && x.msg ? x.msg : String(x))).join(' ');
+  }
+  if (typeof d === 'string') return d;
+  return 'Invalid email or password';
+}
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, loginWithGoogle } = useContext(AuthContext);
+  const { login, loginWithGoogle, token, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && token && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [loading, token, user, navigate]);
+
+  const sessionLoading = loading && (token || localStorage.getItem('token'));
 
   const handleGoogleLogin = async () => {
     try {
       setError('');
       await loginWithGoogle();
-      navigate('/');
+      navigate('/dashboard', { replace: true });
     } catch {
       setError('Google Sign-In failed. Please try again.');
     }
@@ -24,26 +41,30 @@ function Login() {
     e.preventDefault();
     setError('');
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', email); // OAuth2 expects 'username' field
-      formData.append('password', password);
-
-      const response = await api.post('/api/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-      
-      const { accessToken, user } = response.data;
-      
-      login(user, accessToken);
-      navigate('/');
+      const response = await postOAuthLogin(api, email, password);
+      const { accessToken, user: userPayload } = response.data;
+      if (!accessToken || !userPayload) {
+        setError('Unexpected response from server.');
+        return;
+      }
+      login(userPayload, accessToken);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       if (!err.response) {
         setError('Unable to reach server. Please check backend is running on port 8001.');
       } else {
-        setError(err.response?.data?.detail || 'Invalid email or password');
+        setError(formatApiError(err));
       }
     }
   };
+
+  if (sessionLoading) {
+    return (
+      <div className="auth-container">
+        <p>Loading session…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-container">

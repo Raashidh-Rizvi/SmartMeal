@@ -36,6 +36,16 @@ function convertToSnakeCase(obj) {
   return result;
 }
 
+/** OAuth2 password flow: backend expects application/x-www-form-urlencoded with username + password. */
+export function postOAuthLogin(apiInstance, email, password) {
+  const params = new URLSearchParams();
+  params.append('username', email.trim());
+  params.append('password', password);
+  return apiInstance.post('/api/auth/login', params, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+}
+
 export const ShoppingAPI = {
   async getItems(userId, statusFilter = '') {
     const params = { user_id: userId };

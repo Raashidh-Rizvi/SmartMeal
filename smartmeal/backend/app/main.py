@@ -51,6 +51,8 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:7002",
         "http://127.0.0.1:7002",
+        "http://localhost:7003",
+        "http://127.0.0.1:7003",
         "http://localhost:8001",
         "http://127.0.0.1:8001",
     ],

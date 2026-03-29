@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, List, Optional
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException, status
-from app.models.recipe import RecipeCreate, RecipeUpdate, RecipeResponse
+from ..models.recipe import RecipeCreate, RecipeUpdate, RecipeResponse
 
 
 def _validate_object_id(recipe_id: str) -> ObjectId:
@@ -35,6 +35,16 @@ async def create_recipe(db, data: RecipeCreate, user_id: str) -> RecipeResponse:
     result = await db["recipes"].insert_one(recipe_dict)
     created = await db["recipes"].find_one({"_id": result.inserted_id})
     return RecipeResponse(**_serialize(created))
+
+
+async def get_recipes_by_meal_type(db, meal_type: str) -> List[dict[str, Any]]:
+    """Recipes for a meal schedule slot; matches legacy /by-type behaviour."""
+    query = {"category": meal_type.strip().lower()}
+    cursor = db["recipes"].find(query).sort("title", 1)
+    recipes = await cursor.to_list(length=500)
+    for r in recipes:
+        r["_id"] = str(r["_id"])
+    return recipes
 
 
 async def get_all_recipes(
