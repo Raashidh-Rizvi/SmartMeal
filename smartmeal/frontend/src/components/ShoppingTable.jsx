@@ -56,20 +56,20 @@ function ShoppingTable({ items, loading, onMarkBought, onUpdateItem, onDeleteIte
                 ) : (
                   items.map(item => (
                     <tr key={getItemId(item)}>
-                      <td><strong>{item.item_name}</strong></td>
+                      <td><strong>{item.name || item.item_name}</strong></td>
                       <td>{item.quantity}</td>
-                      <td>{item.unit}</td>
-                      <td><span className="source-badge">{item.source}</span></td>
+                      <td>{item.unit || '-'}</td>
+                      <td><span className="source-badge">{item.category || item.source || 'manual'}</span></td>
                       <td>
-                        <span className={`status-badge ${item.status === 'Pending' ? 'status-pending' : 'status-bought'}`}>
-                          {item.status}
+                        <span className={`status-badge ${(item.status || '').toLowerCase() === 'pending' ? 'status-pending' : 'status-bought'}`}>
+                          {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending'}
                         </span>
                       </td>
                       <td>{formatDate(item.created_at)}</td>
                       <td>
                         <div className="action-buttons-cell">
                           <button className="btn-small btn-edit" onClick={() => startEdit(item)} title="Edit">✏️</button>
-                          {item.status === 'Pending' && (
+                          {(item.status || '').toLowerCase() === 'pending' && (
                             <button className="btn-small btn-mark-bought" onClick={() => onMarkBought(getItemId(item))} title="Mark as Bought">✓</button>
                           )}
                           <button className="btn-small btn-delete" onClick={() => onDeleteItem(getItemId(item))} title="Delete">🗑</button>

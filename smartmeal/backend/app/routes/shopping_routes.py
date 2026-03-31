@@ -16,6 +16,7 @@ class ShoppingItemCreate(BaseModel):
     category: Optional[str] = ""
     notes: Optional[str] = ""
     status: Optional[str] = "pending"
+    meal_id: Optional[str] = ""
 
 
 class ShoppingItemUpdate(BaseModel):
@@ -33,8 +34,11 @@ async def get_items(user_id: str, status_filter: Optional[str] = None):
     query = {"user_id": user_id}
     if status_filter:
         query["status"] = status_filter
+    print(f"🔍 Shopping API Query: {query}")
     cursor = db.shopping_items.find(query).sort("created_at", -1)
     items = await cursor.to_list(length=None)
+    print(f"📊 Found {len(items)} items")
+    print(f"📝 Items: {items}")
     for item in items:
         item["_id"] = str(item["_id"])
     return items
@@ -56,8 +60,10 @@ async def add_item(item: ShoppingItemCreate):
     doc = item.model_dump()
     doc["created_at"] = now
     doc["updated_at"] = now
+    print(f"➕ Adding shopping item: {doc}")
     result = await db.shopping_items.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
+    print(f"✅ Item inserted with ID: {result.inserted_id}")
     return doc
 
 
