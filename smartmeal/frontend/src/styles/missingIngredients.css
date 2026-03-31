@@ -1,0 +1,272 @@
+/* ───────────────────────────────────────────────────────────────────────────
+ * Missing Ingredients Alert Styles
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+.missing-ing-alert {
+  background: linear-gradient(135deg, #fff5f0 0%, #ffe8e0 100%);
+  border: 2px solid #ff6b35;
+  border-radius: 8px;
+  margin: 1rem 0;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.15);
+  transition: all 0.3s ease;
+}
+
+.missing-ing-alert:hover {
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+}
+
+/* Header Section */
+.missing-ing-header {
+  padding: 1rem;
+  background-color: rgba(255, 107, 53, 0.05);
+  border-bottom: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.missing-ing-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.missing-ing-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #d84315;
+  flex: 1;
+}
+
+.missing-ing-collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #d84315;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.missing-ing-collapse-btn:hover {
+  background-color: rgba(255, 107, 53, 0.15);
+  transform: scale(1.1);
+}
+
+/* Progress Bar */
+.missing-ing-progress-bar {
+  position: relative;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.missing-ing-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  transition: width 0.4s ease;
+  border-radius: 4px;
+}
+
+.missing-ing-progress-text {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+  z-index: 1;
+}
+
+/* Content Section */
+.missing-ing-content {
+  padding: 1rem;
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.missing-ing-subtitle {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #d84315;
+}
+
+/* Ingredient List */
+.missing-ing-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.missing-ing-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 107, 53, 0.1);
+  transition: all 0.2s ease;
+}
+
+.missing-ing-item:hover {
+  background-color: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 107, 53, 0.3);
+}
+
+.missing-ing-item.is-added {
+  opacity: 0.6;
+  background-color: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.missing-ing-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.missing-ing-name {
+  font-weight: 600;
+  color: #1f2937;
+  flex: 1;
+}
+
+.missing-ing-qty {
+  font-size: 0.9rem;
+  color: #6b7280;
+  background-color: rgba(107, 114, 128, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.missing-ing-servings {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Add Button */
+.missing-ing-btn {
+  padding: 0.5rem 1rem;
+  background-color: #ff6b35;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.missing-ing-btn:hover:not(:disabled) {
+  background-color: #e55a2b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
+}
+
+.missing-ing-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.missing-ing-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.missing-ing-btn.is-loading {
+  background-color: #f59e0b;
+  position: relative;
+}
+
+.missing-ing-btn.is-done {
+  background-color: #10b981;
+}
+
+/* Helper Text */
+.missing-ing-helper {
+  background-color: rgba(96, 165, 250, 0.1);
+  padding: 0.75rem;
+  border-left: 3px solid #3b82f6;
+  border-radius: 4px;
+  margin-top: 0.75rem;
+}
+
+.missing-ing-helper p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1e40af;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .missing-ing-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .missing-ing-item-left {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .missing-ing-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .missing-ing-title {
+    font-size: 0.95rem;
+  }
+
+  .missing-ing-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .missing-ing-collapse-btn {
+    align-self: flex-end;
+    margin-top: -1.5rem;
+  }
+}
+
+/* Animation for adding ingredient */
+@keyframes addPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+}
+
+.missing-ing-item.is-added {
+  animation: addPulse 0.6s ease-out;
+}

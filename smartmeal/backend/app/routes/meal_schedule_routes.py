@@ -182,3 +182,43 @@ async def delete_meal(meal_id: str):
         raise HTTPException(status_code=404, detail="Meal not found")
 
     return {"message": "Meal deleted successfully"}
+
+
+@router.get("/{meal_id}/ingredients")
+async def get_meal_ingredients(meal_id: str):
+    """Return recipe ingredients for a meal, flagging which are missing from inventory."""
+    db = get_db()
+    try:
+        obj_id = ObjectId(meal_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid meal ID")
+
+    meal = await db.meal_schedules.find_one({"_id": obj_id})
+    if not meal:
+        raise HTTPException(status_code=404, detail="Meal not found")
+
+    try:
+        recipe = await db.recipes.find_one({"_id": ObjectId(meal["recipe_id"])})
+    except Exception:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    result = []
+    for ing in recipe.get("ingredients", []):
+        inventory = await db.inventory_items.find_one({
+            "name": {"$regex": f"^{ing['name']}$", "$options": "i"},
+            "userId": meal.get("user_id", "1")
+        })
+        missing = inventory is None
+        result.append({
+            "name": ing["name"],
+            "quantity": ing.get("quantity", 1),
+            "unit": ing.get("unit", ""),
+            "missing": missing,
+            "recipe_id": meal["recipe_id"],
+            "meal_id": str(meal["_id"]),
+            "recipe_title": recipe.get("title", ""),
+        })
+    return result

@@ -15,10 +15,11 @@ function ShoppingForm({ onAddItem, onCancel }) {
     if (!item_name.trim()) return;
 
     const success = await onAddItem({
-      item_name: item_name.trim(),
+      name: item_name.trim(),
       quantity: parseFloat(quantity),
       unit,
-      source,
+      category: source === 'MealPlan' ? 'meal-ingredient' : 'manual',
+      notes: source === 'MealPlan' ? `From meal plan` : '',
     });
 
     if (success) {
