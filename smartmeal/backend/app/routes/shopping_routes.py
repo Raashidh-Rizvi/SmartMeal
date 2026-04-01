@@ -4,11 +4,8 @@ from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
 from ..db.database import get_db
-<<<<<<< HEAD
 from ..api.deps import get_current_user_id
-=======
 from ..utils.unit_converter import calc_missing, _norm
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
 
 router = APIRouter()
 
@@ -105,31 +102,23 @@ async def mark_bought(
     user_id: str = Depends(get_current_user_id)
 ):
     db = get_db()
-<<<<<<< HEAD
+    now = datetime.now(timezone.utc)
+    # Ensure item belongs to user AND mark as bought
     result = await db.shopping_items.update_one(
         {"_id": ObjectId(item_id), "user_id": user_id},
-        {"$set": {"status": "bought", "updated_at": datetime.now(timezone.utc)}}
+        {"$set": {"status": "bought", "updated_at": now}}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Item not found or unauthorized")
-    doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
-=======
+
     doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
     if not doc:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    # Mark as bought
-    await db.shopping_items.update_one(
-        {"_id": ObjectId(item_id)},
-        {"$set": {"status": "bought", "updated_at": datetime.now(timezone.utc)}}
-    )
+         raise HTTPException(status_code=404, detail="Item not found")
 
     # Add quantity to inventory (upsert)
-    user_id  = doc.get("user_id", "1")
     name     = doc.get("name", "")
     quantity = float(doc.get("quantity") or 1)
     unit     = doc.get("unit", "")
-    now      = datetime.now(timezone.utc)
 
     existing = await db.inventory_items.find_one(
         {"name": {"$regex": f"^{name}$", "$options": "i"}, "userId": user_id}
@@ -152,7 +141,6 @@ async def mark_bought(
             "updatedAt": now,
         })
 
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
     doc["_id"] = str(doc["_id"])
     doc["status"] = "bought"
 

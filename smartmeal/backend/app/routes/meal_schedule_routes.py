@@ -13,11 +13,7 @@ from typing import List, Optional
 router = APIRouter()
 
 
-<<<<<<< HEAD
 async def check_inventory(db, recipe_id: str, user_id: str, servings: int = 1):
-=======
-async def check_inventory(db, recipe_id: str, user_id: str = "1", servings: int = 1):
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
     warnings = []
     try:
         recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
@@ -75,12 +71,8 @@ async def get_meal_with_recipe_details(db, meal_doc: dict, user_id: str) -> Meal
         meal_doc["recipe_category"] = "Unknown"
         meal_doc["total_calories_estimate"] = None
 
-<<<<<<< HEAD
-    meal_doc["warnings"] = await check_inventory(db, meal_doc["recipe_id"], user_id, meal_doc.get("servings", 1))
-=======
     # Use stored snapshot — never recalculate from live inventory
     meal_doc["warnings"] = meal_doc.get("warnings_snapshot", [])
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
     return MealScheduleResponse(**meal_doc)
 
 
@@ -107,20 +99,8 @@ async def create_meal(
     if existing:
         raise HTTPException(status_code=400, detail="You already have a meal planned for this date and meal type.")
 
-<<<<<<< HEAD
-    now = datetime.now(timezone.utc)
-    meal_dict = schedule.model_dump()
-    meal_dict["user_id"] = user_id
-    meal_dict["meal_date"] = schedule.meal_date.isoformat()
-    meal_dict["meal_type"] = schedule.meal_type.value
-    meal_dict["status"] = schedule.status.value
-    meal_dict["created_at"] = now
-    meal_dict["updated_at"] = now
-=======
     now      = datetime.now(timezone.utc)
     servings = schedule.servings or 1
-    user_id  = schedule.user_id
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
 
     # ── Step 1: Check inventory BEFORE deduction (snapshot warnings + per-ingredient) ──
     pre_warnings = await check_inventory(db, schedule.recipe_id, user_id, servings)
@@ -203,16 +183,7 @@ async def create_meal(
 
     # ── Step 4: Return response with pre-deduction warnings ───────────────────
     created_meal = await db.meal_schedules.find_one({"_id": result.inserted_id})
-<<<<<<< HEAD
     return await get_meal_with_recipe_details(db, created_meal, user_id)
-=======
-    created_meal["_id"]                   = str(created_meal["_id"])
-    created_meal["recipe_title"]          = recipe.get("title", "Unknown Recipe")
-    created_meal["recipe_category"]       = recipe.get("category", "Unknown")
-    created_meal["total_calories_estimate"] = None
-    created_meal["warnings"]              = pre_warnings
-    return MealScheduleResponse(**created_meal)
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
 
 
 @router.get("/")
@@ -230,12 +201,8 @@ async def get_meals(user_id: str = Depends(get_current_user_id)):
                     meal["recipe_title"] = recipe.get("title", "Unknown Recipe") if recipe else "Recipe Not Found"
                 except Exception:
                     meal["recipe_title"] = "Unknown Recipe"
-<<<<<<< HEAD
-                meal["warnings"] = await check_inventory(db, meal.get("recipe_id", ""), user_id, meal.get("servings", 1))
-=======
                 # Use stored snapshot — never recalculate from live inventory
                 meal["warnings"] = meal.get("warnings_snapshot", [])
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
                 enriched.append(meal)
             except Exception as e:
                 print(f"Error enriching meal {meal.get('_id')}: {e}")
@@ -276,11 +243,7 @@ async def update_meal(
         new_date = update_fields.get("meal_date", existing["meal_date"])
         new_type = update_fields.get("meal_type", existing["meal_type"])
         clash = await db.meal_schedules.find_one({
-<<<<<<< HEAD
             "user_id": user_id,
-=======
-            "user_id":  existing["user_id"],
->>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
             "meal_date": new_date,
             "meal_type": new_type,
             "_id": {"$ne": obj_id},
