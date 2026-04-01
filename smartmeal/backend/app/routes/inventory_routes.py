@@ -3,17 +3,27 @@ from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
 from ..db.database import get_db
+<<<<<<< HEAD
 from ..api.deps import get_current_user_id
+=======
+>>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
 from ..schemas.ingredient_schema import InventoryItemCreate, InventoryItemUpdate
 
 router = APIRouter()
 
 
+<<<<<<< HEAD
+=======
+def get_user_id(authorization: Optional[str]) -> str:
+    return "1"
+
+
+>>>>>>> 9d9d7c9b16919c6ddd1d20f674ad36dd7f8dfa1a
 @router.get("/")
 async def get_inventory(
     user_id: str = Depends(get_current_user_id),
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100)
+    limit: int = Query(20, ge=1, le=200)
 ):
     db = get_db()
     query = {"userId": user_id}
