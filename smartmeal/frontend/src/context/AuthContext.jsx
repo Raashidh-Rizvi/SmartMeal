@@ -25,7 +25,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
 
-    fetchUser();
+    // Always resolve loading within 5 seconds even if backend is down
+    const timeout = setTimeout(() => setLoading(false), 5000);
+    fetchUser().finally(() => clearTimeout(timeout));
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = (userData, jwtToken) => {
@@ -68,7 +70,11 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, setUser, token, login, logout, loginWithGoogle, loading }}>
-      {!loading && children}
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: '1.1rem', color: '#16a34a' }}>
+          Loading...
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 };
