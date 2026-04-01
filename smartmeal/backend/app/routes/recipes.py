@@ -7,7 +7,7 @@ from ..schemas.recipe_schema import RecipeCreate, RecipeUpdate, RecipeResponse
 from ..services.recommendation import get_recipe_recommendations
 from ..services.output_service import filter_recipes, format_output, limit_results
 
-router = APIRouter(prefix="/recipes", tags=["recipes"])
+router = APIRouter()
 
 
 @router.get("/by-type/{meal_type}")
