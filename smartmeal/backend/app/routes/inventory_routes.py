@@ -2,30 +2,21 @@ from fastapi import APIRouter, HTTPException, Header, Query
 from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
-from jose import jwt, JWTError
 from ..db.database import get_db
-from ..core.config import settings
 from ..schemas.ingredient_schema import InventoryItemCreate, InventoryItemUpdate
 
 router = APIRouter()
 
 
 def get_user_id(authorization: Optional[str]) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
-        return "1"  # fallback for unauthenticated dev use
-    try:
-        token = authorization.split(" ", 1)[1]
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload["sub"]
-    except JWTError:
-        return "1"
+    return "1"
 
 
 @router.get("/")
 async def get_inventory(
     authorization: Optional[str] = Header(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100)
+    limit: int = Query(20, ge=1, le=200)
 ):
     db = get_db()
     user_id = get_user_id(authorization)
