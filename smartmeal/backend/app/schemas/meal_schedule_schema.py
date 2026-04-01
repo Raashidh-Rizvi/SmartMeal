@@ -1,3 +1,4 @@
+
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, date
@@ -13,10 +14,13 @@ class MealType(str, Enum):
 
 
 class MealStatus(str, Enum):
-    planned = "planned"
-    done = "done"
-    skipped = "skipped"
-    cancelled = "cancelled"
+    planned   = "planned"
+    pending   = "pending"
+    ready     = "ready"
+    bought    = "bought"
+    cooking   = "cooking"
+    completed = "completed"
+    skipped   = "skipped"
 
 
 class MealScheduleBase(BaseModel):
