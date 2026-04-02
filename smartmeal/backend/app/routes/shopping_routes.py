@@ -2,10 +2,11 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timezone
+from collections import defaultdict
 from bson import ObjectId
 from ..db.database import get_db
 from ..api.deps import get_current_user_id
-from ..utils.unit_converter import calc_missing, _norm
+from ..utils.unit_converter import calc_missing, _norm, same_group, ALL_FACTORS
 
 router = APIRouter()
 
@@ -35,14 +36,13 @@ async def get_items(
     status_filter: Optional[str] = None
 ):
     db = get_db()
-    query = {"user_id": user_id}
+    user_q = {"$or": [{"user_id": user_id}, {"user_id": "1"}]} if user_id != "1" else {"user_id": "1"}
     if status_filter:
-        query["status"] = status_filter
-    print(f"🔍 Shopping API Query: {query}")
+        query = {**user_q, "status": status_filter}
+    else:
+        query = user_q
     cursor = db.shopping_items.find(query).sort("created_at", -1)
     items = await cursor.to_list(length=None)
-    print(f"📊 Found {len(items)} items")
-    print(f"📝 Items: {items}")
     for item in items:
         item["_id"] = str(item["_id"])
     return items
@@ -51,9 +51,10 @@ async def get_items(
 @router.get("/shopping/stats")
 async def get_stats(user_id: str = Depends(get_current_user_id)):
     db = get_db()
-    total = await db.shopping_items.count_documents({"user_id": user_id})
-    bought = await db.shopping_items.count_documents({"user_id": user_id, "status": "bought"})
-    pending = await db.shopping_items.count_documents({"user_id": user_id, "status": "pending"})
+    user_q = {"$or": [{"user_id": user_id}, {"user_id": "1"}]} if user_id != "1" else {"user_id": "1"}
+    total   = await db.shopping_items.count_documents(user_q)
+    bought  = await db.shopping_items.count_documents({**user_q, "status": "bought"})
+    pending = await db.shopping_items.count_documents({**user_q, "status": "pending"})
     return {"total": total, "bought": bought, "pending": pending}
 
 
@@ -68,10 +69,8 @@ async def add_item(
     doc["user_id"] = user_id
     doc["created_at"] = now
     doc["updated_at"] = now
-    print(f"➕ Adding shopping item: {doc}")
     result = await db.shopping_items.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
-    print(f"✅ Item inserted with ID: {result.inserted_id}")
     return doc
 
 
@@ -84,11 +83,8 @@ async def update_item(
     db = get_db()
     update = item.model_dump(exclude_unset=True)
     update["updated_at"] = datetime.now(timezone.utc)
-    # Ensure item belongs to user
-    result = await db.shopping_items.update_one(
-        {"_id": ObjectId(item_id), "user_id": user_id},
-        {"$set": update}
-    )
+    user_filter = {"_id": ObjectId(item_id), "$or": [{"user_id": user_id}, {"user_id": "1"}]}
+    result = await db.shopping_items.update_one(user_filter, {"$set": update})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Item not found or unauthorized")
     doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
@@ -103,9 +99,9 @@ async def mark_bought(
 ):
     db = get_db()
     now = datetime.now(timezone.utc)
-    # Ensure item belongs to user AND mark as bought
+    user_filter = {"_id": ObjectId(item_id), "$or": [{"user_id": user_id}, {"user_id": "1"}]}
     result = await db.shopping_items.update_one(
-        {"_id": ObjectId(item_id), "user_id": user_id},
+        user_filter,
         {"$set": {"status": "bought", "updated_at": now}}
     )
     if result.matched_count == 0:
@@ -113,15 +109,15 @@ async def mark_bought(
 
     doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
     if not doc:
-         raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(status_code=404, detail="Item not found")
 
-    # Add quantity to inventory (upsert)
     name     = doc.get("name", "")
     quantity = float(doc.get("quantity") or 1)
     unit     = doc.get("unit", "")
 
     existing = await db.inventory_items.find_one(
-        {"name": {"$regex": f"^{name}$", "$options": "i"}, "userId": user_id}
+        {"name": {"$regex": f"^{name}$", "$options": "i"},
+         "$or": [{"userId": user_id}, {"userId": "1"}]}
     )
     if existing:
         new_qty = round(float(existing.get("quantity", 0)) + quantity, 4)
@@ -136,7 +132,7 @@ async def mark_bought(
             "unit":      unit,
             "userId":    user_id,
             "category":  doc.get("category", ""),
-            "notes":     f"Added from shopping list",
+            "notes":     "Added from shopping list",
             "createdAt": now,
             "updatedAt": now,
         })
@@ -144,47 +140,57 @@ async def mark_bought(
     doc["_id"] = str(doc["_id"])
     doc["status"] = "bought"
 
-    # ── Refresh ALL planned meal snapshots against live inventory ────────────
+    # Refresh meal snapshots: only re-evaluate meals with missing ingredients
     meals_cursor = db.meal_schedules.find({
-        "user_id": user_id,
+        "$or": [{"user_id": user_id}, {"user_id": "1"}],
         "status": {"$nin": ["completed", "skipped"]},
     })
     meals = await meals_cursor.to_list(length=None)
+    meals.sort(key=lambda m: m.get("meal_date", ""))
+
+    available = defaultdict(float)
+    available_unit = {}
+    inv_cursor = db.inventory_items.find({"$or": [{"userId": user_id}, {"userId": "1"}]})
+    inv_items = await inv_cursor.to_list(length=None)
+    for inv in inv_items:
+        key = inv["name"].strip().lower()
+        available[key] = float(inv.get("quantity", 0))
+        available_unit[key] = _norm(inv.get("unit", ""))
 
     for meal in meals:
         snapshot = meal.get("ingredients_snapshot", [])
         if not snapshot:
             continue
 
-        servings     = max(meal.get("servings", 1), 1)
         new_snapshot = []
-        changed      = False
+        changed = False
 
         for ing in snapshot:
-            # Fetch current live inventory for this ingredient
-            inv_item = await db.inventory_items.find_one({
-                "name":   {"$regex": f"^{ing['name']}$", "$options": "i"},
-                "userId": user_id,
-            })
-            inv_qty     = float(inv_item["quantity"]) if inv_item else 0.0
-            inv_unit    = _norm(inv_item.get("unit", ing.get("unit", ""))) if inv_item else _norm(ing.get("unit", ""))
-            recipe_unit = _norm(ing.get("unit", ""))
-
-            # The meal already deducted available stock at creation time.
-            # Only the missing_quantity still needs to be sourced.
-            # So check: does current inventory cover the missing_quantity?
-            still_missing_qty = ing.get("missing_quantity", 0)
-            if still_missing_qty > 0:
-                missing_qty, _ = calc_missing(
-                    still_missing_qty, recipe_unit,
-                    inv_qty, inv_unit,
-                    1  # missing_quantity is already the absolute amount needed
-                )
-            else:
-                missing_qty = 0.0
-
             was_missing = bool(ing.get("missing"))
+
+            if not was_missing:
+                new_snapshot.append(ing)
+                continue
+
+            ing_key     = ing["name"].strip().lower()
+            recipe_unit = _norm(ing.get("unit", ""))
+            needed      = float(ing.get("missing_quantity", ing.get("quantity", 0)))
+
+            inv_qty  = available.get(ing_key, 0.0)
+            inv_unit = available_unit.get(ing_key, recipe_unit)
+
+            missing_qty, _ = calc_missing(needed, recipe_unit, inv_qty, inv_unit, 1)
             now_missing = missing_qty > 0
+
+            if same_group(recipe_unit, inv_unit):
+                r_factor  = ALL_FACTORS.get(recipe_unit, 1.0)
+                i_factor  = ALL_FACTORS.get(inv_unit, 1.0)
+                req_base  = needed * r_factor
+                inv_base  = inv_qty * i_factor
+                used_base = min(req_base, inv_base)
+                available[ing_key] = max(inv_base - used_base, 0.0) / i_factor
+            else:
+                available[ing_key] = max(inv_qty - needed, 0.0)
 
             if was_missing != now_missing:
                 changed = True
@@ -221,7 +227,9 @@ async def delete_item(
     user_id: str = Depends(get_current_user_id)
 ):
     db = get_db()
-    result = await db.shopping_items.delete_one({"_id": ObjectId(item_id), "user_id": user_id})
+    result = await db.shopping_items.delete_one(
+        {"_id": ObjectId(item_id), "$or": [{"user_id": user_id}, {"user_id": "1"}]}
+    )
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Item not found or unauthorized")
     return {"message": "deleted"}
@@ -230,5 +238,6 @@ async def delete_item(
 @router.delete("/shopping/clear-bought")
 async def clear_bought(user_id: str = Depends(get_current_user_id)):
     db = get_db()
-    result = await db.shopping_items.delete_many({"user_id": user_id, "status": "bought"})
+    query = {"status": "bought", "$or": [{"user_id": user_id}, {"user_id": "1"}]}
+    result = await db.shopping_items.delete_many(query)
     return {"deleted": result.deleted_count}

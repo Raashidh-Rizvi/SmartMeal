@@ -43,13 +43,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # CORS must be added BEFORE routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:7001",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:7002",
-        "http://localhost:8001",
-    ],
+    allow_origins=["http://localhost:7001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

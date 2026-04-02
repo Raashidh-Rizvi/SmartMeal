@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { getMeals, createMeal, updateMeal, deleteMeal, getMealIngredients, useIngredients } from "../services/mealService";
 import { getRecipes } from "../api/recipes";
 import ShoppingAPI from "../services/shoppingApi";
@@ -513,33 +514,32 @@ export default function MealSchedulePage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [mRes, rRes, shoppingRes] = await Promise.all([
+            const [mRes, rRes] = await Promise.all([
                 getMeals(userId),
                 getRecipes({ limit: 200 }),
-                ShoppingAPI.getItems(userId)
             ]);
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
             setMeals(loadedMeals);
             setAllRecipes(Array.isArray(rRes.data) ? rRes.data : []);
 
             // Load ingredients for all meals and cross-check with shopping list
-            const ingResults = await Promise.allSettled(
-                loadedMeals.map(m => getMealIngredients(m._id))
-            );
+            const [ingResults, shoppingRes] = await Promise.all([
+                Promise.allSettled(loadedMeals.map(m => getMealIngredients(m._id))),
+                ShoppingAPI.getItems(userId).catch(() => [])
+            ]);
             const ingMap = {};
             const addedMap = {};
             loadedMeals.forEach((m, idx) => {
                 if (ingResults[idx].status !== "fulfilled") return;
                 const ings = ingResults[idx].value.data || [];
                 const resolvedNames = new Set(
-                    shoppingRes
+                    (shoppingRes || [])
                         .filter(s => s.meal_id === m._id)
                         .map(s => (s.name || "").toLowerCase())
                 );
                 ingMap[m._id] = ings.map(ing => ({
                     ...ing,
                     addedToList: resolvedNames.has(ing.name.toLowerCase()),
-                    // keep missing from snapshot — addedToList only controls the button/badge
                 }));
                 ings.forEach(ing => {
                     if (resolvedNames.has(ing.name.toLowerCase()))
@@ -557,7 +557,16 @@ export default function MealSchedulePage() {
         }
     }, [userId]);
 
+    const location = useLocation();
     useEffect(() => { load(); }, [load]);
+
+    // Show success toast when navigated from AddMealPage
+    useEffect(() => {
+        if (location.state?.created) {
+            toast("✅ Meal created successfully!", "success");
+            window.history.replaceState({}, "");
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ✓✓ When meal_type changes, fetch matching recipes ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
     useEffect(() => {
