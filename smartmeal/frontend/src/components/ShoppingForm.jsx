@@ -19,7 +19,7 @@ function ShoppingForm({ onAddItem, onCancel }) {
       name: item_name.trim(),
       quantity: parseFloat(quantity),
       unit,
-      source: source === 'MealPlan' ? 'meal-plan' : 'manual',
+      source: source === 'MealPlan' ? 'meal plan' : 'manual',
       notes: source === 'MealPlan' ? `From meal plan` : '',
     });
 
