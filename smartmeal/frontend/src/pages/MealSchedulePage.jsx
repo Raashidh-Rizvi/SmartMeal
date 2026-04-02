@@ -947,7 +947,7 @@ export default function MealSchedulePage() {
             {/* View Tabs ✓ hidden when filtering */}
             {!isFiltering && (
                 <div className="ms-view-tabs">
-                    {[["list","📋 List"],["daily","📅 Daily"],["weekly","� Weekly"],["monthly","📆 Monthly"]].map(([v,l]) => (
+                    {[["list","📋 List"],["daily","📅 Daily"],["weekly","📆 Weekly"],["monthly","📆 Monthly"]].map(([v,l]) => (
                         <button key={v} className={`ms-tab ${viewMode===v ? "ms-tab-active" : ""}`} onClick={() => setViewMode(v)}>{l}</button>
                     ))}
                 </div>
