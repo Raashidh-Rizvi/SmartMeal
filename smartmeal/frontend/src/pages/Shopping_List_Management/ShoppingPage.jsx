@@ -22,6 +22,7 @@ function ShoppingPage() {
   const [currentView, setCurrentView] = useState('list'); // 'list', 'add', 'edit'
   const [editingItemId, setEditingItemId] = useState(null);
   const [status_filter, setStatusFilter] = useState('');
+  const [source_filter, setSourceFilter] = useState('');
   const [loading, setLoading]           = useState(false);
   const [toast, setToast]               = useState(null);
 
@@ -58,7 +59,7 @@ function ShoppingPage() {
     if (!user_id.trim()) return;
     setLoading(true);
     try {
-      const data = await ShoppingAPI.getItems(user_id, status_filter);
+      const data = await ShoppingAPI.getItems(user_id, status_filter, source_filter);
       setItems(data);
       await loadStats();
     } catch (error) {
@@ -69,7 +70,7 @@ function ShoppingPage() {
   };
 
   // ── Load on user_id change ────────────────────────────────────────────────
-  useEffect(() => { loadItems(); }, [status_filter]);
+  useEffect(() => { loadItems(); }, [status_filter, source_filter]);
 
 
   // ── CRUD handlers ────────────────────────────────────────────────────────
@@ -162,7 +163,9 @@ function ShoppingPage() {
             {/* Filter + Action Buttons */}
             <FilterSection
               statusFilter={status_filter}
-              onFilterChange={setStatusFilter}
+              sourceFilter={source_filter}
+              onStatusChange={setStatusFilter}
+              onSourceChange={setSourceFilter}
               onClearBought={clearBoughtItems}
             />
 
@@ -200,9 +203,10 @@ function ShoppingPage() {
             </div>
             <EditItemForm 
               itemId={editingItemId} 
-              onSave={showListView}
+              user_id={user_id}
+              onSave={() => { showListView(); loadItems(); }}
               onCancel={showListView}
-              onDelete={showListView}
+              onDelete={() => { showListView(); loadItems(); }}
             />
           </div>
         )}

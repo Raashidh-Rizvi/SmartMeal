@@ -16,6 +16,7 @@ class ShoppingItemCreate(BaseModel):
     quantity: Optional[float] = 1
     unit: Optional[str] = ""
     category: Optional[str] = ""
+    source: Optional[str] = "manual"
     notes: Optional[str] = ""
     status: Optional[str] = "pending"
     meal_id: Optional[str] = ""
@@ -28,19 +29,18 @@ class ShoppingItemUpdate(BaseModel):
     category: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None
+    source: Optional[str] = None
 
 
 @router.get("/shopping/all")
-async def get_items(
-    user_id: str = Depends(get_current_user_id),
-    status_filter: Optional[str] = None
-):
+async def get_items(user_id: str, status_filter: Optional[str] = None, source_filter: Optional[str] = None):
     db = get_db()
     user_q = {"$or": [{"user_id": user_id}, {"user_id": "1"}]} if user_id != "1" else {"user_id": "1"}
     if status_filter:
-        query = {**user_q, "status": status_filter}
-    else:
-        query = user_q
+        query["status"] = {"$regex": f"^{status_filter}$", "$options": "i"}
+    if source_filter:
+        query["source"] = {"$regex": f"^{source_filter}", "$options": "i"}
+    print(f"🔍 Shopping API Query: {query}")
     cursor = db.shopping_items.find(query).sort("created_at", -1)
     items = await cursor.to_list(length=None)
     for item in items:
@@ -51,11 +51,27 @@ async def get_items(
 @router.get("/shopping/stats")
 async def get_stats(user_id: str = Depends(get_current_user_id)):
     db = get_db()
-    user_q = {"$or": [{"user_id": user_id}, {"user_id": "1"}]} if user_id != "1" else {"user_id": "1"}
-    total   = await db.shopping_items.count_documents(user_q)
-    bought  = await db.shopping_items.count_documents({**user_q, "status": "bought"})
-    pending = await db.shopping_items.count_documents({**user_q, "status": "pending"})
-    return {"total": total, "bought": bought, "pending": pending}
+    total = await db.shopping_items.count_documents({"user_id": user_id})
+    bought = await db.shopping_items.count_documents({"user_id": user_id, "status": {"$regex": "^bought$", "$options": "i"}})
+    pending = await db.shopping_items.count_documents({"user_id": user_id, "status": {"$regex": "^pending$", "$options": "i"}})
+    
+    manual = await db.shopping_items.count_documents({
+        "user_id": user_id, 
+        "status": {"$regex": "^pending$", "$options": "i"},
+        "$or": [{"source": "manual"}, {"source": "Manual"}, {"source": {"$regex": "^manual", "$options": "i"}}]
+    })
+    meal_plan = await db.shopping_items.count_documents({
+        "user_id": user_id, 
+        "status": {"$regex": "^pending$", "$options": "i"},
+        "source": {"$not": {"$regex": "^manual", "$options": "i"}}
+    })
+    
+    return {
+        "total": total, 
+        "bought": bought, 
+        "pending": pending,
+        "source_breakdown": {"manual": manual, "meal_plan": meal_plan}
+    }
 
 
 @router.post("/shopping/add")
@@ -66,9 +82,37 @@ async def add_item(
     db = get_db()
     now = datetime.now(timezone.utc)
     doc = item.model_dump()
-    doc["user_id"] = user_id
+    doc["lower_name"] = doc["name"].lower().strip()
+    doc["source"] = doc.get("source", "manual").lower()
+    
+    # Check for duplicate case-insensitive
+    existing = await db.shopping_items.find_one({
+        "user_id": doc["user_id"],
+        "lower_name": doc["lower_name"],
+        "status": "pending",
+        "source": doc["source"]
+    })
+    
+    if existing:
+        # Merge - update quantity
+        new_qty = existing["quantity"] + doc["quantity"]
+        result = await db.shopping_items.update_one(
+            {"_id": ObjectId(existing["_id"])},
+            {"$set": {
+                "quantity": new_qty,
+                "updated_at": now
+            }}
+        )
+        existing["quantity"] = new_qty
+        existing["updated_at"] = now.isoformat()
+        existing["_id"] = str(existing["_id"])
+        print(f"🔄 Merged duplicate item, new qty: {new_qty}")
+        return existing
+    
+    # New item
     doc["created_at"] = now
     doc["updated_at"] = now
+    print(f"➕ Adding new shopping item: {doc}")
     result = await db.shopping_items.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
     return doc

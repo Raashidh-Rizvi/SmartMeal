@@ -14,12 +14,12 @@ const getAuthHeaders = () => {
 };
 
 const ShoppingAPI = {
-  /** GET /api/shopping/all?status_filter=... */
-  async getItems(userId, statusFilter = '') {
-    const params = new URLSearchParams();
+  /** GET /api/shopping/all?user_id=...&status_filter=... */
+  async getItems(userId, statusFilter = '', sourceFilter = '') {
+    const params = new URLSearchParams({ user_id: userId });
     if (statusFilter) params.append('status_filter', statusFilter);
-    const qs = params.toString() ? `?${params}` : '';
-    const response = await fetch(`${API_BASE_URL}/shopping/all${qs}`, { headers: getAuthHeaders() });
+    if (sourceFilter) params.append('source_filter', sourceFilter);
+    const response = await fetch(`${API_BASE_URL}/shopping/all?${params}`);
     if (!response.ok) throw new Error('Failed to load items');
     return response.json();
   },
