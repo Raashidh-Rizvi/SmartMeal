@@ -37,6 +37,21 @@ export const deleteRecipe = (id) =>
     api.delete(`/api/recipes/${id}`);
 
 /**
+ * Get filtered recipe recommendations
+ * @param {Object} filters - { spicy, cooking_time_max, diet, limit }
+ */
+export const getRecommendations = (filters = {}) =>
+    api.get('/api/recipes/recommendations', { params: filters });
+
+/**
+ * Rate a recipe
+ * @param {string} recipeId - Recipe ID
+ * @param {number} rating - Rating 1-5
+ */
+export const rateRecipe = (recipeId, rating) =>
+    api.post(`/api/recipes/${recipeId}/rate`, { rating });
+
+/**
  * Upload an image file and receive back a hosted URL.
  * @param {File} file - The image File object from an <input type="file">
  */
