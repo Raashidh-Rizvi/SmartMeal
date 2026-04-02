@@ -59,7 +59,7 @@ function ShoppingTable({ items, loading, onMarkBought, onUpdateItem, onDeleteIte
                       <td><strong>{item.name || item.item_name}</strong></td>
                       <td>{item.quantity}</td>
                       <td>{item.unit || '-'}</td>
-                      <td><span className="source-badge">{item.category || item.source || 'manual'}</span></td>
+                      <td><span className="source-badge">{item.source || item.category || 'manual'}</span></td>
                       <td>
                         <span className={`status-badge ${(item.status || '').toLowerCase() === 'pending' ? 'status-pending' : 'status-bought'}`}>
                           {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending'}

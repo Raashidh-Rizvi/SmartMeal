@@ -6,9 +6,9 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { ShoppingAPI } from '../api/axios';
 
-function EditItemForm({ itemId, onSave, onCancel, onDelete }) {
+function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete }) {
   const { user } = useContext(AuthContext);
-  const userId = user?.uid || user?.id || user?._id || '';
+  const userId = propUserId || user?.uid || user?.id || user?._id || '1';
 
   const [item_name, set_item_name] = useState('');
   const [quantity, setQuantity]   = useState(1);
@@ -28,11 +28,19 @@ function EditItemForm({ itemId, onSave, onCancel, onDelete }) {
       const item = items.find(i => (i.id || i._id) === itemId);
       if (item) {
         setOriginalItem(item);
-        set_item_name(item.item_name || '');
+        set_item_name(item.name || item.item_name || '');
         setQuantity(item.quantity || 1);
         setUnit(item.unit || 'piece');
-        setSource(item.source || 'Manual');
-        setStatus(item.status || 'Pending');
+        // Convert backend source value to frontend format
+        const itemSource = (item.source || '').toLowerCase();
+        if (itemSource.includes('meal') || itemSource.includes('plan')) {
+          setSource('MealPlan');
+        } else {
+          setSource('Manual');
+        }
+        // Convert backend status value to frontend format
+        const itemStatus = (item.status || '').toLowerCase();
+        setStatus(itemStatus === 'bought' ? 'Bought' : 'Pending');
       } else {
         alert('Item not found');
         onCancel();
@@ -53,12 +61,14 @@ function EditItemForm({ itemId, onSave, onCancel, onDelete }) {
     if (!item_name.trim()) return;
     setLoading(true);
     try {
+      // Convert source to lowercase to match backend storage
+      const sourceValue = source === 'MealPlan' ? 'meal-plan' : 'manual';
       await ShoppingAPI.updateItem(itemId, {
-        item_name: item_name.trim(),
+        name: item_name.trim(),
         quantity: parseFloat(quantity),
         unit,
-        source,
-        status,
+        source: sourceValue,
+        status: status === 'Bought' ? 'bought' : 'pending',
       });
       onSave();
     } catch (error) {
@@ -84,6 +94,17 @@ function EditItemForm({ itemId, onSave, onCancel, onDelete }) {
     try {
       await ShoppingAPI.markBought(itemId);
       setStatus('Bought');
+    } catch (error) {
+      alert(error.message || 'Failed to update item');
+    }
+    setLoading(false);
+  };
+
+  const handleMarkPending = async () => {
+    setLoading(true);
+    try {
+      await ShoppingAPI.updateItem(itemId, { status: 'Pending' });
+      setStatus('Pending');
     } catch (error) {
       alert(error.message || 'Failed to update item');
     }
@@ -175,9 +196,14 @@ function EditItemForm({ itemId, onSave, onCancel, onDelete }) {
         </form>
 
         <div className="edit-action-buttons">
-          {status === 'Pending' && (
-            <button onClick={handleMarkBought} className="btn-primary btn-small" disabled={loading}>
+{status === 'Pending' && (
+            <button onClick={handleMarkBought} className="btn-success btn-small" disabled={loading}>
               ✓ Mark as Bought
+            </button>
+          )}
+          {status === 'Bought' && (
+            <button onClick={handleMarkPending} className="btn-warning btn-small" disabled={loading}>
+              ⏳ Mark as Pending
             </button>
           )}
           <button onClick={handleDelete} className="btn-danger btn-small" disabled={loading}>
