@@ -1,6 +1,42 @@
+# Temporary / scratch files
+git_status.txt
+out.txt
+recent_changes.txt
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-venv/
-.venv/
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
 .env
+.venv
+env/
+venv/
+backend/venv/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+package-lock.json
+.next/
+dist/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Data / model files (large binaries)
+*.csv
+*.pkl
+*.h5
+*.joblib

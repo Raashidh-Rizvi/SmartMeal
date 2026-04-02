@@ -71,7 +71,6 @@ async def get_meal_with_recipe_details(db, meal_doc: dict, user_id: str) -> Meal
         meal_doc["recipe_category"] = "Unknown"
         meal_doc["total_calories_estimate"] = None
 
-    # Use stored snapshot — never recalculate from live inventory
     meal_doc["warnings"] = meal_doc.get("warnings_snapshot", [])
     return MealScheduleResponse(**meal_doc)
 
@@ -102,10 +101,8 @@ async def create_meal(
     now      = datetime.now(timezone.utc)
     servings = schedule.servings or 1
 
-    # ── Step 1: Check inventory BEFORE deduction (snapshot warnings + per-ingredient) ──
     pre_warnings = await check_inventory(db, schedule.recipe_id, user_id, servings)
 
-    # Build per-ingredient snapshot BEFORE deduction
     ingredients_snapshot = []
     for ing in recipe.get("ingredients", []):
         recipe_unit = _norm(ing.get("unit", ""))
@@ -131,9 +128,8 @@ async def create_meal(
             "inventory_unit":     inv_unit,
         })
 
-    # ── Step 2: Insert meal ───────────────────────────────────────────────────
     meal_dict = schedule.model_dump()
-    meal_dict["user_id"]                = user_id  # always use token user_id, not body
+    meal_dict["user_id"]                = user_id
     meal_dict["meal_date"]              = schedule.meal_date.isoformat()
     meal_dict["meal_type"]              = schedule.meal_type.value
     meal_dict["status"]                 = schedule.status.value
@@ -145,7 +141,6 @@ async def create_meal(
     result  = await db.meal_schedules.insert_one(meal_dict)
     meal_id = str(result.inserted_id)
 
-    # ── Step 3: Deduct inventory + auto-add missing to shopping list ──────────
     for ing in recipe.get("ingredients", []):
         recipe_unit = _norm(ing.get("unit", ""))
         required    = ing.get("quantity", 1) * servings
@@ -158,7 +153,6 @@ async def create_meal(
         inv_qty  = float(inv_item["quantity"]) if inv_item else 0.0
         inv_unit = _norm(inv_item.get("unit", recipe_unit)) if inv_item else recipe_unit
 
-        # Calculate used and missing with unit conversion
         if same_group(recipe_unit, inv_unit):
             r_factor  = ALL_FACTORS.get(recipe_unit, 1.0)
             i_factor  = ALL_FACTORS.get(inv_unit, 1.0)
@@ -173,16 +167,12 @@ async def create_meal(
             new_qty  = round(max(inv_qty - used_qty, 0.0), 4)
             miss_qty = round(max(required - inv_qty, 0.0), 4)
 
-        # Deduct from inventory
         if inv_item and inv_qty > 0:
             await db.inventory_items.update_one(
                 {"_id": inv_item["_id"]},
                 {"$set": {"quantity": new_qty, "updatedAt": now}}
             )
 
-        # No auto-add to shopping list — user adds manually via UI
-
-    # ── Step 4: Return response with pre-deduction warnings ───────────────────
     created_meal = await db.meal_schedules.find_one({"_id": result.inserted_id})
     return await get_meal_with_recipe_details(db, created_meal, user_id)
 
@@ -191,7 +181,6 @@ async def create_meal(
 async def get_meals(user_id: str = Depends(get_current_user_id)):
     db = get_db()
     try:
-        # Query by token user_id; also include legacy meals saved with "1"
         query = {"user_id": user_id} if user_id == "1" else {"$or": [{"user_id": user_id}, {"user_id": "1"}]}
         cursor = db.meal_schedules.find(query)
         meals  = await cursor.to_list(length=None)
@@ -204,7 +193,6 @@ async def get_meals(user_id: str = Depends(get_current_user_id)):
                     meal["recipe_title"] = recipe.get("title", "Unknown Recipe") if recipe else "Recipe Not Found"
                 except Exception:
                     meal["recipe_title"] = "Unknown Recipe"
-                # Use stored snapshot — never recalculate from live inventory
                 meal["warnings"] = meal.get("warnings_snapshot", [])
                 enriched.append(meal)
             except Exception as e:
@@ -302,7 +290,6 @@ async def get_meal_ingredients(meal_id: str):
 
     snapshot = meal.get("ingredients_snapshot")
 
-    # Legacy meals without snapshot: fall back to live inventory
     if not snapshot:
         try:
             recipe = await db.recipes.find_one({"_id": ObjectId(meal["recipe_id"])})

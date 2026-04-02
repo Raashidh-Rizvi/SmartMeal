@@ -109,9 +109,8 @@ async def mark_bought(
 
     doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
     if not doc:
-         raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(status_code=404, detail="Item not found")
 
-    # Add quantity to inventory (upsert)
     name     = doc.get("name", "")
     quantity = float(doc.get("quantity") or 1)
     unit     = doc.get("unit", "")
@@ -141,7 +140,7 @@ async def mark_bought(
     doc["_id"] = str(doc["_id"])
     doc["status"] = "bought"
 
-    # ── Refresh meal snapshots: only re-evaluate meals with missing ingredients ──
+    # Refresh meal snapshots: only re-evaluate meals with missing ingredients
     meals_cursor = db.meal_schedules.find({
         "$or": [{"user_id": user_id}, {"user_id": "1"}],
         "status": {"$nin": ["completed", "skipped"]},
@@ -149,9 +148,6 @@ async def mark_bought(
     meals = await meals_cursor.to_list(length=None)
     meals.sort(key=lambda m: m.get("meal_date", ""))
 
-    # Load live inventory into a pool — this is what's available AFTER all
-    # previously-OK meals already consumed their share at creation time.
-    # Only distribute this pool to meals that are currently missing ingredients.
     available = defaultdict(float)
     available_unit = {}
     inv_cursor = db.inventory_items.find({"$or": [{"userId": user_id}, {"userId": "1"}]})
@@ -173,11 +169,9 @@ async def mark_bought(
             was_missing = bool(ing.get("missing"))
 
             if not was_missing:
-                # This meal already has this ingredient covered — keep as-is
                 new_snapshot.append(ing)
                 continue
 
-            # Re-evaluate only ingredients that were missing
             ing_key     = ing["name"].strip().lower()
             recipe_unit = _norm(ing.get("unit", ""))
             needed      = float(ing.get("missing_quantity", ing.get("quantity", 0)))
@@ -188,7 +182,6 @@ async def mark_bought(
             missing_qty, _ = calc_missing(needed, recipe_unit, inv_qty, inv_unit, 1)
             now_missing = missing_qty > 0
 
-            # Deduct what this meal can now use from the pool
             if same_group(recipe_unit, inv_unit):
                 r_factor  = ALL_FACTORS.get(recipe_unit, 1.0)
                 i_factor  = ALL_FACTORS.get(inv_unit, 1.0)
