@@ -1191,8 +1191,9 @@ button:disabled::after { display: none; }
 }
 
 .filter-group label { margin-bottom: 0; font-weight: 500; color: var(--text-muted); }
-.filter-group select { width: auto; margin: 0; padding: 0.5rem 1rem; }
+.filter-group select { width: auto; margin: 0; padding: 0.5rem 1rem; min-width: 120px; }
 
+.action-buttons { display: flex; gap: 0.5rem; }
 .action-buttons .btn-secondary { width: auto; padding: 0.5rem 1rem; font-size: 0.875rem; border-radius: 8px; }
 
 /* Card overrides for shopping sub-cards */

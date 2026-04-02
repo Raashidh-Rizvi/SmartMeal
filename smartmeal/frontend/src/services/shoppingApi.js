@@ -8,9 +8,10 @@ const API_BASE_URL = "http://localhost:8001/api";
 
 const ShoppingAPI = {
   /** GET /api/shopping/all?user_id=...&status_filter=... */
-  async getItems(userId, statusFilter = '') {
+  async getItems(userId, statusFilter = '', sourceFilter = '') {
     const params = new URLSearchParams({ user_id: userId });
     if (statusFilter) params.append('status_filter', statusFilter);
+    if (sourceFilter) params.append('source_filter', sourceFilter);
     const response = await fetch(`${API_BASE_URL}/shopping/all?${params}`);
     if (!response.ok) throw new Error('Failed to load items');
     return response.json();
