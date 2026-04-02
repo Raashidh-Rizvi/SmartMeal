@@ -6,6 +6,13 @@
 
 const API_BASE_URL = "http://localhost:8001/api";
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token
+    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+    : { 'Content-Type': 'application/json' };
+};
+
 const ShoppingAPI = {
   /** GET /api/shopping/all?user_id=...&status_filter=... */
   async getItems(userId, statusFilter = '', sourceFilter = '') {
@@ -17,11 +24,9 @@ const ShoppingAPI = {
     return response.json();
   },
 
-  /** GET /api/shopping/stats?user_id=... */
+  /** GET /api/shopping/stats */
   async getStats(userId) {
-    const response = await fetch(
-      `${API_BASE_URL}/shopping/stats?user_id=${encodeURIComponent(userId)}`
-    );
+    const response = await fetch(`${API_BASE_URL}/shopping/stats`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Failed to load stats');
     return response.json();
   },
@@ -30,7 +35,7 @@ const ShoppingAPI = {
   async addItem(itemData) {
     const response = await fetch(`${API_BASE_URL}/shopping/add`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(itemData),
     });
     if (!response.ok) {
@@ -44,7 +49,7 @@ const ShoppingAPI = {
   async updateItem(itemId, updateData) {
     const response = await fetch(`${API_BASE_URL}/shopping/update/${itemId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(updateData),
     });
     if (!response.ok) {
@@ -58,7 +63,7 @@ const ShoppingAPI = {
   async markBought(itemId) {
     const response = await fetch(`${API_BASE_URL}/shopping/mark-bought/${itemId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
     });
     if (!response.ok) {
       const err = await response.json();
@@ -71,6 +76,7 @@ const ShoppingAPI = {
   async deleteItem(itemId) {
     const response = await fetch(`${API_BASE_URL}/shopping/delete/${itemId}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     if (!response.ok) {
       const err = await response.json();
@@ -79,12 +85,12 @@ const ShoppingAPI = {
     return response.json();
   },
 
-  /** DELETE /api/shopping/clear-bought?user_id=... */
+  /** DELETE /api/shopping/clear-bought */
   async clearBought(userId) {
-    const response = await fetch(
-      `${API_BASE_URL}/shopping/clear-bought?user_id=${encodeURIComponent(userId)}`,
-      { method: 'DELETE' }
-    );
+    const response = await fetch(`${API_BASE_URL}/shopping/clear-bought`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) throw new Error('Failed to clear bought items');
     return response.json();
   },

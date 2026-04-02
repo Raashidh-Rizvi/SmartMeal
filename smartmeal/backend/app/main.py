@@ -17,6 +17,7 @@ from app.routes.upload import router as upload_router
 from app.routes.meal_schedule_routes import router as meal_schedule_router
 from app.routes.leftovers import router as leftovers_router
 from app.routes.budget import router as budget_router
+from app.routes.notification_routes import router as notification_router
 import logging
 import os
 
@@ -42,13 +43,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # CORS must be added BEFORE routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:7001",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:7002",
-        "http://localhost:8001",
-    ],
+    allow_origins=["http://localhost:7001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,6 +60,7 @@ app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["meal-schedules"])
 app.include_router(leftovers_router)
 app.include_router(budget_router)
+app.include_router(notification_router, prefix="/api", tags=["notifications"])
 
 @app.get("/")
 async def root():

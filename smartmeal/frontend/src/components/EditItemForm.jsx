@@ -12,7 +12,8 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
 
   const [item_name, set_item_name] = useState('');
   const [quantity, setQuantity]   = useState(1);
-  const [unit, setUnit]           = useState('piece');
+  const [unit, setUnit]           = useState('pcs');
+  const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
   const [source, setSource]       = useState('Manual');
   const [status, setStatus]       = useState('Pending');
   const [loading, setLoading]     = useState(false);
@@ -153,13 +154,8 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
             <div className="form-group">
               <label>Unit</label>
               <select value={unit} onChange={(e) => setUnit(e.target.value)} disabled={loading}>
-                <option value="piece">Piece</option>
-                <option value="kg">Kg</option>
-                <option value="g">Grams</option>
-                <option value="L">Liter</option>
-                <option value="ml">ML</option>
-                <option value="pack">Pack</option>
-                <option value="dozen">Dozen</option>
+                <option value="">Select unit</option>
+                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
             <div className="form-group">

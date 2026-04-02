@@ -14,6 +14,8 @@ async def create_indexes():
         await db.recipes.create_index("title")
         await db.shopping_items.create_index("user_id")
         await db.inventory_items.create_index("userId")
+        await db.notifications.create_index("userId")
+        await db.notifications.create_index([("createdAt", -1)])
         logger.info("MongoDB indexes created.")
     except Exception as e:
         logger.warning(f"Index creation warning: {e}")

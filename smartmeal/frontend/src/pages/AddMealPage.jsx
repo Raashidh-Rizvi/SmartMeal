@@ -6,13 +6,15 @@ import { getRecipes } from "../api/recipes";
 export default function AddMealPage() {
     const navigate = useNavigate();
     const [recipes, setRecipes] = useState([]);
+    const [success, setSuccess] = useState("");
+    const [error, setError] = useState("");
     const [form, setForm] = useState({
         meal_date: "",
         meal_type: "",
         recipe_id: ""
     });
 
-    const mealTypes = ["Breakfast", "Lunch", "Dinner"];
+    const mealTypes = ["breakfast", "lunch", "dinner", "snack"];
 
     useEffect(() => {
         getRecipes().then(res => setRecipes(res.data)).catch(console.error);
@@ -20,14 +22,16 @@ export default function AddMealPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError("");
+        setSuccess("");
         try {
             if (!form.meal_date || !form.meal_type || !form.recipe_id) {
-                alert("Please fill all fields");
+                setError("Please fill all fields");
                 return;
             }
 
             const payload = {
-                user_id: "1", // Mock user ID
+                user_id: "1",
                 recipe_id: form.recipe_id,
                 meal_date: form.meal_date,
                 meal_type: form.meal_type,
@@ -35,10 +39,12 @@ export default function AddMealPage() {
             };
 
             await createMeal(payload);
-            navigate("/meals");
+            setSuccess("✅ Meal created successfully!");
+            setTimeout(() => navigate("/meals", { state: { created: true } }), 1200);
         } catch (err) {
             console.error("Failed to create meal:", err);
-            alert("Failed to create meal");
+            const msg = err?.response?.data?.detail || "Failed to create meal";
+            setError(typeof msg === "string" ? msg : JSON.stringify(msg));
         }
     };
 
@@ -47,6 +53,18 @@ export default function AddMealPage() {
             <div className="card">
                 <div className="card-body">
                     <h2 className="card-title mb-4">Add New Meal</h2>
+
+                    {success && (
+                        <div className="alert alert-success" role="alert" style={{ marginBottom: "1rem" }}>
+                            {success}
+                        </div>
+                    )}
+                    {error && (
+                        <div className="alert alert-danger" role="alert" style={{ marginBottom: "1rem" }}>
+                            {error}
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
                             <label className="form-label">Date</label>
@@ -69,7 +87,7 @@ export default function AddMealPage() {
                             >
                                 <option value="">Select Meal Type</option>
                                 {mealTypes.map(m => (
-                                    <option key={m} value={m}>{m}</option>
+                                    <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
                                 ))}
                             </select>
                         </div>
@@ -90,7 +108,7 @@ export default function AddMealPage() {
                         </div>
 
                         <div className="d-grid gap-2">
-                            <button type="submit" className="btn btn-primary">Schedule Meal</button>
+                            <button type="submit" className="btn btn-primary" disabled={!!success}>Schedule Meal</button>
                             <button type="button" className="btn btn-outline-secondary" onClick={() => navigate("/meals")}>Cancel</button>
                         </div>
                     </form>
