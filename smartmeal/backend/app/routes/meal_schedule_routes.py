@@ -251,6 +251,19 @@ async def update_meal(
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Meal not found or unauthorized")
 
+    # If meal is marked completed, update ingredients_snapshot to clear missing flags
+    if update_fields.get("status") == "completed":
+        snapshot = existing.get("ingredients_snapshot", [])
+        if snapshot:
+            updated_snapshot = [
+                {**ing, "missing": False, "missing_quantity": 0.0}
+                for ing in snapshot
+            ]
+            await db.meal_schedules.update_one(
+                {"_id": obj_id},
+                {"$set": {"ingredients_snapshot": updated_snapshot}}
+            )
+
     updated = await db.meal_schedules.find_one({"_id": obj_id})
     return await get_meal_with_recipe_details(db, updated, user_id)
 

@@ -35,7 +35,7 @@ class ShoppingItemUpdate(BaseModel):
 @router.get("/shopping/all")
 async def get_items(user_id: str, status_filter: Optional[str] = None, source_filter: Optional[str] = None):
     db = get_db()
-    user_q = {"$or": [{"user_id": user_id}, {"user_id": "1"}]} if user_id != "1" else {"user_id": "1"}
+    query = {"$or": [{"user_id": user_id}, {"user_id": "1"}]} if user_id != "1" else {"user_id": "1"}
     if status_filter:
         query["status"] = {"$regex": f"^{status_filter}$", "$options": "i"}
     if source_filter:
@@ -82,6 +82,7 @@ async def add_item(
     db = get_db()
     now = datetime.now(timezone.utc)
     doc = item.model_dump()
+    doc["user_id"] = user_id  # Add user_id to doc
     doc["lower_name"] = doc["name"].lower().strip()
     doc["source"] = doc.get("source", "manual").lower()
     
