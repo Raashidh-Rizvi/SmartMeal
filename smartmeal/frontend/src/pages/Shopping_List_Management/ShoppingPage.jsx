@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext';
-import { ShoppingAPI } from '../../api/axios';
+import React, { useState, useEffect } from 'react';
+import ShoppingAPI from '../../services/shoppingApi';
 import ShoppingForm from '../../components/ShoppingForm';
 import StatsSection from '../../components/StatsSection';
 import FilterSection from '../../components/FilterSection';
@@ -12,15 +11,7 @@ import Toast from '../../components/Toast';
 function ShoppingPage() {
 
   // ── State ────────────────────────────────────────────────────────────────
-  const { user } = useContext(AuthContext);
-  const [user_id, setUser_id] = useState(user?.uid || user?.id || user?._id || 'user123');
-
-  // Update user_id when auth user changes
-  useEffect(() => {
-    if (user) {
-      setUser_id(user.uid || user.id || user._id || '');
-    }
-  }, [user]);
+  const user_id = '1';
   const [items, setItems]             = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -78,14 +69,14 @@ function ShoppingPage() {
   };
 
   // ── Load on user_id change ────────────────────────────────────────────────
-  useEffect(() => { loadItems(); }, [user_id, status_filter]);
+  useEffect(() => { loadItems(); }, [status_filter]);
 
 
   // ── CRUD handlers ────────────────────────────────────────────────────────
   const addItem = async (itemData) => {
     try {
       await ShoppingAPI.addItem({ ...itemData, user_id });
-      showToast(`Item "${itemData.item_name}" added successfully!`, 'success');
+      showToast(`Item "${itemData.name}" added successfully!`, 'success');
       showListView(); // Return to list view after adding
       loadItems();
       return true;
@@ -143,7 +134,7 @@ function ShoppingPage() {
 
   // ── Filtered list ────────────────────────────────────────────────────────
   const filteredItems = status_filter
-    ? items.filter(item => item.status === status_filter)
+    ? items.filter(item => (item.status || '').toLowerCase() === status_filter.toLowerCase())
     : items;
 
   // ── Render ───────────────────────────────────────────────────────────────

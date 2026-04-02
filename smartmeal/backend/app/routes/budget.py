@@ -1,157 +1,193 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
-from datetime import datetime, timedelta
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime, timezone
 from bson import ObjectId
-from app.models.budget import (
-    BudgetCreate, BudgetUpdate, BudgetResponse,
-    ExpenseCreate, ExpenseUpdate, ExpenseResponse,
-    BudgetSummary
-)
-from app.db.database import get_db
+from ..db.database import get_db
+from ..api.deps import get_current_user_id
 
-router = APIRouter(prefix="/api/budget", tags=["budget"])
+router = APIRouter()
 
-def budget_helper(budget) -> dict:
-    return {
-        "id": str(budget["_id"]),
-        "amount": budget["amount"],
-        "period": budget["period"],
-        "start_date": budget["start_date"],
-        "created_at": budget["created_at"]
-    }
 
-def expense_helper(expense) -> dict:
-    return {
-        "id": str(expense["_id"]),
-        "item_name": expense["item_name"],
-        "amount": expense["amount"],
-        "category": expense["category"],
-        "date": expense["date"],
-        "notes": expense.get("notes"),
-        "created_at": expense["created_at"]
-    }
+class BudgetCreate(BaseModel):
+    amount: float
+    month: Optional[str] = None  # e.g. "2025-07"
+    category: Optional[str] = "general"
 
-def get_period_dates(budget):
-    start = budget["start_date"]
-    end = start + timedelta(days=7 if budget["period"] == "weekly" else 30)
-    return start, end
 
-async def calculate_summary(db):
-    budget = await db.budgets.find_one({}, sort=[("created_at", -1)])
-    if not budget:
-        return {"budget": None, "total_spent": 0.0, "remaining": 0.0,
-                "expenses_count": 0, "is_over_budget": False,
-                "percentage_used": 0.0, "warning_threshold_reached": False}
-    start_date, end_date = get_period_dates(budget)
-    expenses = await db.expenses.find({"date": {"$gte": start_date, "$lt": end_date}}).to_list(1000)
-    total_spent = sum(exp["amount"] for exp in expenses)
-    remaining = budget["amount"] - total_spent
-    percentage_used = (total_spent / budget["amount"]) * 100 if budget["amount"] > 0 else 0
-    return {
-        "budget": budget_helper(budget),
-        "total_spent": round(total_spent, 2),
-        "remaining": round(remaining, 2),
-        "expenses_count": len(expenses),
-        "is_over_budget": total_spent > budget["amount"],
-        "percentage_used": round(percentage_used, 2),
-        "warning_threshold_reached": percentage_used >= 80
-    }
+class BudgetUpdate(BaseModel):
+    amount: Optional[float] = None
+    month: Optional[str] = None
+    category: Optional[str] = None
 
-@router.post("/budgets", response_model=BudgetResponse, status_code=201)
-async def create_budget(budget: BudgetCreate):
+
+class ExpenseCreate(BaseModel):
+    item_name: str
+    description: Optional[str] = None
+    amount: float
+    category: Optional[str] = "general"
+    date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class ExpenseUpdate(BaseModel):
+    item_name: Optional[str] = None
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    category: Optional[str] = None
+    date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+def serialize_expense(doc: dict) -> dict:
+    if "_id" in doc:
+        doc["id"] = str(doc.pop("_id"))
+    return doc
+
+
+def serialize_budget(doc: dict) -> dict:
+    if "_id" in doc:
+        doc["id"] = str(doc.pop("_id"))
+    return doc
+
+
+@router.post("/api/budget/budgets")
+async def create_budget(
+    data: BudgetCreate,
+    user_id: str = Depends(get_current_user_id)
+):
     db = get_db()
-    budget_dict = budget.model_dump()
-    budget_dict["created_at"] = datetime.now()
-    result = await db.budgets.insert_one(budget_dict)
-    new_budget = await db.budgets.find_one({"_id": result.inserted_id})
-    return budget_helper(new_budget)
+    doc = data.model_dump()
+    doc["user_id"] = user_id
+    doc["created_at"] = datetime.now(timezone.utc)
+    result = await db.budgets.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_budget(doc)
 
-@router.get("/budgets/current", response_model=BudgetResponse)
-async def get_current_budget():
-    db = get_db()
-    budget = await db.budgets.find_one({}, sort=[("created_at", -1)])
-    if not budget:
-        raise HTTPException(status_code=404, detail="No budget found")
-    return budget_helper(budget)
 
-@router.put("/budgets/{budget_id}", response_model=BudgetResponse)
-async def update_budget(budget_id: str, budget_update: BudgetUpdate):
+@router.get("/api/budget/budgets/current")
+async def get_current_budget(user_id: str = Depends(get_current_user_id)):
     db = get_db()
-    if not ObjectId.is_valid(budget_id):
-        raise HTTPException(status_code=400, detail="Invalid budget ID")
-    update_data = {k: v for k, v in budget_update.model_dump().items() if v is not None}
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    result = await db.budgets.update_one({"_id": ObjectId(budget_id)}, {"$set": update_data})
+    doc = await db.budgets.find_one({"user_id": user_id}, sort=[("created_at", -1)])
+    if not doc:
+        return None
+    return serialize_budget(doc)
+
+
+@router.put("/api/budget/budgets/{budget_id}")
+async def update_budget(
+    budget_id: str,
+    data: BudgetUpdate,
+    user_id: str = Depends(get_current_user_id)
+):
+    db = get_db()
+    update = data.model_dump(exclude_unset=True)
+    result = await db.budgets.update_one(
+        {"_id": ObjectId(budget_id), "user_id": user_id},
+        {"$set": update}
+    )
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Budget not found")
-    return budget_helper(await db.budgets.find_one({"_id": ObjectId(budget_id)}))
+        raise HTTPException(status_code=404, detail="Budget not found or unauthorized")
+    doc = await db.budgets.find_one({"_id": ObjectId(budget_id)})
+    return serialize_budget(doc)
 
-@router.delete("/budgets/{budget_id}", status_code=204)
-async def delete_budget(budget_id: str):
+
+@router.delete("/api/budget/budgets/{budget_id}")
+async def delete_budget(
+    budget_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
     db = get_db()
-    if not ObjectId.is_valid(budget_id):
-        raise HTTPException(status_code=400, detail="Invalid budget ID")
-    result = await db.budgets.delete_one({"_id": ObjectId(budget_id)})
+    result = await db.budgets.delete_one({"_id": ObjectId(budget_id), "user_id": user_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Budget not found")
+        raise HTTPException(status_code=404, detail="Budget not found or unauthorized")
+    return {"message": "deleted"}
 
-@router.post("/expenses", response_model=ExpenseResponse, status_code=201)
-async def create_expense(expense: ExpenseCreate):
-    db = get_db()
-    expense_dict = expense.model_dump()
-    expense_dict["created_at"] = datetime.now()
-    result = await db.expenses.insert_one(expense_dict)
-    return expense_helper(await db.expenses.find_one({"_id": result.inserted_id}))
 
-@router.get("/expenses", response_model=List[ExpenseResponse])
-async def get_expenses(start_date: Optional[datetime] = None, end_date: Optional[datetime] = None, category: Optional[str] = None):
+@router.post("/api/budget/expenses")
+async def create_expense(
+    data: ExpenseCreate,
+    user_id: str = Depends(get_current_user_id)
+):
     db = get_db()
-    query = {}
-    if start_date or end_date:
-        query["date"] = {}
-        if start_date:
-            query["date"]["$gte"] = start_date
-        if end_date:
-            query["date"]["$lte"] = end_date
+    doc = data.model_dump()
+    doc["user_id"] = user_id
+    doc["created_at"] = datetime.now(timezone.utc)
+    if not doc.get("date"):
+        doc["date"] = doc["created_at"]
+    result = await db.expenses.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_expense(doc)
+
+
+@router.get("/api/budget/expenses")
+async def get_expenses(
+    category: Optional[str] = None,
+    user_id: str = Depends(get_current_user_id)
+):
+    db = get_db()
+    query = {"user_id": user_id}
     if category:
         query["category"] = category
-    expenses = await db.expenses.find(query).sort("date", -1).to_list(1000)
-    return [expense_helper(e) for e in expenses]
+    cursor = db.expenses.find(query).sort("date", -1)
+    items = await cursor.to_list(length=None)
+    return [serialize_expense(item) for item in items]
 
-@router.get("/expenses/{expense_id}", response_model=ExpenseResponse)
-async def get_expense(expense_id: str):
-    db = get_db()
-    if not ObjectId.is_valid(expense_id):
-        raise HTTPException(status_code=400, detail="Invalid expense ID")
-    expense = await db.expenses.find_one({"_id": ObjectId(expense_id)})
-    if not expense:
-        raise HTTPException(status_code=404, detail="Expense not found")
-    return expense_helper(expense)
 
-@router.put("/expenses/{expense_id}", response_model=ExpenseResponse)
-async def update_expense(expense_id: str, expense_update: ExpenseUpdate):
+@router.put("/api/budget/expenses/{expense_id}")
+async def update_expense(
+    expense_id: str,
+    data: ExpenseUpdate,
+    user_id: str = Depends(get_current_user_id)
+):
     db = get_db()
-    if not ObjectId.is_valid(expense_id):
-        raise HTTPException(status_code=400, detail="Invalid expense ID")
-    update_data = {k: v for k, v in expense_update.model_dump().items() if v is not None}
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    result = await db.expenses.update_one({"_id": ObjectId(expense_id)}, {"$set": update_data})
+    update = data.model_dump(exclude_unset=True)
+    result = await db.expenses.update_one(
+        {"_id": ObjectId(expense_id), "user_id": user_id},
+        {"$set": update}
+    )
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Expense not found")
-    return expense_helper(await db.expenses.find_one({"_id": ObjectId(expense_id)}))
+        raise HTTPException(status_code=404, detail="Expense not found or unauthorized")
+    doc = await db.expenses.find_one({"_id": ObjectId(expense_id)})
+    return serialize_expense(doc)
 
-@router.delete("/expenses/{expense_id}", status_code=204)
-async def delete_expense(expense_id: str):
+
+@router.delete("/api/budget/expenses/{expense_id}")
+async def delete_expense(
+    expense_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
     db = get_db()
-    if not ObjectId.is_valid(expense_id):
-        raise HTTPException(status_code=400, detail="Invalid expense ID")
-    result = await db.expenses.delete_one({"_id": ObjectId(expense_id)})
+    result = await db.expenses.delete_one({"_id": ObjectId(expense_id), "user_id": user_id})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Expense not found")
+        raise HTTPException(status_code=404, detail="Expense not found or unauthorized")
+    return {"message": "deleted"}
 
-@router.get("/summary", response_model=BudgetSummary)
-async def get_budget_summary():
+
+@router.get("/api/budget/summary")
+async def get_summary(user_id: str = Depends(get_current_user_id)):
     db = get_db()
-    return await calculate_summary(db)
+    budget = await db.budgets.find_one({"user_id": user_id}, sort=[("created_at", -1)])
+    cursor = db.expenses.find({"user_id": user_id})
+    expenses = await cursor.to_list(length=None)
+    total_spent = sum(e.get("amount", 0) for e in expenses)
+    budget_amount = budget.get("amount", 0) if budget else 0
+    remaining = budget_amount - total_spent
+    percentage_used = (total_spent / budget_amount * 100) if budget_amount > 0 else 0
+    is_over_budget = remaining < 0
+    warning_threshold_reached = percentage_used >= 80 and not is_over_budget
+
+    budget_data = None
+    if budget:
+        budget["_id"] = str(budget["_id"])
+        budget_data = budget
+
+    return {
+        "budget": budget_data,
+        "total_spent": total_spent,
+        "remaining": remaining,
+        "percentage_used": percentage_used,
+        "is_over_budget": is_over_budget,
+        "warning_threshold_reached": warning_threshold_reached,
+        "expenses_count": len(expenses),
+    }

@@ -12,14 +12,12 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (token) {
+      if (token && !user) {
         try {
-          // api.js automatically attaches the token interceptor
           const response = await api.get('/api/auth/me');
           setUser(response.data.user);
         } catch (error) {
           console.error("Failed to fetch user profile", error);
-          // Token might be invalid or expired
           setToken(null);
           localStorage.removeItem('token');
         }
@@ -27,8 +25,10 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
 
-    fetchUser();
-  }, [token]);
+    // Always resolve loading within 5 seconds even if backend is down
+    const timeout = setTimeout(() => setLoading(false), 5000);
+    fetchUser().finally(() => clearTimeout(timeout));
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = (userData, jwtToken) => {
     setUser(userData);
@@ -70,7 +70,11 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, setUser, token, login, logout, loginWithGoogle, loading }}>
-      {!loading && children}
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: '1.1rem', color: '#16a34a' }}>
+          Loading...
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 };

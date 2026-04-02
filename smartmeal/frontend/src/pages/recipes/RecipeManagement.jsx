@@ -9,10 +9,12 @@ import {
     deleteRecipe,
     uploadRecipeImage,
 } from '../../api/recipes';
+import api from '../../api/axios';
 import './recipes.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'];
+const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
 
 const EMPTY_INGREDIENT = { name: '', quantity: '', unit: '' };
 const EMPTY_FORM = {
@@ -54,6 +56,7 @@ function RecipeManagement() {
     const [formError, setFormError] = useState('');
     const [formLoading, setFormLoading] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
+    const [inventoryItems, setInventoryItems] = useState([]);
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -83,6 +86,15 @@ function RecipeManagement() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ── Fetch inventory for ingredient dropdown ──────────────────────────────
+    useEffect(() => {
+        if (view === VIEW.FORM) {
+            api.get('/api/inventory', { params: { page: 1, limit: 100 } })
+                .then(res => setInventoryItems(res.data.items || []))
+                .catch(() => setInventoryItems([]));
+        }
+    }, [view]);
 
     // ── Fetch recipes list ───────────────────────────────────────────────────
     const fetchRecipes = useCallback(async () => {
@@ -197,6 +209,20 @@ function RecipeManagement() {
             return { ...prev, ingredients };
         });
 
+    // When user picks an inventory item, lock unit to what's stored in inventory
+    const handleIngredientNameChange = (idx, name) => {
+        const match = inventoryItems.find(i => i.name === name);
+        setForm(prev => {
+            const ingredients = [...prev.ingredients];
+            ingredients[idx] = {
+                ...ingredients[idx],
+                name,
+                unit: match?.unit || '',
+            };
+            return { ...prev, ingredients };
+        });
+    };
+
     const addIngredient = () =>
         setForm(prev => ({ ...prev, ingredients: [...prev.ingredients, { ...EMPTY_INGREDIENT }] }));
 
@@ -235,7 +261,7 @@ function RecipeManagement() {
         for (const ing of validIngredients) {
             if (!ing.quantity || isNaN(Number(ing.quantity)) || Number(ing.quantity) <= 0)
                 return setFormError(`Invalid quantity for ingredient "${ing.name}".`);
-            if (!ing.unit.trim())
+            if (!ing.unit)
                 return setFormError(`Unit is required for ingredient "${ing.name}".`);
         }
         const validSteps = form.preparation_steps.filter(s => s.trim());
@@ -302,7 +328,7 @@ function RecipeManagement() {
                         onClick={() => { setView(VIEW.LIST); setActiveTab('all'); setSkip(0); }}
                         style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                     >
-                        <span>📖</span> View Recipes
+                        View Recipes
                     </button>
                     {user && (
                         <button
@@ -310,7 +336,7 @@ function RecipeManagement() {
                             onClick={() => { setView(VIEW.LIST); setActiveTab('mine'); setSkip(0); }}
                             style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
-                            <span>🧑‍🍳</span> My Recipes
+                            My Recipes
                         </button>
                     )}
                     {user && view === VIEW.LIST && (
@@ -342,7 +368,7 @@ function RecipeManagement() {
                     {/* Filter Bar */}
                     <div className="filter-bar unified-filter-bar">
                         <div className="search-input-wrapper">
-                            <span className="search-icon">🔍</span>
+                            <span className="search-icon"></span>
                             <input
                                 id="recipe-search"
                                 className="filter-search premium-input"
@@ -387,25 +413,7 @@ function RecipeManagement() {
                                     onClick={() => openDetail(recipe._id)}
                                     id={`recipe-card-${recipe._id}`}
                                 >
-                                    {/* Action Buttons */}
-                                    {isOwner(recipe) && (
-                                        <div className="recipe-card-actions" onClick={e => e.stopPropagation()}>
-                                            <button 
-                                                className="action-edit" 
-                                                onClick={() => openEdit(recipe)}
-                                                title="Edit Recipe"
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button 
-                                                className="action-delete" 
-                                                onClick={(e) => handleDelete(recipe, e)}
-                                                title="Delete Recipe"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    )}
+                                    {/* Action Buttons Moved to Bottom */}
 
                                     {/* Recipe Image */}
                                     <div className="recipe-card-img-wrapper">
@@ -440,14 +448,30 @@ function RecipeManagement() {
                                         <div className="recipe-card-meta">
                                             {recipe.estimated_cooking_time && (
                                                 <div className="meta-item">
-                                                    <span className="meta-icon">⏱️</span>
                                                     <span>{recipe.estimated_cooking_time} min</span>
                                                 </div>
                                             )}
                                             <div className="meta-item">
-                                                <span className="meta-icon">🧂</span>
                                                 <span>{recipe.ingredients.length} Ingred.</span>
                                             </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="recipe-card-actions-bottom" onClick={e => e.stopPropagation()}>
+                                            <button 
+                                                className="action-edit" 
+                                                onClick={() => openEdit(recipe)}
+                                                title="Edit Recipe"
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                            <button 
+                                                className="action-delete" 
+                                                onClick={(e) => handleDelete(recipe, e)}
+                                                title="Delete Recipe"
+                                            >
+                                                🗑️ Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -509,24 +533,6 @@ function RecipeManagement() {
                             </div>
                         </div>
 
-                        {isOwner(selectedRecipe) && (
-                            <div className="recipe-actions">
-                                <button
-                                    className="btn-secondary"
-                                    onClick={() => openEdit(selectedRecipe)}
-                                    id="edit-recipe-btn"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    className="btn-danger"
-                                    onClick={() => handleDelete(selectedRecipe)}
-                                    id="delete-recipe-btn"
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        )}
                     </div>
 
                     {error && <div className="error">{error}</div>}
@@ -572,6 +578,24 @@ function RecipeManagement() {
                             ))}
                         </ol>
                     </section>
+
+                    {/* Action Buttons (Moved to Bottom) */}
+                    <div className="recipe-detail-actions-footer">
+                        <button
+                            className="action-edit detail-action-btn"
+                            onClick={() => openEdit(selectedRecipe)}
+                            id="edit-recipe-btn"
+                        >
+                            ✏️ Edit
+                        </button>
+                        <button
+                            className="action-delete detail-action-btn"
+                            onClick={() => handleDelete(selectedRecipe)}
+                            id="delete-recipe-btn"
+                        >
+                            🗑️ Delete
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -583,17 +607,33 @@ function RecipeManagement() {
                     <form onSubmit={handleSubmit} className="recipe-form" id="recipe-form">
                         {formError && <div className="error">{formError}</div>}
 
-                        {/* Title */}
-                        <div className="form-group">
-                            <label htmlFor="recipe-title">Title *</label>
-                            <input
-                                id="recipe-title"
-                                type="text"
-                                placeholder="e.g. Avocado Toast"
-                                value={form.title}
-                                onChange={e => setFormField('title', e.target.value)}
-                                required
-                            />
+                        {/* Row 1: Title and Category */}
+                        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                            <div className="form-group" style={{ flex: '2 1 300px' }}>
+                                <label htmlFor="recipe-title">Title</label>
+                                <input
+                                    id="recipe-title"
+                                    type="text"
+                                    placeholder="e.g. Avocado Toast"
+                                    value={form.title}
+                                    onChange={e => setFormField('title', e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group" style={{ flex: '1 1 150px' }}>
+                                <label htmlFor="recipe-category">Category</label>
+                                <select
+                                    id="recipe-category"
+                                    className="form-select"
+                                    value={form.category}
+                                    onChange={e => setFormField('category', e.target.value)}
+                                    required
+                                >
+                                    {CATEGORIES.map(c => (
+                                        <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         {/* Description */}
@@ -602,32 +642,16 @@ function RecipeManagement() {
                             <textarea
                                 id="recipe-desc"
                                 className="form-textarea"
-                                placeholder="Brief description of the recipe..."
+                                placeholder="Write a detailed description of the recipe..."
                                 value={form.description}
                                 onChange={e => setFormField('description', e.target.value)}
-                                rows={3}
+                                rows={4}
                             />
                         </div>
 
-                        {/* Category */}
-                        <div className="form-group">
-                            <label htmlFor="recipe-category">Category *</label>
-                            <select
-                                id="recipe-category"
-                                className="form-select"
-                                value={form.category}
-                                onChange={e => setFormField('category', e.target.value)}
-                                required
-                            >
-                                {CATEGORIES.map(c => (
-                                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                                ))}
-                            </select>
-                        </div>
-
                         {/* Cook Time */}
-                        <div className="form-group">
-                            <label htmlFor="recipe-time">Estimated Cooking Time (minutes)</label>
+                        <div className="form-group" style={{ maxWidth: '250px' }}>
+                            <label htmlFor="recipe-time">Cook Time (min)</label>
                             <input
                                 id="recipe-time"
                                 type="number"
@@ -679,20 +703,26 @@ function RecipeManagement() {
                         {/* Ingredients */}
                         <div className="form-section">
                             <div className="form-section-header">
-                                <h3>Ingredients *</h3>
+                                <h3>Ingredients</h3>
                                 <button type="button" className="btn-add-row" onClick={addIngredient}>
                                     + Add Ingredient
                                 </button>
                             </div>
-                            {form.ingredients.map((ing, idx) => (
+                            {form.ingredients.map((ing, idx) => {
+                                const invMatch = inventoryItems.find(i => i.name === ing.name);
+                                return (
                                 <div key={idx} className="ingredient-row">
-                                    <input
-                                        type="text"
-                                        placeholder="Name"
+                                    <select
                                         value={ing.name}
-                                        onChange={e => setIngredient(idx, 'name', e.target.value)}
+                                        onChange={e => handleIngredientNameChange(idx, e.target.value)}
                                         className="ing-name"
-                                    />
+                                        required
+                                    >
+                                        <option value="">Select ingredient</option>
+                                        {inventoryItems.map(item => (
+                                            <option key={item._id} value={item.name}>{item.name}</option>
+                                        ))}
+                                    </select>
                                     <input
                                         type="number"
                                         placeholder="Qty"
@@ -704,10 +734,11 @@ function RecipeManagement() {
                                     />
                                     <input
                                         type="text"
-                                        placeholder="Unit"
-                                        value={ing.unit}
-                                        onChange={e => setIngredient(idx, 'unit', e.target.value)}
+                                        value={invMatch?.unit || ing.unit || ''}
+                                        readOnly
                                         className="ing-unit"
+                                        style={{ background: 'var(--input-bg, #f3f4f6)', cursor: 'not-allowed', color: '#6b7280' }}
+                                        placeholder="unit"
                                     />
                                     {form.ingredients.length > 1 && (
                                         <button
@@ -720,13 +751,14 @@ function RecipeManagement() {
                                         </button>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Preparation Steps */}
                         <div className="form-section">
                             <div className="form-section-header">
-                                <h3>Preparation Steps *</h3>
+                                <h3>Preparation Steps</h3>
                                 <button type="button" className="btn-add-row" onClick={addStep}>
                                     + Add Step
                                 </button>

@@ -1,214 +1,226 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from typing import List, Optional
-from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, HTTPException, Query
+from typing import Optional
 from bson import ObjectId
-from app.db.database import get_db
-from app.models.user import UserInDB, UserResponse
-from app.api.deps import require_admin
-from pydantic import BaseModel
+from datetime import datetime, timezone, timedelta
+from ..db.database import get_db
 
 router = APIRouter()
 
-# A) USERS
+
 @router.get("/users")
-async def get_users(
-    search: Optional[str] = None,
-    role: Optional[str] = None,
+async def list_users(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
-    current_user: UserInDB = Depends(require_admin)
+    search: Optional[str] = None,
+    role: Optional[str] = None
 ):
     db = get_db()
     query = {}
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}},
-            {"email": {"$regex": search, "$options": "i"}}
+            {"email": {"$regex": search, "$options": "i"}},
         ]
     if role:
         query["role"] = role
-
     skip = (page - 1) * limit
-    cursor = db["users"].find(query).skip(skip).limit(limit)
+    cursor = db.users.find(query).skip(skip).limit(limit)
     users = await cursor.to_list(length=limit)
-    total = await db["users"].count_documents(query)
-
+    total = await db.users.count_documents(query)
     for u in users:
         u["_id"] = str(u["_id"])
-        if "password_hash" in u:
-            del u["password_hash"]
+        u.pop("hashed_password", None)
+    return {"items": users, "total": total, "page": page, "limit": limit}
 
-    return {
-        "items": users,
-        "total": total,
-        "page": page,
-        "limit": limit
-    }
 
-@router.get("/users/{user_id}", response_model=UserResponse)
-async def get_user(user_id: str, current_user: UserInDB = Depends(require_admin)):
+@router.get("/users/{user_id}")
+async def get_user(user_id: str):
     db = get_db()
-    if not ObjectId.is_valid(user_id):
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-    
-    user_dict = await db["users"].find_one({"_id": ObjectId(user_id)})
-    if not user_dict:
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
-        
-    user_dict["_id"] = str(user_dict["_id"])
-    return UserResponse(**user_dict)
+    user["_id"] = str(user["_id"])
+    user.pop("hashed_password", None)
+    return user
+
 
 @router.put("/users/{user_id}")
-async def update_user(user_id: str, update_data: dict, current_user: UserInDB = Depends(require_admin)):
+async def update_user(user_id: str, data: dict):
     db = get_db()
-    if not ObjectId.is_valid(user_id):
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-        
-    update_doc = {"updatedAt": datetime.now(timezone.utc)}
-    if "name" in update_data:
-        update_doc["name"] = update_data["name"]
-    if "role" in update_data:
-        update_doc["role"] = update_data["role"]
-    if "preferences" in update_data:
-        update_doc["preferences"] = update_data["preferences"]
-        
-    result = await db["users"].update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": update_doc}
-    )
-    
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    updated_user = await db["users"].find_one({"_id": ObjectId(user_id)})
-    updated_user["_id"] = str(updated_user["_id"])
-    if "password_hash" in updated_user:
-        del updated_user["password_hash"]
-        
-    return {"message": "updated", "user": updated_user}
+    data.pop("_id", None)
+    data.pop("hashed_password", None)
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": data})
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user["_id"] = str(user["_id"])
+    user.pop("hashed_password", None)
+    return user
+
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: str, current_user: UserInDB = Depends(require_admin)):
+async def delete_user(user_id: str):
     db = get_db()
-    if not ObjectId.is_valid(user_id):
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-        
-    if str(current_user.id) == user_id:
-        raise HTTPException(status_code=400, detail="Cannot delete yourself")
-        
-    result = await db["users"].delete_one({"_id": ObjectId(user_id)})
+    result = await db.users.delete_one({"_id": ObjectId(user_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
-        
-    return {"message": "deleted"}
+    return {"message": "User deleted"}
 
-# B) INVENTORY
-@router.get("/inventory")
-async def get_inventory(
-    userEmail: Optional[str] = None,
-    expiringBefore: Optional[datetime] = None,
-    expiredOnly: bool = False,
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
-    current_user: UserInDB = Depends(require_admin)
-):
-    db = get_db()
-    query = {}
-    
-    if userEmail:
-        user = await db["users"].find_one({"email": userEmail})
-        if user:
-            query["userId"] = str(user["_id"])
-        else:
-            return {"items": [], "total": 0, "page": page, "limit": limit}
-            
-    now = datetime.now(timezone.utc)
-    if expiredOnly:
-        query["expiryDate"] = {"$lt": now}
-    elif expiringBefore:
-        # FastAPI parsers datetime strings. Be careful timezone matches if possible.
-        query["expiryDate"] = {"$lt": expiringBefore}
-        
-    skip = (page - 1) * limit
-    cursor = db["inventory_items"].find(query).skip(skip).limit(limit)
-    items = await cursor.to_list(length=limit)
-    total = await db["inventory_items"].count_documents(query)
-    
-    user_ids = list(set([item["userId"] for item in items if "userId" in item]))
-    user_id_obj = [ObjectId(uid) for uid in user_ids if ObjectId.is_valid(uid)]
-    users = await db["users"].find({"_id": {"$in": user_id_obj}}).to_list(length=len(user_id_obj))
-    user_map = {str(u["_id"]): u.get("email", "") for u in users}
-    
-    for item in items:
-        item["_id"] = str(item["_id"])
-        item["userEmail"] = user_map.get(item.get("userId"), "Unknown")
-        
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "limit": limit
-    }
 
-@router.delete("/inventory/{item_id}")
-async def delete_inventory_item(item_id: str, current_user: UserInDB = Depends(require_admin)):
-    db = get_db()
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid item ID")
-        
-    result = await db["inventory_items"].delete_one({"_id": ObjectId(item_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Item not found")
-        
-    return {"message": "deleted"}
-
-# C) NOTIFICATIONS
-class NotificationRequest(BaseModel):
-    userId: str
-    type: str = "ADMIN_MESSAGE"
-    message: str
-
-@router.post("/notifications")
-async def send_notification(req: NotificationRequest, current_user: UserInDB = Depends(require_admin)):
-    db = get_db()
-    if not ObjectId.is_valid(req.userId):
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-        
-    new_notif = {
-        "userId": req.userId,
-        "type": req.type,
-        "message": req.message,
-        "read": False,
-        "createdAt": datetime.now(timezone.utc)
-    }
-    
-    result = await db["notifications"].insert_one(new_notif)
-    new_notif["_id"] = str(result.inserted_id)
-    
-    return {"message": "sent", "notification": new_notif}
-
-# D) DASHBOARD METRICS
 @router.get("/metrics")
-async def get_metrics(current_user: UserInDB = Depends(require_admin)):
+async def get_metrics():
     db = get_db()
-    
-    totalUsers = await db["users"].count_documents({})
-    totalInventoryItems = await db["inventory_items"].count_documents({})
-    
     now = datetime.now(timezone.utc)
-    in_three_days = now + timedelta(days=3)
-    
-    itemsExpiringSoon = await db["inventory_items"].count_documents({
-        "expiryDate": {"$lte": in_three_days, "$gt": now}
+    soon = now + timedelta(days=7)
+    total_inventory = await db.inventory_items.count_documents({})
+    expiring_soon = await db.inventory_items.count_documents({
+        "expiryDate": {"$lte": soon, "$gte": now}
     })
-    
-    expiredItems = await db["inventory_items"].count_documents({
+    expired = await db.inventory_items.count_documents({
         "expiryDate": {"$lt": now}
     })
-    
     return {
-        "totalUsers": totalUsers,
-        "totalInventoryItems": totalInventoryItems,
-        "itemsExpiringSoon": itemsExpiringSoon,
-        "expiredItems": expiredItems
+        "totalUsers": await db.users.count_documents({}),
+        "total_users": await db.users.count_documents({}),
+        "totalInventoryItems": total_inventory,
+        "total_inventory": total_inventory,
+        "itemsExpiringSoon": expiring_soon,
+        "expiredItems": expired,
+        "total_recipes": await db.recipes.count_documents({}),
+        "total_meals": await db.meal_schedules.count_documents({}),
     }
+
+
+@router.get("/inventory")
+async def admin_inventory():
+    db = get_db()
+    cursor = db.inventory_items.find({})
+    items = await cursor.to_list(length=None)
+    for item in items:
+        item["_id"] = str(item["_id"])
+    return items
+
+
+def serialize_notification(notification: dict) -> dict:
+    notification["_id"] = str(notification["_id"])
+    notification["createdAt"] = notification["createdAt"].isoformat() if notification.get("createdAt") else None
+    return notification
+
+
+@router.get("/notifications")
+async def get_notifications(unread: Optional[bool] = Query(False)):
+    db = get_db()
+    query = {}
+    if unread:
+        query["isRead"] = False
+
+    cursor = db.notifications.find(query).sort("createdAt", -1)
+    notifications = await cursor.to_list(length=None)
+    return [serialize_notification(n) for n in notifications]
+
+
+@router.get("/notifications/{notification_id}")
+async def get_notification(notification_id: str):
+    db = get_db()
+    notification = await db.notifications.find_one({"_id": ObjectId(notification_id)})
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return serialize_notification(notification)
+
+
+@router.post("/notifications")
+async def create_notification(data: dict):
+    db = get_db()
+    user_id = data.get("userId")
+    message = data.get("message")
+    if not user_id or not message:
+        raise HTTPException(status_code=400, detail="userId and message are required")
+
+    notification = {
+        "userId": user_id,
+        "type": data.get("type", "ADMIN_MESSAGE"),
+        "message": message,
+        "isRead": False,
+        "createdAt": datetime.now(timezone.utc),
+    }
+    if data.get("inventoryItemId"):
+        notification["inventoryItemId"] = data["inventoryItemId"]
+
+    result = await db.notifications.insert_one(notification)
+    notification["_id"] = str(result.inserted_id)
+    notification["createdAt"] = notification["createdAt"].isoformat()
+    return notification
+
+
+@router.post("/notifications/expiration-alerts")
+async def create_expiration_alerts():
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    soon = now + timedelta(days=7)
+
+    cursor = db.inventory_items.find({
+        "expiryDate": {"$gte": now, "$lte": soon}
+    })
+    inventory_items = await cursor.to_list(length=None)
+
+    created_notifications = []
+    for item in inventory_items:
+        if not item.get("userId"):
+            continue
+        inventory_item_id = str(item["_id"])
+        existing = await db.notifications.find_one({
+            "userId": item["userId"],
+            "inventoryItemId": inventory_item_id,
+            "type": "EXPIRING_FOOD",
+        })
+        if existing:
+            continue
+
+        expiry_date = item.get("expiryDate")
+        expiry_text = expiry_date.strftime("%Y-%m-%d") if expiry_date else "soon"
+        item_name = item.get("name") or item.get("title") or "inventory item"
+        message = f"{item_name} is about to expire on {expiry_text}. Please use it before it spoils."
+
+        notification = {
+            "userId": item["userId"],
+            "type": "EXPIRING_FOOD",
+            "message": message,
+            "inventoryItemId": inventory_item_id,
+            "isRead": False,
+            "createdAt": now,
+        }
+        result = await db.notifications.insert_one(notification)
+        notification["_id"] = str(result.inserted_id)
+        created_notifications.append(serialize_notification(notification))
+
+    return {
+        "created": len(created_notifications),
+        "notifications": created_notifications,
+    }
+
+
+@router.put("/notifications/{notification_id}")
+async def update_notification(notification_id: str, data: dict):
+    db = get_db()
+    notification = await db.notifications.find_one({"_id": ObjectId(notification_id)})
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    update_data = {}
+    if "isRead" in data:
+        update_data["isRead"] = bool(data["isRead"])
+    if "message" in data:
+        update_data["message"] = data["message"]
+
+    if update_data:
+        await db.notifications.update_one({"_id": ObjectId(notification_id)}, {"$set": update_data})
+
+    notification = await db.notifications.find_one({"_id": ObjectId(notification_id)})
+    return serialize_notification(notification)
+
+
+@router.delete("/notifications/{notification_id}")
+async def delete_notification(notification_id: str):
+    db = get_db()
+    result = await db.notifications.delete_one({"_id": ObjectId(notification_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"message": "Notification deleted"}

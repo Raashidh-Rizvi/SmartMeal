@@ -9,7 +9,7 @@ import api from './axios';
  * @param {Object} params - { search, category, created_by, skip, limit }
  */
 export const getRecipes = (params = {}) =>
-    api.get('/api/recipes', { params });
+    api.get('/api/recipes/', { params });
 
 /**
  * @param {string} id - Recipe ObjectId string
