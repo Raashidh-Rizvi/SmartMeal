@@ -7,11 +7,18 @@ import bcrypt
 import random
 import string
 from jose import jwt, JWTError
+from bson.errors import InvalidId
 from ..db.database import get_db
 from ..core.config import settings
 from ..utils.email import send_otp_email
 
 router = APIRouter()
+
+def to_object_id(id_str: str) -> ObjectId:
+    try:
+        return ObjectId(id_str)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
 
 
 def hash_password(password: str) -> str:
@@ -25,32 +32,34 @@ def verify_password(password: str, hashed: str) -> bool:
         return False
 
 
+from pydantic import BaseModel, Field, EmailStr
+
 class RegisterRequest(BaseModel):
-    name: str
-    email: str
-    password: str
+    name: str = Field(..., min_length=2)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 
 class GoogleAuthRequest(BaseModel):
-    email: str
+    email: EmailStr
     name: Optional[str] = None
     firebaseToken: str
     uid: str
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class ResetPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
     otp: str
-    newPassword: str
+    newPassword: str = Field(..., min_length=8)
 
 
 def create_token(data: dict) -> str:
@@ -65,18 +74,22 @@ def serialize_user(doc: dict) -> dict:
         "email": doc["email"],
         "role": doc.get("role", "USER"),
         "is_active": doc.get("is_active", True),
+        "preferences": doc.get("preferences", {}),
     }
 
 
 @router.post("/register")
 async def register(req: RegisterRequest):
+    print("RECEIVED REGISTER REQUEST")
+    print(f"Body: {req}")
     db = get_db()
-    if await db.users.find_one({"email": req.email}):
+    email = req.email.lower().strip()
+    if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     now = datetime.now(timezone.utc)
     result = await db.users.insert_one({
         "name": req.name,
-        "email": req.email,
+        "email": email,
         "hashed_password": hash_password(req.password),
         "role": "USER",
         "is_active": True,
@@ -90,7 +103,8 @@ async def register(req: RegisterRequest):
 @router.post("/login")
 async def login(req: LoginRequest):
     db = get_db()
-    user = await db.users.find_one({"email": req.email})
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
     if not user or not verify_password(req.password, user.get("hashed_password", "")):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     u = serialize_user(user)
@@ -100,12 +114,13 @@ async def login(req: LoginRequest):
 @router.post("/google")
 async def google_auth(req: GoogleAuthRequest):
     db = get_db()
-    user = await db.users.find_one({"email": req.email})
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
     if not user:
         now = datetime.now(timezone.utc)
         result = await db.users.insert_one({
-            "name": req.name or req.email.split("@")[0],
-            "email": req.email,
+            "name": req.name or email.split("@")[0],
+            "email": email,
             "uid": req.uid,
             "role": "USER",
             "is_active": True,
@@ -127,7 +142,7 @@ async def get_me(authorization: Optional[str] = Header(None)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
     db = get_db()
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user = await db.users.find_one({"_id": to_object_id(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return {"user": serialize_user(user)}
@@ -136,7 +151,8 @@ async def get_me(authorization: Optional[str] = Header(None)):
 @router.post("/forgot-password")
 async def forgot_password(req: ForgotPasswordRequest):
     db = get_db()
-    user = await db.users.find_one({"email": req.email.lower()})
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
     if not user:
         # For security, don't explicitly say the email doesn't exist
         return {"message": "If an account exists with this email, you will receive an OTP shortly."}
@@ -152,15 +168,15 @@ async def forgot_password(req: ForgotPasswordRequest):
     )
 
     # Send matching email
-    send_otp_email(req.email, otp)
-
+    send_otp_email(email, otp)
     return {"message": "OTP sent successfully"}
 
 
 @router.post("/reset-password")
 async def reset_password(req: ResetPasswordRequest):
     db = get_db()
-    user = await db.users.find_one({"email": req.email.lower()})
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

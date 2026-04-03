@@ -62,7 +62,7 @@ function AdminUsers() {
             type="text" 
             placeholder="Search name/email..." 
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value.toLowerCase())}
             className="admin-input"
           />
           <button type="submit" className="btn btn-primary">Search</button>

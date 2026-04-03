@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 import bcrypt
 from jose import jwt, JWTError
+from bson.errors import InvalidId
 from ..db.database import get_db
 from ..core.config import settings
 
@@ -28,9 +29,19 @@ def get_user_id_from_token(authorization: Optional[str]) -> str:
     token = authorization.split(" ", 1)[1]
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload["sub"]
+        user_id = payload["sub"]
+        # Basic validation that it could be an ObjectId
+        if not isinstance(user_id, str):
+             raise HTTPException(status_code=401, detail="Invalid token payload")
+        return user_id
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+def to_object_id(id_str: str) -> ObjectId:
+    try:
+        return ObjectId(id_str)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
 
 
 def serialize_user(user: dict) -> dict:
@@ -39,6 +50,7 @@ def serialize_user(user: dict) -> dict:
         "name": user.get("name", ""),
         "email": user["email"],
         "role": user.get("role", "USER"),
+        "is_active": user.get("is_active", True),
         "preferences": user.get("preferences", {}),
     }
 
@@ -61,7 +73,7 @@ class PasswordChange(BaseModel):
 async def get_profile(authorization: Optional[str] = Header(None)):
     user_id = get_user_id_from_token(authorization)
     db = get_db()
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user = await db.users.find_one({"_id": to_object_id(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return {"user": serialize_user(user)}
@@ -77,8 +89,9 @@ async def update_profile(req: ProfileUpdate, authorization: Optional[str] = Head
     if req.preferences is not None:
         update["preferences"] = req.preferences
     update["updated_at"] = datetime.now(timezone.utc)
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    oid = to_object_id(user_id)
+    await db.users.update_one({"_id": oid}, {"$set": update})
+    user = await db.users.find_one({"_id": oid})
     return {"user": serialize_user(user)}
 
 
@@ -90,11 +103,12 @@ async def change_password(req: PasswordChange, authorization: Optional[str] = He
     if not old_pw or not new_pw:
         raise HTTPException(status_code=400, detail="Both old and new passwords are required")
     db = get_db()
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    oid = to_object_id(user_id)
+    user = await db.users.find_one({"_id": oid})
     if not user or not verify_password(old_pw, user.get("hashed_password", "")):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     await db.users.update_one(
-        {"_id": ObjectId(user_id)},
+        {"_id": oid},
         {"$set": {"hashed_password": hash_password(new_pw)}}
     )
     return {"message": "Password updated successfully"}
@@ -109,5 +123,5 @@ async def change_password_post(req: PasswordChange, authorization: Optional[str]
 async def delete_account(authorization: Optional[str] = Header(None)):
     user_id = get_user_id_from_token(authorization)
     db = get_db()
-    await db.users.delete_one({"_id": ObjectId(user_id)})
+    await db.users.delete_one({"_id": to_object_id(user_id)})
     return {"message": "Account deleted"}

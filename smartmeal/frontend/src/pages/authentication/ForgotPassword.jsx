@@ -14,12 +14,13 @@ function ForgotPassword() {
     setLoading(true);
     setMessage('');
     setError('');
+    const normalizedEmail = email.toLowerCase().trim();
     try {
-      const response = await api.post('/api/auth/forgot-password', { email });
+      const response = await api.post('/api/auth/forgot-password', { email: normalizedEmail });
       setMessage(response.data.message);
       // Wait 2 seconds then navigate to reset password page
       setTimeout(() => {
-        navigate('/reset-password', { state: { email } });
+        navigate('/reset-password', { state: { email: normalizedEmail } });
       }, 2000);
     } catch (err) {
       setError(err.response?.data?.detail || 'Something went wrong. Please try again.');
@@ -43,7 +44,7 @@ function ForgotPassword() {
             <input 
               type="email" 
               value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+              onChange={(e) => setEmail(e.target.value.toLowerCase())} 
               placeholder="name@example.com"
               required 
               disabled={loading}

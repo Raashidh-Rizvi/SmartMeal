@@ -36,9 +36,10 @@ function ResetPassword() {
     }
 
     setLoading(true);
+    const normalizedEmail = email.toLowerCase().trim();
     try {
       const response = await api.post('/api/auth/reset-password', { 
-        email, 
+        email: normalizedEmail, 
         otp, 
         newPassword 
       });
@@ -69,7 +70,7 @@ function ResetPassword() {
             <input 
               type="email" 
               value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+              onChange={(e) => setEmail(e.target.value.toLowerCase())} 
               placeholder="name@example.com"
               required 
               disabled={loading || !!location.state?.email}

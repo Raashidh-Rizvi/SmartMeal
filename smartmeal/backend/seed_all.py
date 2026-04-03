@@ -22,8 +22,8 @@ async def seed_data():
 
     now = datetime.now(timezone.utc)
     
-    # EXACT 25-char ID as previously found
-    target_user_id = "69cb80e6ad637466cf07999a8"
+    # EXACT 24-char ID
+    target_user_id = "69cb80e6ad637466cf07999a"
     guest_user_id = "000000000000000000000001"
     
     print(f"Seeding Users: target={target_user_id}")

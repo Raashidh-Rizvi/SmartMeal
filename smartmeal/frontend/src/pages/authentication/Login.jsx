@@ -23,8 +23,9 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = email.toLowerCase().trim();
     try {
-      const response = await api.post('/api/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email: normalizedEmail, password });
       const { accessToken, user } = response.data;
       login(user, accessToken);
       navigate('/');
@@ -63,7 +64,7 @@ function Login() {
           <input 
             type="email" 
             value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
+            onChange={(e) => setEmail(e.target.value.toLowerCase())} 
             placeholder="you@example.com"
             required 
           />
