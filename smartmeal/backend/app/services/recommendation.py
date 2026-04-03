@@ -5,7 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from app.services.preprocessing import load_processed_data, process_user_input, save_processed_data
 
 # Processed CSV path — same path as defined in preprocessing.py
-_PROCESSED_PATH = Path(__file__).resolve().parent.parent / "data" / "processed" / "processed_recipes.csv"
+_PROCESSED_PATH = Path(__file__).resolve().parent.parent / "data" / "processed" / "processed_recipes1.csv"
 
 def _ensure_data_ready():
     """

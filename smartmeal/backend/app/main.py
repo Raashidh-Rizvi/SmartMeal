@@ -17,6 +17,7 @@ from app.routes.upload import router as upload_router
 from app.routes.meal_schedule_routes import router as meal_schedule_router
 from app.routes.leftovers import router as leftovers_router
 from app.routes.budget import router as budget_router
+from app.routes.leftover_ai_routes import router as leftover_ai_router
 from app.routes.notification_routes import router as notification_router
 import logging
 import os
@@ -60,6 +61,7 @@ app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["meal-schedules"])
 app.include_router(leftovers_router)
 app.include_router(budget_router)
+app.include_router(leftover_ai_router)
 app.include_router(notification_router, prefix="/api", tags=["notifications"])
 
 @app.get("/")
