@@ -27,7 +27,6 @@ async def generate_expiring_food_alerts(db, user_id: str):
 
     for item in items:
         inventory_item_id = str(item["_id"])
-        # Check if notification already exists
         existing = await db.notifications.find_one({
             "userId": user_id,
             "inventoryItemId": inventory_item_id,
@@ -41,17 +40,130 @@ async def generate_expiring_food_alerts(db, user_id: str):
         item_name = item.get("name") or item.get("title") or "item"
         message = f"Your {item_name} is about to expire on {expiry_text}. Please consume it."
 
-        notification = {
+        await db.notifications.insert_one({
             "userId": user_id,
             "type": "EXPIRING_FOOD",
             "message": message,
             "inventoryItemId": inventory_item_id,
             "isRead": False,
             "createdAt": now,
-        }
-        await db.notifications.insert_one(notification)
+        })
 
-async def generate_budget_alerts(db, user_id: str):
+
+async def generate_expiring_leftover_alerts(db, user_id: str):
+    now = datetime.now(timezone.utc)
+    soon = now + timedelta(days=3)  # Leftovers are more urgent — 3 days
+
+    cursor = db.leftovers.find({
+        "user_id": user_id,
+        "is_used": {"$ne": True},
+        "expiry_date": {"$gte": now, "$lte": soon}
+    })
+    items = await cursor.to_list(length=None)
+
+    for item in items:
+        leftover_id = str(item["_id"])
+        existing = await db.notifications.find_one({
+            "userId": user_id,
+            "leftoverId": leftover_id,
+            "type": "EXPIRING_LEFTOVER",
+        })
+        if existing:
+            continue
+
+        expiry_date = item.get("expiry_date")
+        days_left = (expiry_date - now).days if isinstance(expiry_date, datetime) else 0
+        expiry_text = expiry_date.strftime("%Y-%m-%d") if isinstance(expiry_date, datetime) else "soon"
+        item_name = item.get("name", "Leftover item")
+
+        if days_left < 0:
+            urgency = "has expired"
+        elif days_left == 0:
+            urgency = "expires today"
+        else:
+            urgency = f"expires in {days_left} day{'s' if days_left != 1 else ''} ({expiry_text})"
+
+        message = f"🍽️ Leftover '{item_name}' {urgency}. Use it now or generate a recipe!"
+
+        await db.notifications.insert_one({
+            "userId": user_id,
+            "type": "EXPIRING_LEFTOVER",
+            "message": message,
+            "leftoverId": leftover_id,
+            "isRead": False,
+            "createdAt": now,
+        })
+
+async def generate_meal_schedule_alerts(db, user_id: str):
+    now = datetime.now(timezone.utc)
+    today = now.date().isoformat()
+    tomorrow = (now.date() + timedelta(days=1)).isoformat()
+
+    # Fetch today's and tomorrow's planned meals
+    cursor = db.meal_schedules.find({
+        "$or": [{"user_id": user_id}, {"user_id": "1"}],
+        "meal_date": {"$in": [today, tomorrow]},
+        "status": {"$nin": ["completed", "skipped"]}
+    })
+    meals = await cursor.to_list(length=None)
+
+    for meal in meals:
+        meal_id = str(meal["_id"])
+        meal_date = meal.get("meal_date", "")
+        meal_type = meal.get("meal_type", "meal").capitalize()
+        recipe_title = meal.get("recipe_title", "")
+
+        # Resolve recipe title if not stored on meal
+        if not recipe_title:
+            try:
+                recipe = await db.recipes.find_one({"_id": ObjectId(meal["recipe_id"])})
+                recipe_title = recipe.get("title", "Unknown Recipe") if recipe else "Unknown Recipe"
+            except Exception:
+                recipe_title = "Unknown Recipe"
+
+        is_today = meal_date == today
+        day_label = "today" if is_today else "tomorrow"
+        notif_type = f"MEAL_REMINDER_{meal_date}"
+
+        # Daily reminder — once per meal per date
+        existing = await db.notifications.find_one({
+            "userId": user_id,
+            "mealId": meal_id,
+            "type": notif_type,
+        })
+        if not existing:
+            await db.notifications.insert_one({
+                "userId": user_id,
+                "type": notif_type,
+                "message": f"\ud83d\udcc5 Reminder: {meal_type} '{recipe_title}' is planned for {day_label} ({meal_date}).",
+                "mealId": meal_id,
+                "isRead": False,
+                "createdAt": now,
+            })
+
+        # Missing ingredients alert — once per meal
+        snapshot = meal.get("ingredients_snapshot", [])
+        missing = [i["name"] for i in snapshot if i.get("missing")]
+        if missing:
+            missing_type = f"MEAL_MISSING_INGREDIENTS_{meal_id}"
+            existing_missing = await db.notifications.find_one({
+                "userId": user_id,
+                "mealId": meal_id,
+                "type": missing_type,
+            })
+            if not existing_missing:
+                missing_str = ", ".join(missing[:5])
+                await db.notifications.insert_one({
+                    "userId": user_id,
+                    "type": missing_type,
+                    "message": f"\u26a0\ufe0f '{recipe_title}' ({day_label}) is missing ingredients: {missing_str}. Add them to your shopping list!",
+                    "mealId": meal_id,
+                    "isRead": False,
+                    "createdAt": now,
+                })
+
+
+
     # Get current budget
     budget = await db.budgets.find_one({"user_id": user_id}, sort=[("created_at", -1)])
     if not budget:
@@ -113,6 +225,8 @@ async def get_user_notifications(
 
     # Generate automatic system alerts before retrieving list
     await generate_expiring_food_alerts(db, user_id)
+    await generate_expiring_leftover_alerts(db, user_id)
+    await generate_meal_schedule_alerts(db, user_id)
     await generate_budget_alerts(db, user_id)
 
     query = {"userId": {"$in": [user_id, "ALL"]}}
