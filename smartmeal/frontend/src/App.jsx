@@ -9,6 +9,8 @@ import Footer from './components/Footer';
 // Pages
 import Login from './pages/authentication/Login';
 import Register from './pages/authentication/Register';
+import ForgotPassword from './pages/authentication/ForgotPassword';
+import ResetPassword from './pages/authentication/ResetPassword';
 import Dashboard from './pages/users/Dashboard';
 import Profile from './pages/users/Profile';
 import ChangePassword from './pages/users/ChangePassword';
@@ -53,6 +55,8 @@ function App() {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   
                   {/* Protected Routes */}
                   <Route element={<ProtectedRoute />}>

@@ -4,9 +4,12 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 import bcrypt
+import random
+import string
 from jose import jwt, JWTError
 from ..db.database import get_db
 from ..core.config import settings
+from ..utils.email import send_otp_email
 
 router = APIRouter()
 
@@ -38,6 +41,16 @@ class GoogleAuthRequest(BaseModel):
     name: Optional[str] = None
     firebaseToken: str
     uid: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    newPassword: str
 
 
 def create_token(data: dict) -> str:
@@ -118,3 +131,64 @@ async def get_me(authorization: Optional[str] = Header(None)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return {"user": serialize_user(user)}
+
+
+@router.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    db = get_db()
+    user = await db.users.find_one({"email": req.email.lower()})
+    if not user:
+        # For security, don't explicitly say the email doesn't exist
+        return {"message": "If an account exists with this email, you will receive an OTP shortly."}
+
+    # Generate 6-digit OTP
+    otp = "".join(random.choices(string.digits, k=6))
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    # Store OTP in DB
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"reset_otp": otp, "reset_otp_expiry": expiry}}
+    )
+
+    # Send matching email
+    send_otp_email(req.email, otp)
+
+    return {"message": "OTP sent successfully"}
+
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    db = get_db()
+    user = await db.users.find_one({"email": req.email.lower()})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check OTP and expiry
+    stored_otp = user.get("reset_otp")
+    expiry = user.get("reset_otp_expiry")
+
+    if not stored_otp or not expiry:
+        raise HTTPException(status_code=400, detail="No OTP requested")
+
+    # Ensure expiry is timezone-aware
+    if expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=timezone.utc)
+
+    if stored_otp != req.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    if datetime.now(timezone.utc) > expiry:
+        raise HTTPException(status_code=400, detail="OTP has expired")
+
+    # Update password and clear OTP
+    new_hashed_password = hash_password(req.newPassword)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"hashed_password": new_hashed_password},
+            "$unset": {"reset_otp": "", "reset_otp_expiry": ""}
+        }
+    )
+
+    return {"message": "Password reset successfully"}
