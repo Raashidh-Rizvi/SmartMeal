@@ -9,10 +9,12 @@ import {
     deleteRecipe,
     uploadRecipeImage,
 } from '../../api/recipes';
+import api from '../../api/axios';
 import './recipes.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'];
+const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
 
 const EMPTY_INGREDIENT = { name: '', quantity: '', unit: '' };
 const EMPTY_FORM = {
@@ -54,6 +56,7 @@ function RecipeManagement() {
     const [formError, setFormError] = useState('');
     const [formLoading, setFormLoading] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
+    const [inventoryItems, setInventoryItems] = useState([]);
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -83,6 +86,15 @@ function RecipeManagement() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ── Fetch inventory for ingredient dropdown ──────────────────────────────
+    useEffect(() => {
+        if (view === VIEW.FORM) {
+            api.get('/api/inventory', { params: { page: 1, limit: 100 } })
+                .then(res => setInventoryItems(res.data.items || []))
+                .catch(() => setInventoryItems([]));
+        }
+    }, [view]);
 
     // ── Fetch recipes list ───────────────────────────────────────────────────
     const fetchRecipes = useCallback(async () => {
@@ -197,6 +209,20 @@ function RecipeManagement() {
             return { ...prev, ingredients };
         });
 
+    // When user picks an inventory item, lock unit to what's stored in inventory
+    const handleIngredientNameChange = (idx, name) => {
+        const match = inventoryItems.find(i => i.name === name);
+        setForm(prev => {
+            const ingredients = [...prev.ingredients];
+            ingredients[idx] = {
+                ...ingredients[idx],
+                name,
+                unit: match?.unit || '',
+            };
+            return { ...prev, ingredients };
+        });
+    };
+
     const addIngredient = () =>
         setForm(prev => ({ ...prev, ingredients: [...prev.ingredients, { ...EMPTY_INGREDIENT }] }));
 
@@ -235,7 +261,7 @@ function RecipeManagement() {
         for (const ing of validIngredients) {
             if (!ing.quantity || isNaN(Number(ing.quantity)) || Number(ing.quantity) <= 0)
                 return setFormError(`Invalid quantity for ingredient "${ing.name}".`);
-            if (!ing.unit.trim())
+            if (!ing.unit)
                 return setFormError(`Unit is required for ingredient "${ing.name}".`);
         }
         const validSteps = form.preparation_steps.filter(s => s.trim());
@@ -431,24 +457,22 @@ function RecipeManagement() {
                                         </div>
 
                                         {/* Action Buttons */}
-                                        {isOwner(recipe) && (
-                                            <div className="recipe-card-actions-bottom" onClick={e => e.stopPropagation()}>
-                                                <button 
-                                                    className="action-edit" 
-                                                    onClick={() => openEdit(recipe)}
-                                                    title="Edit Recipe"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button 
-                                                    className="action-delete" 
-                                                    onClick={(e) => handleDelete(recipe, e)}
-                                                    title="Delete Recipe"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        )}
+                                        <div className="recipe-card-actions-bottom" onClick={e => e.stopPropagation()}>
+                                            <button 
+                                                className="action-edit" 
+                                                onClick={() => openEdit(recipe)}
+                                                title="Edit Recipe"
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                            <button 
+                                                className="action-delete" 
+                                                onClick={(e) => handleDelete(recipe, e)}
+                                                title="Delete Recipe"
+                                            >
+                                                🗑️ Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -556,24 +580,22 @@ function RecipeManagement() {
                     </section>
 
                     {/* Action Buttons (Moved to Bottom) */}
-                    {isOwner(selectedRecipe) && (
-                        <div className="recipe-detail-actions-footer">
-                            <button
-                                className="action-edit detail-action-btn"
-                                onClick={() => openEdit(selectedRecipe)}
-                                id="edit-recipe-btn"
-                            >
-                                Edit
-                            </button>
-                            <button
-                                className="action-delete detail-action-btn"
-                                onClick={() => handleDelete(selectedRecipe)}
-                                id="delete-recipe-btn"
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    )}
+                    <div className="recipe-detail-actions-footer">
+                        <button
+                            className="action-edit detail-action-btn"
+                            onClick={() => openEdit(selectedRecipe)}
+                            id="edit-recipe-btn"
+                        >
+                            ✏️ Edit
+                        </button>
+                        <button
+                            className="action-delete detail-action-btn"
+                            onClick={() => handleDelete(selectedRecipe)}
+                            id="delete-recipe-btn"
+                        >
+                            🗑️ Delete
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -686,15 +708,21 @@ function RecipeManagement() {
                                     + Add Ingredient
                                 </button>
                             </div>
-                            {form.ingredients.map((ing, idx) => (
+                            {form.ingredients.map((ing, idx) => {
+                                const invMatch = inventoryItems.find(i => i.name === ing.name);
+                                return (
                                 <div key={idx} className="ingredient-row">
-                                    <input
-                                        type="text"
-                                        placeholder="Name"
+                                    <select
                                         value={ing.name}
-                                        onChange={e => setIngredient(idx, 'name', e.target.value)}
+                                        onChange={e => handleIngredientNameChange(idx, e.target.value)}
                                         className="ing-name"
-                                    />
+                                        required
+                                    >
+                                        <option value="">Select ingredient</option>
+                                        {inventoryItems.map(item => (
+                                            <option key={item._id} value={item.name}>{item.name}</option>
+                                        ))}
+                                    </select>
                                     <input
                                         type="number"
                                         placeholder="Qty"
@@ -706,10 +734,11 @@ function RecipeManagement() {
                                     />
                                     <input
                                         type="text"
-                                        placeholder="Unit"
-                                        value={ing.unit}
-                                        onChange={e => setIngredient(idx, 'unit', e.target.value)}
+                                        value={invMatch?.unit || ing.unit || ''}
+                                        readOnly
                                         className="ing-unit"
+                                        style={{ background: 'var(--input-bg, #f3f4f6)', cursor: 'not-allowed', color: '#6b7280' }}
+                                        placeholder="unit"
                                     />
                                     {form.ingredients.length > 1 && (
                                         <button
@@ -718,11 +747,12 @@ function RecipeManagement() {
                                             onClick={() => removeIngredient(idx)}
                                             title="Remove ingredient"
                                         >
-                                            x
+                                            🗑️
                                         </button>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Preparation Steps */}
@@ -750,7 +780,7 @@ function RecipeManagement() {
                                             onClick={() => removeStep(idx)}
                                             title="Remove step"
                                         >
-                                            x
+                                            🗑️
                                         </button>
                                     )}
                                 </div>

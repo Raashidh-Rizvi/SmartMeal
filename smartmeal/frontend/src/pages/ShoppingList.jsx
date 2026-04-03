@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import ShoppingAPI from '../services/shoppingApi';
+import { getUserId } from '../utils/userUtils';
 import ShoppingForm from '../components/ShoppingForm';
 import StatsSection from '../components/StatsSection';
 import FilterSection from '../components/FilterSection';
@@ -11,9 +12,7 @@ import EditItemForm from '../components/EditItemForm';
 
 function ShoppingList() {
   const { user } = useContext(AuthContext);
-  // Backend returns id as _id (Pydantic alias). Firebase users have uid.
-  // Use hardcoded "1" to match how meals and shopping items are being created
-  const userId = "1";
+  const userId = getUserId(user);
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [items, setItems] = useState([]);

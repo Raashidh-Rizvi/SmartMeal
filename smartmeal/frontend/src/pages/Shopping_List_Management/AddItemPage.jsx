@@ -8,7 +8,9 @@ function AddItemPage() {
   
   const [item_name, set_item_name] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [unit, setUnit] = useState('piece');
+  const [unit, setUnit] = useState('pcs');
+
+  const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
   const [source, setSource] = useState('Manual');
   const [user_id, setUser_id] = useState('user123');
   const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@ function AddItemPage() {
     setLoading(true);
     try {
       await ShoppingAPI.addItem({
-        item_name: item_name.trim(),
+        name: item_name.trim(),
         quantity: parseFloat(quantity),
         unit,
         source,
@@ -98,13 +100,8 @@ function AddItemPage() {
                       onChange={(e) => setUnit(e.target.value)}
                       disabled={loading}
                     >
-                      <option value="piece">Piece</option>
-                      <option value="kg">Kg</option>
-                      <option value="g">Grams</option>
-                      <option value="L">Liter</option>
-                      <option value="ml">ML</option>
-                      <option value="pack">Pack</option>
-                      <option value="dozen">Dozen</option>
+                      <option value="">Select unit</option>
+                      {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -172,7 +169,7 @@ function AddItemPage() {
                   onClick={() => {
                     set_item_name('Eggs');
                     setQuantity(12);
-                    setUnit('piece');
+                    setUnit('pcs');
                   }}
                   className="btn-quick"
                 >

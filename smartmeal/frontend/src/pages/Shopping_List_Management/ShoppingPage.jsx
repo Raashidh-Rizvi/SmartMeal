@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import ShoppingAPI from '../../services/shoppingApi';
 import ShoppingForm from '../../components/ShoppingForm';
 import StatsSection from '../../components/StatsSection';
@@ -10,8 +11,11 @@ import Toast from '../../components/Toast';
 
 function ShoppingPage() {
 
+  // ── Get authenticated user ────────────────────────────────────────────────
+  const { user } = useContext(AuthContext);
+  const user_id = user?._id || user?.id || '1';  // Use actual user ID, fallback to '1'
+
   // ── State ────────────────────────────────────────────────────────────────
-  const user_id = '1';
   const [items, setItems]             = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -69,8 +73,8 @@ function ShoppingPage() {
     setLoading(false);
   };
 
-  // ── Load on user_id change ────────────────────────────────────────────────
-  useEffect(() => { loadItems(); }, [status_filter, source_filter]);
+  // ── Load on filters change ─────────────────────────────────────────────────
+  useEffect(() => { loadItems(); }, [user_id, status_filter, source_filter]);
 
 
   // ── CRUD handlers ────────────────────────────────────────────────────────

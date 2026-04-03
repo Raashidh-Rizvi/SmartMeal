@@ -526,3 +526,10 @@
 }
 
 .ms-ing-content {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex: 1;
+}
+
+.ms-ing-have { font-size: .75rem; color: #6b7280; font-style: italic; }

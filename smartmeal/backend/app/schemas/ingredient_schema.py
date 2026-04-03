@@ -41,14 +41,16 @@ class InventoryItemBase(BaseModel):
 
 class InventoryItemCreate(BaseModel):
     name: str
-    quantity: int = 1
+    quantity: float = 1
+    unit: Optional[str] = None
     category: Optional[str] = None
     expiryDate: Optional[datetime] = None
     notes: Optional[str] = None
 
 class InventoryItemUpdate(BaseModel):
     name: Optional[str] = None
-    quantity: Optional[int] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
     category: Optional[str] = None
     expiryDate: Optional[datetime] = None
     notes: Optional[str] = None

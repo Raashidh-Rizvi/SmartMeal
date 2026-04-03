@@ -1,14 +1,17 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { getMeals, createMeal, updateMeal, deleteMeal, getMealIngredients } from "../services/mealService";
+import React, { useEffect, useState, useCallback, useContext } from "react";
+import { useLocation } from "react-router-dom";
+import { getMeals, createMeal, updateMeal, deleteMeal, getMealIngredients, useIngredients as mealUseIngredients } from "../services/mealService";
 import { getRecipes } from "../api/recipes";
+import { AuthContext } from "../context/AuthContext";
 import ShoppingAPI from "../services/shoppingApi";
 import api from "../api/axios";
 import "../styles/MealSchedule.css";
 
 const MEAL_TYPES  = ["breakfast", "lunch", "dinner", "snack"];
-const STATUS_OPTS = ["planned", "done", "skipped", "cancelled"];
+const STATUS_OPTS = ["planned", "pending", "ready", "bought", "cooking", "completed", "skipped"];
 const EMPTY_FORM  = { meal_date: "", meal_type: "", recipe_id: "", status: "planned", description: "" };
 const ICONS = { breakfast: "🌅", lunch: "🍽️", dinner: "🌙", snack: "🎉" };
+const round2 = v => Math.round((v ?? 0) * 100) / 100;
 
 
 // ── Toast ────────────────────────────────────────────────────────────────────────────
@@ -67,10 +70,13 @@ function Tooltip({ text, children }) {
 // ✓✓ Status Badge ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 function StatusBadge({ status }) {
     const map = {
-        planned:   { color: "#f59e0b", label: "Planned" },
-        done:      { color: "#10b981", label: "Done" },
-        skipped:   { color: "#ef4444", label: "Skipped" },
-        cancelled: { color: "#6b7280", label: "Cancelled" },
+        planned:   { color: "#3b82f6", label: "🔵 Planned" },
+        pending:   { color: "#f59e0b", label: "⚠️ Pending" },
+        ready:     { color: "#10b981", label: "🟢 Ready" },
+        bought:    { color: "#8b5cf6", label: "🛒 Bought" },
+        cooking:   { color: "#f97316", label: "🍳 Cooking" },
+        completed: { color: "#16a34a", label: "✅ Completed" },
+        skipped:   { color: "#ef4444", label: "❌ Skipped" },
     };
     const s = map[status] || map.planned;
     return <span className="ms-badge" style={{ background: s.color }}>{s.label}</span>;
@@ -166,7 +172,7 @@ function RecipeDetailsModal({ meal, recipe, onClose, ingredients, addedIng }) {
 // ✓✓ Meal Alert Badge ✓ shared helper ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 function MealAlertBadge({ meal, ingredients }) {
     const ings = ingredients[meal._id];
-    const unresolved = ings ? ings.filter(i => i.missing && !i.addedToList).length : (meal.warnings?.length || 0);
+    const unresolved = ings ? ings.filter(i => i.missing).length : (meal.warnings?.length || 0);
     if (unresolved > 0) return <span className="ms-cal-warn">⚠️ {unresolved} missing</span>;
     if (ings) return <span className="ms-cal-ok">✅ OK</span>;
     return null;
@@ -237,7 +243,7 @@ function DailyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, i
                                         <IngredientPopover meal={meal} ingredients={ingredients} addingIng={addingIng} addedIng={addedIng} onAddToShopping={onAddToShopping} />
                                         <div className="ms-cal-actions">
                                             {(() => {
-                                                const missingIngs = (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList);
+                                                const missingIngs = (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`]));
                                                 return missingIngs.length > 0 ? (
                                                     <button
                                                         className="ms-btn ms-btn-sm ms-btn-shopping"
@@ -315,7 +321,7 @@ function WeeklyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, 
                             <div className="ms-week-day-body">
                                 {MEAL_TYPES.map(type => {
                                     const meal = dayMeals.find(m => m.meal_type === type);
-                                    const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList) : [];
+                                    const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`])) : [];
                                     return meal ? (
                                         <div key={type} className={`ms-week-meal-card ms-week-meal-card-${type}`}>
                                             <div className="ms-week-meal-top">
@@ -432,7 +438,7 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
                                 <div className="ms-month-day-body">
                                     {MEAL_TYPES.map(type => {
                                         const meal = dayMeals.find(m => m.meal_type === type);
-                                        const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList) : [];
+                                        const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`])) : [];
                                         return meal ? (
                                             <div key={type} className={`ms-month-meal-card ms-month-meal-card-${type}`}>
                                                 <div className="ms-month-meal-top">
@@ -475,6 +481,9 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
 
 // ✓✓ Main Page ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 export default function MealSchedulePage() {
+    const { user } = useContext(AuthContext);
+    const userId = user?.id || user?._id || "1";
+
     const [meals,        setMeals]        = useState([]);
     const [allRecipes,   setAllRecipes]   = useState([]);
     const [typeRecipes,  setTypeRecipes]  = useState([]);
@@ -507,33 +516,32 @@ export default function MealSchedulePage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [mRes, rRes, shoppingRes] = await Promise.all([
-                getMeals(),
+            const [mRes, rRes] = await Promise.all([
+                getMeals(userId),
                 getRecipes({ limit: 200 }),
-                ShoppingAPI.getItems("1")
             ]);
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
             setMeals(loadedMeals);
             setAllRecipes(Array.isArray(rRes.data) ? rRes.data : []);
 
             // Load ingredients for all meals and cross-check with shopping list
-            const ingResults = await Promise.allSettled(
-                loadedMeals.map(m => getMealIngredients(m._id))
-            );
+            const [ingResults, shoppingRes] = await Promise.all([
+                Promise.allSettled(loadedMeals.map(m => getMealIngredients(m._id))),
+                ShoppingAPI.getItems(userId).catch(() => [])
+            ]);
             const ingMap = {};
             const addedMap = {};
             loadedMeals.forEach((m, idx) => {
                 if (ingResults[idx].status !== "fulfilled") return;
                 const ings = ingResults[idx].value.data || [];
                 const resolvedNames = new Set(
-                    shoppingRes
+                    (shoppingRes || [])
                         .filter(s => s.meal_id === m._id)
                         .map(s => (s.name || "").toLowerCase())
                 );
                 ingMap[m._id] = ings.map(ing => ({
                     ...ing,
                     addedToList: resolvedNames.has(ing.name.toLowerCase()),
-                    missing: ing.missing && !resolvedNames.has(ing.name.toLowerCase()),
                 }));
                 ings.forEach(ing => {
                     if (resolvedNames.has(ing.name.toLowerCase()))
@@ -544,14 +552,23 @@ export default function MealSchedulePage() {
             setAddedIng(addedMap);
         } catch (err) {
             console.error("Load error:", err?.response?.data || err?.message);
-            try { const r = await getMeals(); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
+            try { const r = await getMeals(userId); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
             try { const r = await getRecipes({ limit: 200 }); setAllRecipes(Array.isArray(r.data) ? r.data : []); } catch { setAllRecipes([]); }
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [userId]);
 
+    const location = useLocation();
     useEffect(() => { load(); }, [load]);
+
+    // Show success toast when navigated from AddMealPage
+    useEffect(() => {
+        if (location.state?.created) {
+            toast("✅ Meal created successfully!", "success");
+            window.history.replaceState({}, "");
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ✓✓ When meal_type changes, fetch matching recipes ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
     useEffect(() => {
@@ -597,7 +614,7 @@ export default function MealSchedulePage() {
         if (!validate()) { toast("Please fix the errors below", "warning"); return; }
         try {
             const payload = {
-                user_id: "1",
+                user_id: userId,
                 recipe_id: form.recipe_id,
                 meal_date: form.meal_date,
                 meal_type: form.meal_type,
@@ -606,16 +623,44 @@ export default function MealSchedulePage() {
             };
             if (editingId) {
                 await updateMeal(editingId, payload);
+                // if marked done, subtract ingredients from inventory with feedback
+                if (payload.status === "completed") {
+                    try {
+                        const deductRes = await mealUseIngredients(editingId);
+                        const deductData = deductRes.data || {};
+                        const results = deductData.updated || [];
+                        
+                        // Build feedback message
+                        const updated = results.filter(r => r.status === "updated");
+                        const notFound = results.filter(r => r.status === "not_in_inventory");
+                        
+                        let feedbackMsg = "Meal marked done";
+                        if (updated.length > 0) {
+                            feedbackMsg = `✓ Deducted ${updated.length} ingredient${updated.length !== 1 ? 's' : ''} from inventory`;
+                            if (notFound.length > 0) {
+                                feedbackMsg += ` (${notFound.length} not found)`;
+                            }
+                        } else if (notFound.length > 0) {
+                            feedbackMsg = `⚠️ Ingredients not in inventory: ${notFound.map(r => r.name).join(", ")}`;
+                        }
+                        
+                        toast(feedbackMsg, updated.length > 0 ? "success" : "warning");
+                    } catch {
+                        toast("⚠️ Could not deduct ingredients from inventory", "warning");
+                    }
+                }
                 toast("Meal updated ✓", "success");
             } else {
                 await createMeal(payload);
                 toast("Meal created ✓", "success");
+                // Add a small delay before refreshing to ensure DB sync
+                await new Promise(r => setTimeout(r, 300));
             }
             setForm(EMPTY_FORM);
             setErrors({});
             setEditingId(null);
             setTypeRecipes([]);
-            load();
+            await load();
         } catch (err) {
             const msg = err?.response?.data?.detail || "Operation failed";
             toast(typeof msg === "string" ? msg : JSON.stringify(msg), "error");
@@ -670,11 +715,11 @@ export default function MealSchedulePage() {
     const handleExpandRow = async (mealId) => {
         const isOpen = expandedId === mealId;
         setExpandedId(isOpen ? null : mealId);
-        if (!isOpen && !ingredients[mealId]) {
+        if (!isOpen) {
             try {
                 const [ingRes, shoppingRes] = await Promise.all([
                     getMealIngredients(mealId),
-                    ShoppingAPI.getItems("1")
+                    ShoppingAPI.getItems(userId)
                 ]);
                 const ings = ingRes.data || [];
                 // Match by dedicated meal_id field ✓ reliable across refreshes
@@ -686,7 +731,7 @@ export default function MealSchedulePage() {
                 const enriched = ings.map(ing => ({
                     ...ing,
                     addedToList: resolvedNames.has(ing.name.toLowerCase()),
-                    missing: ing.missing && !resolvedNames.has(ing.name.toLowerCase()),
+                    // keep missing from snapshot — addedToList only controls the button/badge
                 }));
                 setIngredients(p => ({ ...p, [mealId]: enriched }));
                 // Pre-populate addedIng state
@@ -706,29 +751,31 @@ export default function MealSchedulePage() {
     // ✓✓ Add missing ingredient to shopping list ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
     const handleAddToShopping = async (ing) => {
         const key = `${ing.meal_id}_${ing.name}`;
-        if (addedIng[key]) return; // prevent duplicate
+        if (addedIng[key]) return;
         setAddingIng(p => ({ ...p, [key]: true }));
         try {
             const meal = meals.find(m => m._id === ing.meal_id);
             const payload = {
-                user_id: "1",
+                user_id: userId,
                 name: ing.name,
-                quantity: ing.quantity || 1,
+                quantity: ing.missing_quantity ?? ing.quantity ?? 1,
                 unit: ing.unit || "",
+<<<<<<< HEAD
                 category: "meal-plan",
                 source: "meal-plan",
+=======
+                source: "meal plan",
+>>>>>>> 75cb0cc83bb08e83cdede96aa5b33bdc8109a18c
                 meal_id: ing.meal_id,
                 notes: meal ? `From Meal: ${ing.recipe_title} (${meal.meal_date})` : `From Recipe: ${ing.recipe_title}`,
                 status: "pending",
             };
             await ShoppingAPI.addItem(payload);
-            // Mark as added in state
             setAddedIng(p => ({ ...p, [key]: true }));
-            // Update ingredients state: mark this ingredient as no longer missing
             setIngredients(p => ({
                 ...p,
                 [ing.meal_id]: p[ing.meal_id].map(i =>
-                    i.name === ing.name ? { ...i, missing: false, addedToList: true } : i
+                    i.name === ing.name ? { ...i, addedToList: true } : i
                 )
             }));
             toast(`✓ "${ing.name}" added to Shopping List`, "success");
@@ -907,7 +954,7 @@ export default function MealSchedulePage() {
             {/* View Tabs ✓ hidden when filtering */}
             {!isFiltering && (
                 <div className="ms-view-tabs">
-                    {[["list","📋 List"],["daily","📅 Daily"],["weekly","� Weekly"],["monthly","📆 Monthly"]].map(([v,l]) => (
+                    {[["list","📋 List"],["daily","📅 Daily"],["weekly","📆 Weekly"],["monthly","📆 Monthly"]].map(([v,l]) => (
                         <button key={v} className={`ms-tab ${viewMode===v ? "ms-tab-active" : ""}`} onClick={() => setViewMode(v)}>{l}</button>
                     ))}
                 </div>
@@ -974,10 +1021,10 @@ export default function MealSchedulePage() {
                                                         {(() => {
                                                             const ings = ingredients[m._id];
                                                             const unresolvedCount = ings
-                                                                ? ings.filter(i => i.missing && !i.addedToList).length
+                                                                ? ings.filter(i => i.missing && !(i.addedToList || addedIng[`${m._id}_${i.name}`])).length
                                                                 : (m.warnings?.length || 0);
                                                             return unresolvedCount > 0 ? (
-                                                                <Tooltip text={ings ? ings.filter(i => i.missing && !i.addedToList).map(i => i.name).join(", ") : m.warnings?.join(" | ")}>
+                                                                <Tooltip text={ings ? ings.filter(i => i.missing).map(i => i.name).join(", ") : m.warnings?.join(" | ")}>
                                                                     <span className="ms-warn-badge">
                                                                         ⚠️ {unresolvedCount} missing
                                                                     </span>
@@ -997,7 +1044,7 @@ export default function MealSchedulePage() {
                                                                     onClick={() => missingIngs.forEach(ing => handleAddToShopping(ing))}
                                                                     disabled={missingIngs.some(ing => addingIng[`${ing.meal_id}_${ing.name}`])}
                                                                 >
-                                                                    🛒 Add to Shopping
+                                                                    🛒 Add Missing to Shopping
                                                                 </button>
                                                             ) : null;
                                                         })()}
@@ -1034,7 +1081,7 @@ export default function MealSchedulePage() {
                                                                                 <h4 className="ms-section-title">🥘 Ingredients</h4>
                                                                                 {ingredients[m._id]?.length > 0 ? (
                                                                                     <ul className="ms-ing-list">
-                                                                                        {ingredients[m._id].map((ing, i) => {
+                                                                                        {ingredients[m._id].map((ing) => {
                                                                                             const key = `${ing.meal_id}_${ing.name}`;
                                                                                             const isAdding = addingIng[key];
                                                                                             const isAdded = ing.addedToList || addedIng[key];
@@ -1044,17 +1091,20 @@ export default function MealSchedulePage() {
                                                                                                     <div className="ms-ing-left">
                                                                                                         <span className="ms-ing-qty">{ing.quantity} {ing.unit}</span>
                                                                                                         <span className="ms-ing-name">{ing.name}</span>
+                                                                                                        {isMissing && ing.missing_quantity != null && ing.missing_quantity < ing.quantity && (
+                                                                                                            <span className="ms-ing-have">(have {round2(ing.inventory_quantity)} {ing.unit})</span>
+                                                                                                        )}
                                                                                                     </div>
                                                                                                     <div className="ms-ing-right">
                                                                                                         {isMissing && (
                                                                                                             <>
-                                                                                                                <span className="ms-ing-badge ms-ing-badge-missing">✓️ Missing</span>
+                                                                                                                <span className="ms-ing-badge ms-ing-badge-missing">⚠️ Need {round2(ing.missing_quantity)} {ing.unit}</span>
                                                                                                                 <button
                                                                                                                     className="ms-btn ms-btn-sm ms-btn-shopping"
                                                                                                                     onClick={() => handleAddToShopping(ing)}
                                                                                                                     disabled={isAdding}
                                                                                                                 >
-                                                                                                                    {isAdding ? "⏳ Adding..." : "✓ Add to Shopping List"}
+                                                                                                                    {isAdding ? "⏳ Adding..." : `✚ Add ${round2(ing.missing_quantity)} ${ing.unit}`}
                                                                                                                 </button>
                                                                                                             </>
                                                                                                         )}
@@ -1089,12 +1139,6 @@ export default function MealSchedulePage() {
                                                                     </>
                                                                 ) : (
                                                                     <p>Recipe details not available.</p>
-                                                                )}
-                                                                {m.warnings?.length > 0 && (
-                                                                    <div className="ms-warn-list">
-                                                                        <strong>✓️ ⚠️ Inventory Warnings:</strong>
-                                                                        <ul>{m.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
-                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </td>
