@@ -530,7 +530,7 @@ export default function MealSchedulePage() {
         setLoading(true);
         try {
             const [mRes, rRes] = await Promise.all([
-                getMeals(userId),
+                getMeals(),
                 getRecipes({ limit: 200 }),
             ]);
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
@@ -565,7 +565,7 @@ export default function MealSchedulePage() {
             setAddedIng(addedMap);
         } catch (err) {
             console.error("Load error:", err?.response?.data || err?.message);
-            try { const r = await getMeals(userId); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
+            try { const r = await getMeals(); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
             try { const r = await getRecipes({ limit: 200 }); setAllRecipes(Array.isArray(r.data) ? r.data : []); } catch { setAllRecipes([]); }
         } finally {
             setLoading(false);

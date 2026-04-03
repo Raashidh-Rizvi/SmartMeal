@@ -251,29 +251,31 @@
 .ms-row:hover { background: var(--row-hover, #f9fafb); }
 .ms-actions {
     display: flex;
-    flex-direction: column;
-    gap: .3rem;
-    align-items: flex-start;
-    min-width: 140px;
+    flex-direction: row;
+    gap: .25rem;
+    align-items: center;
+    flex-wrap: wrap;
+    min-width: auto;
 }
 .ms-actions-row {
     display: flex;
-    gap: .3rem;
+    gap: .25rem;
+    flex-wrap: nowrap;
 }
 .ms-btn-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: .35rem;
-    padding: .45rem 1rem;
+    gap: .25rem;
+    padding: .38rem .65rem;
     border: 1px solid transparent;
-    border-radius: 8px;
-    font-size: .82rem;
+    border-radius: 6px;
+    font-size: .75rem;
     font-weight: 600;
     cursor: pointer;
     transition: all .2s;
     white-space: nowrap;
-    letter-spacing: .02em;
+    letter-spacing: .01em;
 }
 .ms-btn-action-shopping { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #fff; border: 1px solid #1d4ed8; box-shadow: 0 2px 8px rgba(59, 130, 246, .2); width: 100%; justify-content: center; }
 .ms-btn-action-shopping:hover:not(:disabled) { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 12px rgba(59, 130, 246, .3); transform: translateY(-1px); }
