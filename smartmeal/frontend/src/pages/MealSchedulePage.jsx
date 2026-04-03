@@ -760,12 +760,8 @@ export default function MealSchedulePage() {
                 name: ing.name,
                 quantity: ing.missing_quantity ?? ing.quantity ?? 1,
                 unit: ing.unit || "",
-<<<<<<< HEAD
                 category: "meal-plan",
                 source: "meal-plan",
-=======
-                source: "meal plan",
->>>>>>> 75cb0cc83bb08e83cdede96aa5b33bdc8109a18c
                 meal_id: ing.meal_id,
                 notes: meal ? `From Meal: ${ing.recipe_title} (${meal.meal_date})` : `From Recipe: ${ing.recipe_title}`,
                 status: "pending",
