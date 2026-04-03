@@ -30,6 +30,12 @@ export default function AddMealPage() {
                 return;
             }
 
+            const today = new Date().toISOString().slice(0, 10);
+            if (form.meal_date < today) {
+                setError("Cannot create meal plans for past dates. Please select today or a future date.");
+                return;
+            }
+
             const payload = {
                 user_id: "1",
                 recipe_id: form.recipe_id,
@@ -73,6 +79,7 @@ export default function AddMealPage() {
                                 className="form-control"
                                 value={form.meal_date}
                                 onChange={e => setForm({ ...form, meal_date: e.target.value })}
+                                min={new Date().toISOString().slice(0, 10)}
                                 required
                             />
                         </div>
