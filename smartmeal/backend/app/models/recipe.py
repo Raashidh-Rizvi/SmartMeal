@@ -26,6 +26,7 @@ class RecipeBase(BaseModel):
     dietary_tags: List[str] = []
     estimated_cooking_time: Optional[int] = None  # in minutes
     image_url: Optional[str] = None  # External image URL
+    average_rating: Optional[float] = Field(None, ge=0, le=5)  # Average star rating
 
 
 class RecipeCreate(RecipeBase):
@@ -41,6 +42,7 @@ class RecipeUpdate(BaseModel):
     dietary_tags: Optional[List[str]] = None
     estimated_cooking_time: Optional[int] = None
     image_url: Optional[str] = None
+    average_rating: Optional[float] = Field(None, ge=0, le=5)
 
 
 class RecipeInDB(RecipeBase):
