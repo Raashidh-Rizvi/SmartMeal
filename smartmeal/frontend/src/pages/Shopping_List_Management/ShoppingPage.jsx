@@ -169,6 +169,20 @@ function ShoppingPage() {
               onClearBought={clearBoughtItems}
             />
 
+            {/* Share List Button */}
+            <button
+              onClick={() => {
+                const text = filteredItems.map(i => `${i.name} ${i.quantity}${i.unit} (${i.source})`).join('\n');
+                const a = document.createElement('a');
+                a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+                a.download = 'shopping-list.txt';
+                a.click();
+              }}
+              className="btn-secondary ml-2"
+            >
+              📥 Share List
+            </button>
+
             {/* Shopping List Table */}
             <ShoppingTable
               items={filteredItems}
