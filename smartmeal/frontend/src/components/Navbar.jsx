@@ -23,16 +23,10 @@ function Navbar() {
         setUnreadNotifications(0);
         return;
       }
-
       try {
-        const headers = {};
         const token = localStorage.getItem('token');
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
-
         const response = await fetch('http://localhost:8001/api/notifications?unread=true', {
-          headers,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (response.ok) {
           const data = await response.json();
@@ -44,6 +38,9 @@ function Navbar() {
     };
 
     loadUnreadCount();
+    // Re-check every 5 minutes while app is open
+    const interval = setInterval(loadUnreadCount, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [user]);
 
   // Click outside dropdowns logic
