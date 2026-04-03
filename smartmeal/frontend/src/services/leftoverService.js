@@ -15,4 +15,6 @@ export const leftoverService = {
     api.patch(`/api/leftovers/${id}/mark-used`),
   delete: (id) =>
     api.delete(`/api/leftovers/${id}`),
+  generateRecipes: (leftovers, preferences = {}, top_n = 5) =>
+    api.post('/api/leftovers/generate-recipes', { leftovers, preferences, top_n }),
 };

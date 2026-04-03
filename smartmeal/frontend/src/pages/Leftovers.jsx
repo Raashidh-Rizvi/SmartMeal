@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { leftoverService } from '../services/leftoverService';
 import { getFoodImage } from '../services/imageService';
+import { getRecipes, createRecipe } from '../api/recipes';
+import { createMeal } from '../services/mealService';
+import { AuthContext } from '../context/AuthContext';
+import { useContext } from 'react';
+
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 // ── Expiry helpers ──────────────────────────────────────────────────────────
 const calcDaysLeft = (expiryDate) =>
@@ -13,10 +19,7 @@ const getExpiryBadge = (days, isUsed) => {
   return <span className="badge badge-admin">✅ Fresh · {days}d left</span>;
 };
 
-// ── MEMBER 4: Ingredient Cleaning Logic ──────────────────────────────────────
-// 👥 MEMBER 4 processes raw leftover input by cleaning and extracting key ingredients
-// into a structured format that the system can use for recipe suggestions.
-
+// ── MEMBER 4: Ingredient Cleaning Logic ────────────────────────────────────
 // Common filler words to remove (cooking methods, connectors, articles)
 const FILLER_WORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'with', 'in', 'of', 'to', 'for',
@@ -28,65 +31,14 @@ const FILLER_WORDS = new Set([
 
 const cleanIngredient = (text) => {
   if (!text) return [];
-  
-  // Step 1: Convert to lowercase and strip whitespace
   let cleaned = text.toLowerCase().trim();
-  
-  // Step 2: Remove symbols and special characters
   cleaned = cleaned.replace(/[\+\*\-\&\/\\,\.\_\(\)\[\]]/g, ' ');
-  
-  // Step 3: Split into words and filter out filler words
-  const words = cleaned.split(/\s+/)
-    .filter(word => word.length > 0)  // Remove empty strings
-    .filter(word => !FILLER_WORDS.has(word));  // Remove filler words
-  
-  // Step 4: Return array of cleaned individual words
-  return words;
+  return cleaned.split(/\s+/).filter(w => w.length > 0 && !FILLER_WORDS.has(w));
 };
 
 const extractIngredientsFromLeftover = (ingredientsList) => {
   if (!ingredientsList || ingredientsList.length === 0) return [];
-  
-  // Process: Clean each ingredient and extract individual words/ingredients
-  // flatMap to flatten arrays from each ingredient into single array
-  const allCleaned = ingredientsList
-    .flatMap(ing => cleanIngredient(ing))
-    .filter(ing => ing && ing.length > 0);  // Remove empty strings
-  
-  // Remove duplicates using Set
-  return [...new Set(allCleaned)];
-};
-
-const generateRecipesForLeftover = (leftoverItem, showToast) => {
-  // Extract and clean ingredients from this specific leftover
-  const cleanedIngredients = extractIngredientsFromLeftover(leftoverItem.ingredients);
-  
-  if (cleanedIngredients.length === 0) {
-    showToast('error', `"${leftoverItem.name}" has no valid ingredients. Please edit to add ingredients.`);
-    return;
-  }
-  
-  // Build the ingredient query string from cleaned ingredients
-  const ingredientQuery = cleanedIngredients.join(', ');
-  
-  console.log(`\n🍳 GENERATING RECIPES FOR: "${leftoverItem.name}"`);
-  console.log(`📋 Step 1 - Original ingredients:`, leftoverItem.ingredients);
-  console.log(`   → Lowercase + Remove symbols + Remove filler words`);
-  console.log(`✨ Step 2 - Cleaned ingredients:`, cleanedIngredients);
-  console.log(`🔍 Step 3 - Query for recipe engine:`, ingredientQuery);
-  console.log(`─`.repeat(60));
-  
-  // Show success message with cleaned ingredients
-  showToast('success', `🍳 Generating recipes for "${leftoverItem.name}" with: ${ingredientQuery}`);
-  
-  // Return cleaned data for potential API call
-  return {
-    leftover_id: leftoverItem.id,
-    leftover_name: leftoverItem.name,
-    original_ingredients: leftoverItem.ingredients,
-    cleaned_ingredients: cleanedIngredients,
-    ingredient_query: ingredientQuery
-  };
+  return [...new Set(ingredientsList.flatMap(ing => cleanIngredient(ing)).filter(Boolean))];
 };
 
 // ── Empty form ──────────────────────────────────────────────────────────────
@@ -97,6 +49,8 @@ const emptyForm = {
 };
 
 function Leftovers() {
+  const { user } = useContext(AuthContext);
+  const userId = user?.id || user?._id || '1';
   const [leftovers, setLeftovers]       = useState([]);
   const [loading, setLoading]           = useState(true);
   const [showModal, setShowModal]       = useState(false);
@@ -107,6 +61,10 @@ function Leftovers() {
   const [formErrors, setFormErrors]     = useState({});
   const [selectedIds, setSelectedIds]   = useState([]);
   const [useNowIds, setUseNowIds]       = useState([]);
+  const [recipes, setRecipes]           = useState(null);
+  const [recipesLoading, setRecipesLoading] = useState(false);
+  const [expandedRecipe, setExpandedRecipe] = useState(null);   // index of expanded card
+  const [scheduleForm, setScheduleForm]   = useState({});       // { [idx]: { date, meal_type, loading, done, error } }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   const showToast = (type, message) => {
@@ -218,10 +176,12 @@ function Leftovers() {
   };
 
   const handleUseNow = (item) => {
+    if (!item.ingredients || item.ingredients.length === 0) {
+      showToast('error', `"${item.name}" has no ingredients. Please edit it to add ingredients first.`);
+      return;
+    }
     setUseNowIds(prev => prev.includes(item.id) ? prev : [...prev, item.id]);
-    if (!selectedIds.includes(item.id))
-      setSelectedIds(prev => [...prev, item.id]);
-    showToast('success', `"${item.name}" ingredients queued for recipe generation!`);
+    handleGenerateRecipes([item]);
   };
 
   // ── Selection ─────────────────────────────────────────────────────────────
@@ -238,45 +198,106 @@ function Leftovers() {
     selectedLeftovers.flatMap(l => l.ingredients || [])
   )];
 
-  // ── Generate recipes (one by one, with MEMBER 4 cleaning) ──────────────────
-  const handleGenerateRecipes = () => {
-    if (selectedIds.length === 0) {
-      showToast('error', 'Please select at least one leftover to generate recipes!');
+  // ── Generate recipes via Leftover AI API ────────────────────────────────────
+  const handleGenerateRecipes = async (overrideLeftovers = null) => {
+    const targets = overrideLeftovers || leftovers.filter(l => selectedIds.includes(l.id));
+    if (targets.length === 0) {
+      showToast('error', 'Please select at least one leftover item');
       return;
     }
-    
-    // Get all selected leftovers
-    const selectedLeftoversData = leftovers.filter(l => selectedIds.includes(l.id));
-    
-    if (selectedLeftoversData.length === 0) {
-      showToast('error', 'No leftovers found for selected items.');
+    // Validate: all selected items must have at least one ingredient
+    const noIngredients = targets.filter(l => !l.ingredients || l.ingredients.length === 0);
+    if (noIngredients.length === targets.length) {
+      showToast('error', 'Selected items have no ingredients. Please edit them to add ingredients.');
       return;
     }
-    
-    console.log('\n🎯 RECIPE GENERATION STARTED');
-    console.log(`📊 Processing ${selectedLeftoversData.length} leftover(s) one by one...`);
-    console.log(`═`.repeat(60));
-    
-    // Process each leftover individually
-    const results = selectedLeftoversData.map((leftover, index) => {
-      console.log(`\n[${index + 1}/${selectedLeftoversData.length}]`);
-      return generateRecipesForLeftover(leftover, showToast);
-    });
-    
-    // Filter out any null results (items with no ingredients)
-    const validResults = results.filter(r => r !== undefined);
-    
-    if (validResults.length === 0) {
-      showToast('error', 'None of the selected items have valid ingredients.');
+    if (noIngredients.length > 0) {
+      showToast('error', `"${noIngredients.map(l => l.name).join(', ')}" has no ingredients and will be skipped.`);
+    }
+    const payload = targets
+      .filter(l => l.ingredients && l.ingredients.length > 0)
+      .map(l => ({ id: l.id, name: l.name, ingredients: l.ingredients }));
+    setRecipesLoading(true);
+    setRecipes(null);
+    setExpandedRecipe(null);
+    setScheduleForm({});
+    try {
+      const res = await leftoverService.generateRecipes(payload);
+      setRecipes(res.data);
+      if (!res.data.success) showToast('error', res.data.message);
+      else showToast('success', res.data.message);
+    } catch (err) {
+      showToast('error', err.response?.data?.detail || 'Failed to generate recipes');
+    } finally {
+      setRecipesLoading(false);
+    }
+  };
+
+  // ── Add AI recipe to Meal Schedule ──────────────────────────────────────────
+  const handleAddToMealSchedule = async (recipe, idx) => {
+    const form = scheduleForm[idx] || {};
+    if (!form.date || !form.meal_type) {
+      setScheduleForm(p => ({ ...p, [idx]: { ...form, error: 'Please select a date and meal type.' } }));
       return;
     }
-    
-    console.log(`\n${'═'.repeat(60)}`);
-    console.log(`✅ RECIPE GENERATION COMPLETE`);
-    console.log(`✨ Successfully processed ${validResults.length} leftover(s)`);
-    console.log(`📋 Results stored for recipe recommendation engine`);
-    
-    showToast('success', `✨ Generated recipes for ${validResults.length} items!`);
+    setScheduleForm(p => ({ ...p, [idx]: { ...form, loading: true, error: null } }));
+    try {
+      // 1. Try to find existing recipe in MongoDB
+      let recipeId = null;
+      const searchRes = await getRecipes({ search: recipe.name, limit: 5 });
+      const matched = (searchRes.data || []).find(
+        r => r.title?.toLowerCase() === recipe.name?.toLowerCase()
+      ) || searchRes.data?.[0];
+
+      if (matched) {
+        recipeId = matched._id;
+      } else {
+        // 2. Auto-create the recipe from AI data
+        const ingredients = (recipe.ingredients || []).map(ing => {
+          // ing is a string like "chicken" or "2 cups rice"
+          const parts = String(ing).trim().split(' ');
+          const qty = parseFloat(parts[0]);
+          if (!isNaN(qty) && parts.length >= 3) {
+            return { name: parts.slice(2).join(' '), quantity: qty, unit: parts[1] };
+          }
+          return { name: String(ing).trim(), quantity: 1, unit: 'serving' };
+        }).filter(i => i.name);
+
+        const steps = recipe.instructions
+          ? String(recipe.instructions).split(/[.\n]/).map(s => s.trim()).filter(Boolean)
+          : [`Prepare ${recipe.name} using the listed ingredients.`];
+
+        const newRecipe = await createRecipe({
+          title: recipe.name,
+          description: recipe.explanation || `AI-suggested recipe from leftover ingredients.`,
+          category: form.meal_type,
+          ingredients,
+          preparation_steps: steps,
+          dietary_tags: recipe.diet && recipe.diet !== 'N/A' ? [recipe.diet] : [],
+          estimated_cooking_time: (() => {
+            const m = String(recipe.prep_time || '').match(/(\d+)/);
+            return m ? parseInt(m[1]) : null;
+          })(),
+        });
+        recipeId = newRecipe.data._id || newRecipe.data.id;
+      }
+
+      // 3. Create meal schedule entry
+      await createMeal({
+        user_id:     userId,
+        recipe_id:   recipeId,
+        meal_date:   form.date,
+        meal_type:   form.meal_type,
+        status:      'planned',
+        description: `Added from Leftover AI suggestions`,
+      });
+
+      setScheduleForm(p => ({ ...p, [idx]: { ...form, loading: false, done: true, error: null } }));
+      showToast('success', `✅ "${recipe.name}" added to meal schedule!`);
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to add to meal schedule';
+      setScheduleForm(p => ({ ...p, [idx]: { ...form, loading: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg) } }));
+    }
   };
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -570,6 +591,160 @@ function Leftovers() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Recipe Results */}
+      {(recipesLoading || recipes) && (
+        <div className="card" style={{ marginTop: '1.5rem', padding: '1.25rem' }}>
+          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--primary)' }}>
+            🤖 AI Recipe Suggestions
+          </h3>
+
+          {recipesLoading && <p className="loading">Generating recipes…</p>}
+
+          {!recipesLoading && recipes && !recipes.success && (
+            <p style={{ color: 'var(--danger)', margin: 0 }}>{recipes.message}</p>
+          )}
+
+          {!recipesLoading && recipes?.success && (
+            <>
+              {/* Combined ingredients used */}
+              {recipes.combined_ingredients?.length > 0 && (
+                <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <strong>Ingredients used:</strong>{' '}
+                  {recipes.combined_ingredients.join(', ')}
+                </div>
+              )}
+
+              {/* Rule-based quick suggestions */}
+              {recipes.rule_based_suggestions?.length > 0 && (
+                <div style={{ marginBottom: '1rem', padding: '0.6rem 0.9rem', background: 'rgba(245,158,11,0.07)', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.25)', fontSize: '0.85rem' }}>
+                  <strong>⚡ Quick ideas:</strong>{' '}
+                  {recipes.rule_based_suggestions.join(' · ')}
+                </div>
+              )}
+
+              {/* Recipe cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                {recipes.recipes.map((r, i) => {
+                  const isExpanded = expandedRecipe === i;
+                  const sf = scheduleForm[i] || {};
+                  const showScheduler = sf.open;
+                  return (
+                    <div key={i} style={{ padding: '1rem', border: '1px solid rgba(5,150,105,0.2)', borderRadius: '10px', background: 'rgba(5,150,105,0.04)' }}>
+
+                      {/* Recipe name */}
+                      <div style={{ fontWeight: 600, marginBottom: '0.4rem', fontSize: '0.95rem' }}>{i + 1}. {r.name}</div>
+
+                      {/* Badges */}
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                        {r.cuisine && r.cuisine !== 'N/A' && (
+                          <span className="badge badge-admin" style={{ fontSize: '0.72rem' }}>{r.cuisine}</span>
+                        )}
+                        {r.diet && r.diet !== 'N/A' && (
+                          <span className="badge badge-user" style={{ fontSize: '0.72rem' }}>{r.diet}</span>
+                        )}
+                        {r.prep_time && r.prep_time !== 'N/A' && (
+                          <span className="badge" style={{ fontSize: '0.72rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}>⏱ {r.prep_time}</span>
+                        )}
+                      </div>
+
+                      {/* Matched ingredients */}
+                      {r.matched_ingredients?.length > 0 && (
+                        <div style={{ marginBottom: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                          {r.matched_ingredients.map(ing => (
+                            <span key={ing} style={{ fontSize: '0.72rem', background: 'rgba(5,150,105,0.12)', color: 'var(--primary)', padding: '0.1rem 0.45rem', borderRadius: '999px', border: '1px solid rgba(5,150,105,0.25)' }}>✓ {ing}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Explanation */}
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 0.75rem', fontStyle: 'italic' }}>{r.explanation}</p>
+
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => setExpandedRecipe(isExpanded ? null : i)}
+                          style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: isExpanded ? 'var(--primary)' : 'transparent', color: isExpanded ? '#fff' : 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '6px' }}
+                        >
+                          {isExpanded ? '▲ Hide Details' : '📋 Details'}
+                        </button>
+                        <button
+                          onClick={() => setScheduleForm(p => ({ ...p, [i]: { ...sf, open: !showScheduler, done: false, error: null } }))}
+                          style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: sf.done ? 'rgba(5,150,105,0.1)' : 'transparent', color: sf.done ? 'var(--primary)' : '#3b82f6', border: `1px solid ${sf.done ? 'var(--primary)' : '#3b82f6'}`, borderRadius: '6px' }}
+                        >
+                          {sf.done ? '✅ Scheduled' : '📅 Add to Meal Schedule'}
+                        </button>
+                      </div>
+
+                      {/* Expanded details */}
+                      {isExpanded && (
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(5,150,105,0.15)' }}>
+                          {r.ingredients?.length > 0 && (
+                            <div style={{ marginBottom: '0.75rem' }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--primary)' }}>🥘 Ingredients</div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                {r.ingredients.map((ing, j) => (
+                                  <span key={j} style={{ fontSize: '0.75rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>{ing}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {r.instructions && (
+                            <div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--primary)' }}>👨‍🍳 Instructions</div>
+                              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{r.instructions}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Meal schedule inline form */}
+                      {showScheduler && !sf.done && (
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(59,130,246,0.2)', background: 'rgba(59,130,246,0.04)', borderRadius: '6px', padding: '0.75rem' }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: '#3b82f6' }}>📅 Schedule this recipe</div>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                            <input
+                              type="date"
+                              value={sf.date || ''}
+                              min={new Date().toISOString().slice(0, 10)}
+                              onChange={e => setScheduleForm(p => ({ ...p, [i]: { ...sf, date: e.target.value } }))}
+                              style={{ flex: 1, minWidth: '130px', padding: '0.35rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--card-border)', borderRadius: '6px', background: 'var(--card-bg)', color: 'var(--text)' }}
+                            />
+                            <select
+                              value={sf.meal_type || ''}
+                              onChange={e => setScheduleForm(p => ({ ...p, [i]: { ...sf, meal_type: e.target.value } }))}
+                              style={{ flex: 1, minWidth: '110px', padding: '0.35rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--card-border)', borderRadius: '6px', background: 'var(--card-bg)', color: 'var(--text)' }}
+                            >
+                              <option value=''>Meal type</option>
+                              {MEAL_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                            </select>
+                          </div>
+                          {sf.error && <p style={{ fontSize: '0.78rem', color: 'var(--danger)', margin: '0 0 0.4rem' }}>{sf.error}</p>}
+                          <button
+                            onClick={() => handleAddToMealSchedule(r, i)}
+                            disabled={sf.loading}
+                            style={{ width: 'auto', padding: '0.35rem 0.9rem', fontSize: '0.82rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: sf.loading ? 'not-allowed' : 'pointer', opacity: sf.loading ? 0.7 : 1 }}
+                          >
+                            {sf.loading ? 'Adding...' : 'Confirm'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Already scheduled confirmation */}
+                      {sf.done && (
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--primary)', padding: '0.4rem 0.6rem', background: 'rgba(5,150,105,0.08)', borderRadius: '6px' }}>
+                          ✅ Added to meal schedule for {sf.date} ({sf.meal_type})
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 

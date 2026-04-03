@@ -2,6 +2,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import api from '../api/axios';
 
+const TYPE_META = {
+  EXPIRING_FOOD:       { icon: '🥫', label: 'Expiring Ingredient' },
+  EXPIRING_LEFTOVER:   { icon: '🍽️', label: 'Expiring Leftover' },
+  BUDGET_WARNING:      { icon: '⚠️', label: 'Budget Warning' },
+  BUDGET_OVER:         { icon: '🚨', label: 'Budget Exceeded' },
+};
+
+const getTypeMeta = (type = '') => {
+  if (TYPE_META[type]) return TYPE_META[type];
+  if (type.startsWith('MEAL_MISSING_INGREDIENTS')) return { icon: '🛒', label: 'Missing Ingredients' };
+  if (type.startsWith('MEAL_REMINDER'))            return { icon: '📅', label: 'Meal Reminder' };
+  return { icon: '🔔', label: type.replace(/_/g, ' ') };
+};
+
 function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -105,7 +119,9 @@ function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
             </div>
           ) : (
             <div className="notification-list">
-              {notifications.map((notification) => (
+              {notifications.map((notification) => {
+                const meta = getTypeMeta(notification.type);
+                return (
                 <div 
                   key={notification._id} 
                   className={`notification-item ${notification.isRead ? 'read' : 'unread'}`} 
@@ -118,7 +134,7 @@ function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
                   <div className="notification-content">
                     <div className="notification-title" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                       <strong style={{ color: notification.isRead ? 'inherit' : 'var(--primary-color)' }}>
-                        {notification.type.replace(/_/g, ' ')}
+                        {meta.icon} {meta.label}
                       </strong>
                       <span className="text-muted text-sm">{new Date(notification.createdAt).toLocaleString()}</span>
                     </div>
@@ -133,7 +149,8 @@ function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

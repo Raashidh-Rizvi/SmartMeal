@@ -23,8 +23,9 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = email.toLowerCase().trim();
     try {
-      const response = await api.post('/api/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email: normalizedEmail, password });
       const { accessToken, user } = response.data;
       login(user, accessToken);
       navigate('/');
@@ -63,7 +64,7 @@ function Login() {
           <input 
             type="email" 
             value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
+            onChange={(e) => setEmail(e.target.value.toLowerCase())} 
             placeholder="you@example.com"
             required 
           />
@@ -78,7 +79,12 @@ function Login() {
             required 
           />
         </div>
-        <button type="submit" className="btn-primary" style={{ marginTop: '0.5rem' }}>Log In</button>
+        <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+          <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: '500', textDecoration: 'none' }}>
+            Forgot Password?
+          </Link>
+        </div>
+        <button type="submit" className="btn-primary">Log In</button>
       </form>
       <p>
         Don't have an account? <Link to="/register">Register here</Link>

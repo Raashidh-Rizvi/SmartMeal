@@ -1556,3 +1556,37 @@ tr:hover td { background: rgba(5, 150, 105, 0.04); }
   .edit-action-buttons { flex-direction: column; }
 }
 
+/* Form Validation Styles */
+.error-text {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+  display: block;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+}
+
+.general-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  text-align: center;
+  animation: slideDown 0.3s ease-out;
+}
+
+.dark .general-error {
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.2);
+}
+

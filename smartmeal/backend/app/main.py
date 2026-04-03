@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from app.db.database import connect_to_mongo, close_mongo_connection
 from app.db.init_db import create_indexes
 from app.routes.auth import router as auth_router
@@ -17,6 +19,7 @@ from app.routes.upload import router as upload_router
 from app.routes.meal_schedule_routes import router as meal_schedule_router
 from app.routes.leftovers import router as leftovers_router
 from app.routes.budget import router as budget_router
+from app.routes.leftover_ai_routes import router as leftover_ai_router
 from app.routes.notification_routes import router as notification_router
 import logging
 import os
@@ -35,10 +38,45 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SmartMeal API", lifespan=lifespan)
 
+# ── CORS Exception Handler (Ensures headers on 422/etc) ────────────────────────
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    headers = {
+        "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+        "Access-Control-Allow-Credentials": "true",
+    }
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+        headers=headers
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global exception: {exc}")
+    headers = {
+        "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+        "Access-Control-Allow-Credentials": "true",
+    }
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal Server Error"},
+        headers=headers
+    )
+
 # ── CORS Configuration (MUST be added FIRST before routes/mounts) ──────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:7001"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:7001",
+        "http://localhost:7002",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:7001",
+        "http://127.0.0.1:7002",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +98,7 @@ app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["meal-schedules"])
 app.include_router(leftovers_router)
 app.include_router(budget_router)
+app.include_router(leftover_ai_router)
 app.include_router(notification_router, prefix="/api", tags=["notifications"])
 
 @app.get("/")

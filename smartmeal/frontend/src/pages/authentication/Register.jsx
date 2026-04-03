@@ -8,38 +8,61 @@ function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useContext(AuthContext);
 
   const handleGoogleLogin = async () => {
     try {
-      setError('');
+      setErrors({});
       await loginWithGoogle();
       navigate('/dashboard');
     } catch {
-      setError('Google Sign-In failed. Please try again.');
+      setErrors({ general: 'Google Sign-In failed. Please try again.' });
     }
+  };
+
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (name.trim().length < 2) newErrors.name = "Name must be at least 2 characters";
+    if (!validateEmail(email)) newErrors.email = "Invalid email format";
+    if (password.length < 8) newErrors.password = "Password must be at least 8 characters";
+    if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setErrors({});
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      const { data } = await api.post('/api/auth/register', { name, email, password });
+      const { data } = await api.post('/api/auth/register', { name, email: normalizedEmail, password });
       login(data.user, data.accessToken);
       navigate('/dashboard');
     } catch (err) {
-      const errMsg = err.response?.data?.detail || 'Registration failed. Please try again.';
-      setError(errMsg);
+      const errMsg = err.response?.data?.detail;
+      if (Array.isArray(errMsg)) {
+        // Handle Pydantic validation errors
+        const backendErrors = {};
+        errMsg.forEach(e => {
+          backendErrors[e.loc[1]] = e.msg;
+        });
+        setErrors(backendErrors);
+      } else {
+        setErrors({ general: errMsg || 'Registration failed. Please try again.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -48,7 +71,7 @@ function Register() {
   return (
     <div className="auth-container">
       <h2>Create Account</h2>
-      {error && <p className="error">{error}</p>}
+      {errors.general && <p className="error-message general-error">{errors.general}</p>}
       
       <button 
         type="button" 
@@ -75,40 +98,60 @@ function Register() {
           <input 
             type="text" 
             value={name} 
-            onChange={(e) => setName(e.target.value)} 
+            onChange={(e) => {
+              setName(e.target.value);
+              if (errors.name) setErrors(prev => ({ ...prev, name: null }));
+            }} 
             placeholder="Your full name"
+            className={errors.name ? 'input-error' : ''}
             required 
           />
+          {errors.name && <span className="error-text">{errors.name}</span>}
         </div>
         <div className="form-group">
           <label>Email</label>
           <input 
             type="email" 
             value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
+            onChange={(e) => {
+              setEmail(e.target.value.toLowerCase());
+              if (errors.email) setErrors(prev => ({ ...prev, email: null }));
+            }} 
             placeholder="you@example.com"
+            className={errors.email ? 'input-error' : ''}
             required 
           />
+          {errors.email && <span className="error-text">{errors.email}</span>}
         </div>
         <div className="form-group">
           <label>Password</label>
           <input 
             type="password" 
             value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errors.password) setErrors(prev => ({ ...prev, password: null }));
+            }} 
             placeholder="Min. 8 characters"
+            className={errors.password ? 'input-error' : ''}
             required 
           />
+          {errors.password && <span className="error-text">{errors.password}</span>}
         </div>
         <div className="form-group">
           <label>Confirm Password</label>
           <input 
             type="password" 
             value={confirmPassword} 
-            onChange={(e) => setConfirmPassword(e.target.value)} 
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: null }));
+            }} 
             placeholder="Re-enter your password"
+            className={errors.confirmPassword ? 'input-error' : ''}
             required 
           />
+          {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
         </div>
         <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
           {loading ? 'Creating account...' : 'Create Account'}

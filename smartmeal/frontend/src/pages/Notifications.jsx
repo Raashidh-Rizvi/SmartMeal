@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 
+const TYPE_META = {
+  EXPIRING_FOOD:       { icon: '🥫', label: 'Expiring Ingredient' },
+  EXPIRING_LEFTOVER:   { icon: '🍽️', label: 'Expiring Leftover' },
+  BUDGET_WARNING:      { icon: '⚠️', label: 'Budget Warning' },
+  BUDGET_OVER:         { icon: '🚨', label: 'Budget Exceeded' },
+};
+
+const getTypeMeta = (type = '') => {
+  if (TYPE_META[type]) return TYPE_META[type];
+  if (type.startsWith('MEAL_MISSING_INGREDIENTS')) return { icon: '🛒', label: 'Missing Ingredients' };
+  if (type.startsWith('MEAL_REMINDER'))            return { icon: '📅', label: 'Meal Reminder' };
+  return { icon: '🔔', label: type.replace(/_/g, ' ') };
+};
+
 function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,11 +80,13 @@ function Notifications() {
           <p className="text-muted p-4">You have no notifications right now.</p>
         ) : (
           <div className="notification-list">
-            {notifications.map((notification) => (
-              <div key={notification._id} className={`notification-item ${notification.isRead ? 'read' : 'unread'}`} style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
+            {notifications.map((notification) => {
+              const meta = getTypeMeta(notification.type);
+              return (
+              <div key={notification._id} className={`notification-item ${notification.isRead ? 'read' : 'unread'}`} style={{ padding: '1rem', borderBottom: '1px solid #eee', background: notification.isRead ? 'transparent' : 'rgba(5,150,105,0.04)' }}>
                 <div className="notification-content">
                   <div className="notification-title" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <strong>{notification.type.replace(/_/g, ' ')}</strong>
+                    <strong>{meta.icon} {meta.label}</strong>
                     <span className="text-muted text-sm">{new Date(notification.createdAt).toLocaleString()}</span>
                   </div>
                   <p style={{ margin: '0 0 1rem 0' }}>{notification.message}</p>
@@ -84,7 +100,8 @@ function Notifications() {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

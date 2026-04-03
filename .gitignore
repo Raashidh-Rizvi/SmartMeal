@@ -9,6 +9,12 @@ Thumbs.db
 *.swp
 *.swo
 *~
+log.txt
+*.log
+logs/
+**/logs/
+**/log.txt
+
 
 ## Environment files (do not commit secrets)
 .env
