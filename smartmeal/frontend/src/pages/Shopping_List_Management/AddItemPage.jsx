@@ -25,7 +25,7 @@ function AddItemPage() {
     setLoading(true);
     try {
       await ShoppingAPI.addItem({
-        item_name: item_name.trim(),
+        name: item_name.trim(),
         quantity: parseFloat(quantity),
         unit,
         source,

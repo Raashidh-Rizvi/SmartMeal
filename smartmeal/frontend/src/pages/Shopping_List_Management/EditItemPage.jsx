@@ -25,7 +25,7 @@ function EditItemPage() {
     setFetching(true);
     try {
       // Get all items and find the one we need
-      const items = await ShoppingAPI.getItems('user123');
+      const items = await ShoppingAPI.getItems('1');
       const item = items.find(i => (i.id || i._id) === itemId);
       
       if (item) {
@@ -60,7 +60,7 @@ function EditItemPage() {
     setLoading(true);
     try {
       await ShoppingAPI.updateItem(itemId, {
-        item_name: item_name.trim(),
+        name: item_name.trim(),
         quantity: parseFloat(quantity),
         unit,
         source,
@@ -100,6 +100,19 @@ function EditItemPage() {
       await ShoppingAPI.markBought(itemId);
       showToast('Item marked as bought!', 'success');
       setStatus('Bought');
+    } catch (error) {
+      console.error('Error marking item:', error);
+      showToast(error.message || 'Failed to update item', 'error');
+    }
+    setLoading(false);
+  };
+
+  const handleMarkPending = async () => {
+    setLoading(true);
+    try {
+      await ShoppingAPI.updateItem(itemId, { status: 'Pending' });
+      showToast('Item marked as pending!', 'success');
+      setStatus('Pending');
     } catch (error) {
       console.error('Error marking item:', error);
       showToast(error.message || 'Failed to update item', 'error');
@@ -237,13 +250,22 @@ function EditItemPage() {
             </div>
             <div className="card-body">
               <div className="action-buttons">
-                {status === 'Pending' && (
+{status === 'Pending' && (
                   <button
                     onClick={handleMarkBought}
                     className="btn-success"
                     disabled={loading}
                   >
                     ✓ Mark as Bought
+                  </button>
+                )}
+                {status === 'Bought' && (
+                  <button
+                    onClick={handleMarkPending}
+                    className="btn-warning"
+                    disabled={loading}
+                  >
+                    ⏳ Mark as Pending
                   </button>
                 )}
                 <button

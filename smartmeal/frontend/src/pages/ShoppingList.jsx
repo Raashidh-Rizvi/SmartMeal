@@ -95,7 +95,7 @@ function ShoppingList() {
           name: item.name || item.item_name,
           quantity: item.quantity || 1,
           unit: item.unit || "",
-          source: item.category === 'ingredient' ? 'Meal Plan' : 'Manual',
+          source: (item.source || '').toLowerCase().includes('meal') ? 'Meal Plan' : 'Manual',
           category: item.category || "",
           status: item.status === 'pending' ? 'Pending' : item.status === 'bought' ? 'Bought' : item.status,
           created_at: dateValue,

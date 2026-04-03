@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { getMeals, createMeal, updateMeal, deleteMeal, getMealIngredients, useIngredients } from "../services/mealService";
+import React, { useEffect, useState, useCallback, useContext } from "react";
+import { useLocation } from "react-router-dom";
+import { getMeals, createMeal, updateMeal, deleteMeal, getMealIngredients, useIngredients as mealUseIngredients } from "../services/mealService";
 import { getRecipes } from "../api/recipes";
+import { AuthContext } from "../context/AuthContext";
 import ShoppingAPI from "../services/shoppingApi";
 import api from "../api/axios";
 import "../styles/MealSchedule.css";
@@ -241,7 +243,7 @@ function DailyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, i
                                         <IngredientPopover meal={meal} ingredients={ingredients} addingIng={addingIng} addedIng={addedIng} onAddToShopping={onAddToShopping} />
                                         <div className="ms-cal-actions">
                                             {(() => {
-                                                const missingIngs = (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList);
+                                                const missingIngs = (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`]));
                                                 return missingIngs.length > 0 ? (
                                                     <button
                                                         className="ms-btn ms-btn-sm ms-btn-shopping"
@@ -319,7 +321,7 @@ function WeeklyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, 
                             <div className="ms-week-day-body">
                                 {MEAL_TYPES.map(type => {
                                     const meal = dayMeals.find(m => m.meal_type === type);
-                                    const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList) : [];
+                                    const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`])) : [];
                                     return meal ? (
                                         <div key={type} className={`ms-week-meal-card ms-week-meal-card-${type}`}>
                                             <div className="ms-week-meal-top">
@@ -436,7 +438,7 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
                                 <div className="ms-month-day-body">
                                     {MEAL_TYPES.map(type => {
                                         const meal = dayMeals.find(m => m.meal_type === type);
-                                        const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList) : [];
+                                        const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`])) : [];
                                         return meal ? (
                                             <div key={type} className={`ms-month-meal-card ms-month-meal-card-${type}`}>
                                                 <div className="ms-month-meal-top">
@@ -479,8 +481,9 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
 
 // ✓✓ Main Page ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 export default function MealSchedulePage() {
-    const userId = "1";
-    
+    const { user } = useContext(AuthContext);
+    const userId = user?.id || user?._id || "1";
+
     const [meals,        setMeals]        = useState([]);
     const [allRecipes,   setAllRecipes]   = useState([]);
     const [typeRecipes,  setTypeRecipes]  = useState([]);
@@ -513,33 +516,32 @@ export default function MealSchedulePage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [mRes, rRes, shoppingRes] = await Promise.all([
+            const [mRes, rRes] = await Promise.all([
                 getMeals(userId),
                 getRecipes({ limit: 200 }),
-                ShoppingAPI.getItems(userId)
             ]);
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
             setMeals(loadedMeals);
             setAllRecipes(Array.isArray(rRes.data) ? rRes.data : []);
 
             // Load ingredients for all meals and cross-check with shopping list
-            const ingResults = await Promise.allSettled(
-                loadedMeals.map(m => getMealIngredients(m._id))
-            );
+            const [ingResults, shoppingRes] = await Promise.all([
+                Promise.allSettled(loadedMeals.map(m => getMealIngredients(m._id))),
+                ShoppingAPI.getItems(userId).catch(() => [])
+            ]);
             const ingMap = {};
             const addedMap = {};
             loadedMeals.forEach((m, idx) => {
                 if (ingResults[idx].status !== "fulfilled") return;
                 const ings = ingResults[idx].value.data || [];
                 const resolvedNames = new Set(
-                    shoppingRes
+                    (shoppingRes || [])
                         .filter(s => s.meal_id === m._id)
                         .map(s => (s.name || "").toLowerCase())
                 );
                 ingMap[m._id] = ings.map(ing => ({
                     ...ing,
                     addedToList: resolvedNames.has(ing.name.toLowerCase()),
-                    // keep missing from snapshot — addedToList only controls the button/badge
                 }));
                 ings.forEach(ing => {
                     if (resolvedNames.has(ing.name.toLowerCase()))
@@ -557,7 +559,16 @@ export default function MealSchedulePage() {
         }
     }, [userId]);
 
+    const location = useLocation();
     useEffect(() => { load(); }, [load]);
+
+    // Show success toast when navigated from AddMealPage
+    useEffect(() => {
+        if (location.state?.created) {
+            toast("✅ Meal created successfully!", "success");
+            window.history.replaceState({}, "");
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ✓✓ When meal_type changes, fetch matching recipes ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
     useEffect(() => {
@@ -615,7 +626,7 @@ export default function MealSchedulePage() {
                 // if marked done, subtract ingredients from inventory with feedback
                 if (payload.status === "completed") {
                     try {
-                        const deductRes = await useIngredients(editingId);
+                        const deductRes = await mealUseIngredients(editingId);
                         const deductData = deductRes.data || {};
                         const results = deductData.updated || [];
                         
@@ -634,7 +645,7 @@ export default function MealSchedulePage() {
                         }
                         
                         toast(feedbackMsg, updated.length > 0 ? "success" : "warning");
-                    } catch (err) {
+                    } catch {
                         toast("⚠️ Could not deduct ingredients from inventory", "warning");
                     }
                 }
@@ -708,7 +719,7 @@ export default function MealSchedulePage() {
             try {
                 const [ingRes, shoppingRes] = await Promise.all([
                     getMealIngredients(mealId),
-                    ShoppingAPI.getItems("1")
+                    ShoppingAPI.getItems(userId)
                 ]);
                 const ings = ingRes.data || [];
                 // Match by dedicated meal_id field ✓ reliable across refreshes
@@ -749,7 +760,8 @@ export default function MealSchedulePage() {
                 name: ing.name,
                 quantity: ing.missing_quantity ?? ing.quantity ?? 1,
                 unit: ing.unit || "",
-                category: "meal-ingredient",
+                category: "meal-plan",
+                source: "meal-plan",
                 meal_id: ing.meal_id,
                 notes: meal ? `From Meal: ${ing.recipe_title} (${meal.meal_date})` : `From Recipe: ${ing.recipe_title}`,
                 status: "pending",
@@ -938,7 +950,7 @@ export default function MealSchedulePage() {
             {/* View Tabs ✓ hidden when filtering */}
             {!isFiltering && (
                 <div className="ms-view-tabs">
-                    {[["list","📋 List"],["daily","📅 Daily"],["weekly","� Weekly"],["monthly","📆 Monthly"]].map(([v,l]) => (
+                    {[["list","📋 List"],["daily","📅 Daily"],["weekly","📆 Weekly"],["monthly","📆 Monthly"]].map(([v,l]) => (
                         <button key={v} className={`ms-tab ${viewMode===v ? "ms-tab-active" : ""}`} onClick={() => setViewMode(v)}>{l}</button>
                     ))}
                 </div>
@@ -1005,7 +1017,7 @@ export default function MealSchedulePage() {
                                                         {(() => {
                                                             const ings = ingredients[m._id];
                                                             const unresolvedCount = ings
-                                                                ? ings.filter(i => i.missing).length
+                                                                ? ings.filter(i => i.missing && !(i.addedToList || addedIng[`${m._id}_${i.name}`])).length
                                                                 : (m.warnings?.length || 0);
                                                             return unresolvedCount > 0 ? (
                                                                 <Tooltip text={ings ? ings.filter(i => i.missing).map(i => i.name).join(", ") : m.warnings?.join(" | ")}>
@@ -1065,7 +1077,7 @@ export default function MealSchedulePage() {
                                                                                 <h4 className="ms-section-title">🥘 Ingredients</h4>
                                                                                 {ingredients[m._id]?.length > 0 ? (
                                                                                     <ul className="ms-ing-list">
-                                                                                        {ingredients[m._id].map((ing, i) => {
+                                                                                        {ingredients[m._id].map((ing) => {
                                                                                             const key = `${ing.meal_id}_${ing.name}`;
                                                                                             const isAdding = addingIng[key];
                                                                                             const isAdded = ing.addedToList || addedIng[key];

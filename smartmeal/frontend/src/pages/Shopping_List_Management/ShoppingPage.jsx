@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import ShoppingAPI from '../../services/shoppingApi';
 import ShoppingForm from '../../components/ShoppingForm';
 import StatsSection from '../../components/StatsSection';
@@ -10,8 +11,11 @@ import Toast from '../../components/Toast';
 
 function ShoppingPage() {
 
+  // ── Get authenticated user ────────────────────────────────────────────────
+  const { user } = useContext(AuthContext);
+  const user_id = user?._id || user?.id || '1';  // Use actual user ID, fallback to '1'
+
   // ── State ────────────────────────────────────────────────────────────────
-  const user_id = '1';
   const [items, setItems]             = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -22,6 +26,7 @@ function ShoppingPage() {
   const [currentView, setCurrentView] = useState('list'); // 'list', 'add', 'edit'
   const [editingItemId, setEditingItemId] = useState(null);
   const [status_filter, setStatusFilter] = useState('');
+  const [source_filter, setSourceFilter] = useState('');
   const [loading, setLoading]           = useState(false);
   const [toast, setToast]               = useState(null);
 
@@ -58,7 +63,7 @@ function ShoppingPage() {
     if (!user_id.trim()) return;
     setLoading(true);
     try {
-      const data = await ShoppingAPI.getItems(user_id, status_filter);
+      const data = await ShoppingAPI.getItems(user_id, status_filter, source_filter);
       setItems(data);
       await loadStats();
     } catch (error) {
@@ -68,8 +73,8 @@ function ShoppingPage() {
     setLoading(false);
   };
 
-  // ── Load on user_id change ────────────────────────────────────────────────
-  useEffect(() => { loadItems(); }, [status_filter]);
+  // ── Load on filters change ─────────────────────────────────────────────────
+  useEffect(() => { loadItems(); }, [user_id, status_filter, source_filter]);
 
 
   // ── CRUD handlers ────────────────────────────────────────────────────────
@@ -162,9 +167,25 @@ function ShoppingPage() {
             {/* Filter + Action Buttons */}
             <FilterSection
               statusFilter={status_filter}
-              onFilterChange={setStatusFilter}
+              sourceFilter={source_filter}
+              onStatusChange={setStatusFilter}
+              onSourceChange={setSourceFilter}
               onClearBought={clearBoughtItems}
             />
+
+            {/* Share List Button */}
+            <button
+              onClick={() => {
+                const text = filteredItems.map(i => `${i.name} ${i.quantity}${i.unit} (${i.source})`).join('\n');
+                const a = document.createElement('a');
+                a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+                a.download = 'shopping-list.txt';
+                a.click();
+              }}
+              className="btn-secondary ml-2"
+            >
+              📥 Share List
+            </button>
 
             {/* Shopping List Table */}
             <ShoppingTable
@@ -200,9 +221,10 @@ function ShoppingPage() {
             </div>
             <EditItemForm 
               itemId={editingItemId} 
-              onSave={showListView}
+              user_id={user_id}
+              onSave={() => { showListView(); loadItems(); }}
               onCancel={showListView}
-              onDelete={showListView}
+              onDelete={() => { showListView(); loadItems(); }}
             />
           </div>
         )}

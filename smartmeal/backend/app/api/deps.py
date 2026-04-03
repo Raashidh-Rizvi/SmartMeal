@@ -19,7 +19,7 @@ async def get_current_user_id(authorization: Optional[str] = Header(None)) -> st
     
     if not token:
         # Fallback for unauthenticated dev use (can be disabled in production)
-        return "000000000000000000000001"
+        return "1"
         
     user_id = decode_access_token(token)
     if not user_id:

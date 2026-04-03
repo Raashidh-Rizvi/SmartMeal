@@ -35,25 +35,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SmartMeal API", lifespan=lifespan)
 
-# Serve uploaded images as static files
-STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
-os.makedirs(os.path.join(STATIC_DIR, "uploads"), exist_ok=True)
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-# CORS must be added BEFORE routes
+# ── CORS Configuration (MUST be added FIRST before routes/mounts) ──────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:7001",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:7002",
-        "http://localhost:8001",
-    ],
+    allow_origins=["http://localhost:7001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve uploaded images as static files
+STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+os.makedirs(os.path.join(STATIC_DIR, "uploads"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(users_router, prefix="/api/users", tags=["users"])
