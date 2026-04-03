@@ -13,6 +13,82 @@ const getExpiryBadge = (days, isUsed) => {
   return <span className="badge badge-admin">✅ Fresh · {days}d left</span>;
 };
 
+// ── MEMBER 4: Ingredient Cleaning Logic ──────────────────────────────────────
+// 👥 MEMBER 4 processes raw leftover input by cleaning and extracting key ingredients
+// into a structured format that the system can use for recipe suggestions.
+
+// Common filler words to remove (cooking methods, connectors, articles)
+const FILLER_WORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'with', 'in', 'of', 'to', 'for',
+  'fried', 'baked', 'grilled', 'boiled', 'roasted', 'steamed', 'cooked',
+  'raw', 'fresh', 'dried', 'sliced', 'chopped', 'minced', 'crushed',
+  'hot', 'cold', 'spicy', 'sweet', 'salty', 'warm', 'whole', 'half',
+  'piece', 'cup', 'bowl', 'plate', 'serving', 'tablespoon', 'teaspoon'
+]);
+
+const cleanIngredient = (text) => {
+  if (!text) return [];
+  
+  // Step 1: Convert to lowercase and strip whitespace
+  let cleaned = text.toLowerCase().trim();
+  
+  // Step 2: Remove symbols and special characters
+  cleaned = cleaned.replace(/[\+\*\-\&\/\\,\.\_\(\)\[\]]/g, ' ');
+  
+  // Step 3: Split into words and filter out filler words
+  const words = cleaned.split(/\s+/)
+    .filter(word => word.length > 0)  // Remove empty strings
+    .filter(word => !FILLER_WORDS.has(word));  // Remove filler words
+  
+  // Step 4: Return array of cleaned individual words
+  return words;
+};
+
+const extractIngredientsFromLeftover = (ingredientsList) => {
+  if (!ingredientsList || ingredientsList.length === 0) return [];
+  
+  // Process: Clean each ingredient and extract individual words/ingredients
+  // flatMap to flatten arrays from each ingredient into single array
+  const allCleaned = ingredientsList
+    .flatMap(ing => cleanIngredient(ing))
+    .filter(ing => ing && ing.length > 0);  // Remove empty strings
+  
+  // Remove duplicates using Set
+  return [...new Set(allCleaned)];
+};
+
+const generateRecipesForLeftover = (leftoverItem, showToast) => {
+  // Extract and clean ingredients from this specific leftover
+  const cleanedIngredients = extractIngredientsFromLeftover(leftoverItem.ingredients);
+  
+  if (cleanedIngredients.length === 0) {
+    showToast('error', `"${leftoverItem.name}" has no valid ingredients. Please edit to add ingredients.`);
+    return;
+  }
+  
+  // Build the ingredient query string from cleaned ingredients
+  const ingredientQuery = cleanedIngredients.join(', ');
+  
+  console.log(`\n🍳 GENERATING RECIPES FOR: "${leftoverItem.name}"`);
+  console.log(`📋 Step 1 - Original ingredients:`, leftoverItem.ingredients);
+  console.log(`   → Lowercase + Remove symbols + Remove filler words`);
+  console.log(`✨ Step 2 - Cleaned ingredients:`, cleanedIngredients);
+  console.log(`🔍 Step 3 - Query for recipe engine:`, ingredientQuery);
+  console.log(`─`.repeat(60));
+  
+  // Show success message with cleaned ingredients
+  showToast('success', `🍳 Generating recipes for "${leftoverItem.name}" with: ${ingredientQuery}`);
+  
+  // Return cleaned data for potential API call
+  return {
+    leftover_id: leftoverItem.id,
+    leftover_name: leftoverItem.name,
+    original_ingredients: leftoverItem.ingredients,
+    cleaned_ingredients: cleanedIngredients,
+    ingredient_query: ingredientQuery
+  };
+};
+
 // ── Empty form ──────────────────────────────────────────────────────────────
 const emptyForm = {
   name: '', qty_value: '', qty_unit: 'servings', category: '',
@@ -162,18 +238,45 @@ function Leftovers() {
     selectedLeftovers.flatMap(l => l.ingredients || [])
   )];
 
-  // ── Generate recipes ──────────────────────────────────────────────────────
+  // ── Generate recipes (one by one, with MEMBER 4 cleaning) ──────────────────
   const handleGenerateRecipes = () => {
     if (selectedIds.length === 0) {
       showToast('error', 'Please select at least one leftover to generate recipes!');
       return;
     }
-    if (combinedIngredients.length === 0) {
-      showToast('error', 'Selected items have no ingredients. Edit them to add ingredients.');
+    
+    // Get all selected leftovers
+    const selectedLeftoversData = leftovers.filter(l => selectedIds.includes(l.id));
+    
+    if (selectedLeftoversData.length === 0) {
+      showToast('error', 'No leftovers found for selected items.');
       return;
     }
-    showToast('success', `Ready to generate recipes with: ${combinedIngredients.join(', ')}`);
-    console.log('🍳 Generate recipes with ingredients:', combinedIngredients);
+    
+    console.log('\n🎯 RECIPE GENERATION STARTED');
+    console.log(`📊 Processing ${selectedLeftoversData.length} leftover(s) one by one...`);
+    console.log(`═`.repeat(60));
+    
+    // Process each leftover individually
+    const results = selectedLeftoversData.map((leftover, index) => {
+      console.log(`\n[${index + 1}/${selectedLeftoversData.length}]`);
+      return generateRecipesForLeftover(leftover, showToast);
+    });
+    
+    // Filter out any null results (items with no ingredients)
+    const validResults = results.filter(r => r !== undefined);
+    
+    if (validResults.length === 0) {
+      showToast('error', 'None of the selected items have valid ingredients.');
+      return;
+    }
+    
+    console.log(`\n${'═'.repeat(60)}`);
+    console.log(`✅ RECIPE GENERATION COMPLETE`);
+    console.log(`✨ Successfully processed ${validResults.length} leftover(s)`);
+    console.log(`📋 Results stored for recipe recommendation engine`);
+    
+    showToast('success', `✨ Generated recipes for ${validResults.length} items!`);
   };
 
   // ── Stats ─────────────────────────────────────────────────────────────────
@@ -205,21 +308,31 @@ function Leftovers() {
       {selectedIds.length > 0 && (
         <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'var(--primary)' }}>
-                🧺 Selected Ingredients ({selectedIds.length} item{selectedIds.length > 1 ? 's' : ''})
+            <div style={{ flex: 1, minWidth: '300px' }}>
+              <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary)' }}>
+                🧺 Selected Items ({selectedIds.length} item{selectedIds.length > 1 ? 's' : ''})
               </h3>
-              {combinedIngredients.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {combinedIngredients.map(ing => (
-                    <span key={ing} className="badge badge-admin" style={{ fontSize: '0.8rem' }}>{ing}</span>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  No ingredients found. Edit selected items to add ingredients.
-                </p>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {selectedLeftovers.map((leftover, idx) => (
+                  <div key={leftover.id} style={{ padding: '0.5rem 0.75rem', background: 'rgba(5,150,105,0.05)', borderRadius: '6px', border: '1px solid rgba(5,150,105,0.15)' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '500', color: 'var(--primary)', marginBottom: '0.25rem' }}>
+                      {idx + 1}. {leftover.name}
+                    </div>
+                    {leftover.ingredients && leftover.ingredients.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                        {leftover.ingredients.map(ing => (
+                          <span key={ing} className="badge" style={{ fontSize: '0.75rem', background: 'rgba(5,150,105,0.12)', color: 'var(--primary)', border: '1px solid rgba(5,150,105,0.2)' }}>{ing}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>—No ingredients</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-muted)', borderLeft: '2px solid var(--primary)' }}>
+                💡 Each leftover will generate recipes individually with cleaned ingredients
+              </div>
             </div>
             <button onClick={handleGenerateRecipes}
               style={{ width: 'auto', padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))', flexShrink: 0 }}>

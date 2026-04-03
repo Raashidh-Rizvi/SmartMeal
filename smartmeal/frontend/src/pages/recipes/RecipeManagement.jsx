@@ -747,7 +747,7 @@ function RecipeManagement() {
                                             onClick={() => removeIngredient(idx)}
                                             title="Remove ingredient"
                                         >
-                                            x
+                                            🗑️
                                         </button>
                                     )}
                                 </div>
@@ -780,7 +780,7 @@ function RecipeManagement() {
                                             onClick={() => removeStep(idx)}
                                             title="Remove step"
                                         >
-                                            x
+                                            🗑️
                                         </button>
                                     )}
                                 </div>
