@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from app.db.database import connect_to_mongo, close_mongo_connection
 from app.db.init_db import create_indexes
 from app.routes.auth import router as auth_router
@@ -23,6 +25,31 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def _format_validation_error(error: dict) -> str:
+    """Format a single validation error into a user-friendly message."""
+    loc = error.get("loc")
+    msg = error.get("msg", "Validation failed")
+    
+    # Build field path (e.g., "ingredients[0].unit")
+    if loc:
+        field_path = ".".join(str(x) for x in loc)
+    else:
+        field_path = "Unknown field"
+    
+    # Extract the actual error message (may be wrapped in "Value error, ")
+    if "Value error, " in msg:
+        actual_msg = msg.replace("Value error, ", "")
+    else:
+        actual_msg = msg
+        
+    if actual_msg.startswith("Field required") or actual_msg.startswith("Input should be") or actual_msg.startswith("String should have") or actual_msg.startswith("List should have"):
+        if loc:
+            path_parts = [str(x) for x in loc if x != 'body']
+            field_path = " ".join(path_parts)
+            return f"{field_path}: {actual_msg}"
+    
+    return actual_msg
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -33,6 +60,17 @@ async def lifespan(app: FastAPI):
     await close_mongo_connection()
 
 app = FastAPI(title="SmartMeal API", lifespan=lifespan)
+
+# Custom exception handler for request validation errors - formats them nicely
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Format Pydantic validation errors into user-friendly messages."""
+    errors = exc.errors()
+    formatted_msg = _format_validation_error(errors[0]) if errors else "Validation failed"
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": formatted_msg}
+    )
 
 # Serve uploaded images as static files
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")

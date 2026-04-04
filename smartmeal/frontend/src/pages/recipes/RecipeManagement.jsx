@@ -9,6 +9,7 @@ import {
     deleteRecipe,
     uploadRecipeImage,
 } from '../../api/recipes';
+import { notify } from '../../utils/notifications';
 import './recipes.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -180,7 +181,7 @@ function RecipeManagement() {
             setFormField('image_url', res.data.url);
         } catch (err) {
             const msg = err.response?.data?.detail || 'Image upload failed.';
-            setFormError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+            notify.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
         } finally {
             setImageUploading(false);
         }
@@ -228,18 +229,36 @@ function RecipeManagement() {
         setFormError('');
 
         // Validate
-        if (!form.title.trim()) return setFormError('Title is required.');
-        if (!form.category) return setFormError('Category is required.');
-        const validIngredients = form.ingredients.filter(i => i.name.trim());
-        if (validIngredients.length === 0) return setFormError('At least one ingredient is required.');
-        for (const ing of validIngredients) {
-            if (!ing.quantity || isNaN(Number(ing.quantity)) || Number(ing.quantity) <= 0)
-                return setFormError(`Invalid quantity for ingredient "${ing.name}".`);
-            if (!ing.unit.trim())
-                return setFormError(`Unit is required for ingredient "${ing.name}".`);
+        if (!form.title.trim()) { notify.error('Please enter a recipe title.'); return; }
+        if (!form.category) { notify.error('Please select a category for your recipe.'); return; }
+
+        if (form.estimated_cooking_time) {
+            const time = Number(form.estimated_cooking_time);
+            if (isNaN(time) || time <= 0) {
+                notify.error('Please enter a valid cooking time greater than 0 minutes.');
+                return;
+            }
         }
+
+        const activeIngredients = form.ingredients.filter(i => i.name.trim() || String(i.quantity).trim() || i.unit.trim());
+        if (activeIngredients.length === 0) { notify.error('Please add at least one ingredient to your recipe.'); return; }
+        
+        const validIngredients = [];
+        for (const ing of activeIngredients) {
+            if (!ing.name.trim()) { notify.error('Please provide a name for all your recipe ingredients.'); return; }
+            if (!ing.quantity || isNaN(Number(ing.quantity)) || Number(ing.quantity) <= 0) {
+                notify.error(`Please enter a valid quantity greater than 0 for "${ing.name}".`);
+                return;
+            }
+            if (!ing.unit.trim()) {
+                notify.error(`Please specify a unit (e.g., cups, grams) for "${ing.name}".`);
+                return;
+            }
+            validIngredients.push(ing);
+        }
+
         const validSteps = form.preparation_steps.filter(s => s.trim());
-        if (validSteps.length === 0) return setFormError('At least one preparation step is required.');
+        if (validSteps.length === 0) { notify.error('Please add at least one preparation step for your recipe.'); return; }
 
         const payload = {
             title: form.title.trim(),
@@ -273,7 +292,7 @@ function RecipeManagement() {
             }
         } catch (err) {
             const msg = err.response?.data?.detail || 'Failed to save recipe.';
-            setFormError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+            notify.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
         } finally {
             setFormLoading(false);
         }
@@ -582,9 +601,7 @@ function RecipeManagement() {
                 <div className="recipe-form-wrapper">
                     <h1 className="recipe-page-title">{editMode ? 'Edit Recipe' : 'Add New Recipe'}</h1>
 
-                    <form onSubmit={handleSubmit} className="recipe-form" id="recipe-form">
-                        {formError && <div className="error">{formError}</div>}
-
+                    <form onSubmit={handleSubmit} className="recipe-form" id="recipe-form" noValidate>
                         {/* Row 1: Title and Category */}
                         <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                             <div className="form-group" style={{ flex: '2 1 300px' }}>

@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Toast from './components/Toast';
 
 // Pages
 import Login from './pages/authentication/Login';
@@ -45,6 +46,7 @@ function App() {
       <Router>
         <AuthProvider>
           <div className="app-container">
+            <Toast />
             <Navbar />
             <main className="main-content">
               <Routes>
