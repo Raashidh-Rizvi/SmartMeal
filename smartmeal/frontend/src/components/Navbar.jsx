@@ -4,6 +4,24 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import NotificationsModal from './NotificationsModal';
+import { 
+  Lightbulb, 
+  BookOpen, 
+  Wallet, 
+  ShieldCheck, 
+  Calendar, 
+  Package, 
+  ShoppingCart, 
+  ChefHat, 
+  LogIn, 
+  UserPlus, 
+  User, 
+  Sun, 
+  Moon, 
+  LogOut, 
+  Bell,
+  UtensilsCrossed
+} from 'lucide-react';
 
 function Navbar() {
   const { user, logout } = useContext(AuthContext);
@@ -68,7 +86,8 @@ function Navbar() {
         {/* Top Row: Brand, Primary Links & User Actions */}
         <div className="navbar-row navbar-top-row">
           <div className="navbar-brand">
-            <Link to={user ? "/dashboard" : "/login"} onClick={closeMenu}>
+            <Link to={user ? "/dashboard" : "/login"} onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <UtensilsCrossed size={24} color="var(--primary)" />
               <span className="brand-text">Smart Meal</span>
             </Link>
           </div>
@@ -77,17 +96,17 @@ function Navbar() {
             {user && (
               <>
                 <Link to="/recommendations" className={`navbar-link${location.pathname === '/recommendations' ? ' active' : ''}`} onClick={closeMenu} title="Recipe Recommendations Based on Your Stock">
-                  <span className="nav-icon">💡</span> Recommendations
+                  <span className="nav-icon"><Lightbulb size={18} /></span> Recommendations
                 </Link>
                 <Link to="/recipes" className={`navbar-link${location.pathname === '/recipes' ? ' active' : ''}`} onClick={closeMenu} title="Browse All Recipes">
-                  <span className="nav-icon">📖</span> Recipes
+                  <span className="nav-icon"><BookOpen size={18} /></span> Recipes
                 </Link>
                 <Link to="/budget" className={`navbar-link${location.pathname === '/budget' ? ' active' : ''}`} onClick={closeMenu} title="Monitor Your Grocery Spending">
-                  <span className="nav-icon">💰</span> Budget
+                  <span className="nav-icon"><Wallet size={18} /></span> Budget
                 </Link>
                 {isAdmin && (
                   <Link to="/admin" className={`navbar-link${location.pathname === '/admin' ? ' active' : ''}`} onClick={closeMenu} title="Admin Dashboard">
-                    <span className="nav-icon">🛡️</span> Admin
+                    <span className="nav-icon"><ShieldCheck size={18} /></span> Admin
                   </Link>
                 )}
                 
@@ -95,16 +114,16 @@ function Navbar() {
                 <div className="mobile-planning-links">
                   <div className="dropdown-divider"></div>
                   <Link to="/meals" className={`navbar-link${location.pathname === '/meals' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">📅</span> Meal Schedule
+                    <span className="nav-icon"><Calendar size={18} /></span> Meal Schedule
                   </Link>
                   <Link to="/inventory" className={`navbar-link${location.pathname === '/inventory' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">📦</span> Ingredients
+                    <span className="nav-icon"><Package size={18} /></span> Ingredients
                   </Link>
                   <Link to="/shoppinglist" className={`navbar-link${location.pathname === '/shoppinglist' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">🛒</span> Shopping List
+                    <span className="nav-icon"><ShoppingCart size={18} /></span> Shopping List
                   </Link>
                   <Link to="/leftovers" className={`navbar-link${location.pathname === '/leftovers' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">🍱</span> Leftovers
+                    <span className="nav-icon"><ChefHat size={18} /></span> Leftovers
                   </Link>
                 </div>
               </>
@@ -113,10 +132,10 @@ function Navbar() {
             {!user && (
               <>
                 <Link to="/login" className={`navbar-link${location.pathname === '/login' ? ' active' : ''}`} onClick={closeMenu}>
-                  <span className="nav-icon">🔑</span> Login
+                  <span className="nav-icon"><LogIn size={18} /></span> Login
                 </Link>
                 <Link to="/register" className="navbar-link" onClick={closeMenu}>
-                  <span className="nav-icon">📝</span> Register
+                  <span className="nav-icon"><UserPlus size={18} /></span> Register
                 </Link>
               </>
             )}
@@ -132,10 +151,7 @@ function Navbar() {
                   title="View notifications"
                   onClick={() => setShowNotificationsModal(true)}
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide-bell">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                  </svg>
+                  <Bell size={22} className="lucide-bell" />
                   {unreadNotifications > 0 && <span className="notification-badge">{unreadNotifications}</span>}
                 </button>
                 
@@ -158,24 +174,24 @@ function Navbar() {
                       <div className="dropdown-divider"></div>
                       
                       <Link to="/profile" className="dropdown-item" onClick={() => setShowUserDropdown(false)}>
-                        <span className="dropdown-icon">👤</span> Profile
+                        <span className="dropdown-icon"><User size={18} /></span> Profile
                       </Link>
                       
                       <button className="dropdown-item appearance-toggle" onClick={() => { toggleTheme(); setShowUserDropdown(false); }}>
-                        <span className="dropdown-icon">{isDark ? '☀️' : '🌙'}</span> 
+                        <span className="dropdown-icon">{isDark ? <Sun size={18} /> : <Moon size={18} />}</span> 
                         <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
                       </button>
                       
                       {isAdmin && (
                         <Link to="/admin" className={`dropdown-item${location.pathname === '/admin' ? ' active' : ''}`} onClick={() => setShowUserDropdown(false)}>
-                          <span className="dropdown-icon">🛡️</span> Admin Panel
+                          <span className="dropdown-icon"><ShieldCheck size={18} /></span> Admin Panel
                         </Link>
                       )}
                       
                       <div className="dropdown-divider"></div>
                       
                       <button className="dropdown-item logout-item" onClick={handleLogout}>
-                        <span className="dropdown-icon">🚪</span> Logout
+                        <span className="dropdown-icon"><LogOut size={18} /></span> Logout
                       </button>
                     </div>
                   )}
@@ -187,7 +203,7 @@ function Navbar() {
                 onClick={toggleTheme}
                 title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
-                {isDark ? '☀️' : '🌙'}
+                {isDark ? <Sun size={20} /> : <Moon size={20} />}
               </button>
             )}
 
@@ -211,16 +227,16 @@ function Navbar() {
           <div className="navbar-row navbar-bottom-row">
             <div className="navbar-planning-links">
               <Link to="/meals" className={`navbar-link${location.pathname === '/meals' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">📅</span> Meal Schedule
+                <span className="nav-icon"><Calendar size={18} /></span> Meal Schedule
               </Link>
               <Link to="/inventory" className={`navbar-link${location.pathname === '/inventory' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">📦</span> Ingredients
+                <span className="nav-icon"><Package size={18} /></span> Ingredients
               </Link>
               <Link to="/shoppinglist" className={`navbar-link${location.pathname === '/shoppinglist' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">🛒</span> Shopping List
+                <span className="nav-icon"><ShoppingCart size={18} /></span> Shopping List
               </Link>
               <Link to="/leftovers" className={`navbar-link${location.pathname === '/leftovers' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">🍱</span> Leftovers
+                <span className="nav-icon"><ChefHat size={18} /></span> Leftovers
               </Link>
             </div>
           </div>

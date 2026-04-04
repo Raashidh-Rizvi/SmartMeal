@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { budgetService } from '../services/budgetService';
 
 function BudgetDashboard() {
@@ -10,6 +10,9 @@ function BudgetDashboard() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [toast, setToast] = useState(null);
 
+  const budgetRef = useRef(null);
+  const expensesRef = useRef(null);
+
   const emptyBudgetForm = { amount: '', period: 'monthly', start_date: new Date().toISOString().slice(0, 16) };
   const emptyExpenseForm = { item_name: '', amount: '', category: '', date: new Date().toISOString().slice(0, 16), notes: '' };
   const [budgetForm, setBudgetForm] = useState(emptyBudgetForm);
@@ -18,6 +21,14 @@ function BudgetDashboard() {
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const scrollToBudget = () => {
+    budgetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const scrollToExpenses = () => {
+    expensesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const fetchData = async () => {
@@ -39,7 +50,7 @@ function BudgetDashboard() {
     if (!summary) return;
     if (summary.is_over_budget) showToast('error', `Budget exceeded by $${Math.abs(summary.remaining).toFixed(2)}!`);
     else if (summary.warning_threshold_reached) showToast('warning', `${summary.percentage_used.toFixed(1)}% of budget used`);
-  }, [summary?.is_over_budget, summary?.warning_threshold_reached]);
+  }, [summary?.is_over_budget, summary?.warning_threshold_reached, summary]);
 
   const handleBudgetSubmit = async (e) => {
     e.preventDefault();
@@ -49,6 +60,7 @@ function BudgetDashboard() {
       setBudgetForm(emptyBudgetForm);
       showToast('success', 'Budget saved!');
       fetchData();
+      setTimeout(scrollToBudget, 500);
     } catch (err) { showToast('error', err.response?.data?.detail || 'Failed to save budget'); }
   };
 
@@ -62,6 +74,7 @@ function BudgetDashboard() {
       } else {
         await budgetService.createExpense(payload);
         showToast('success', 'Expense added!');
+        setTimeout(scrollToExpenses, 500);
       }
       setShowExpenseModal(false);
       setEditingExpense(null);
@@ -147,7 +160,7 @@ function BudgetDashboard() {
       )}
 
       {/* Budget Card */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
+      <div className="card" ref={budgetRef} style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div>
             <h2 style={{ marginBottom: '0.25rem' }}>Budget</h2>
@@ -155,20 +168,20 @@ function BudgetDashboard() {
               {summary?.budget ? `${summary.budget.period} budget starting ${new Date(summary.budget.start_date).toLocaleDateString()}` : 'No budget set yet.'}
             </p>
           </div>
-          <button onClick={() => setShowBudgetModal(true)} style={{ width: 'auto', padding: '0.6rem 1.25rem' }}>
+          <button onClick={() => { setShowBudgetModal(true); setTimeout(scrollToBudget, 100); }} style={{ width: 'auto', padding: '0.6rem 1.25rem' }}>
             {summary?.budget ? '✏️ Edit Budget' : '+ Set Budget'}
           </button>
         </div>
       </div>
 
       {/* Expenses Card */}
-      <div className="card">
+      <div className="card" ref={expensesRef}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div>
             <h2 style={{ marginBottom: '0.25rem' }}>Expenses</h2>
             <p style={{ color: 'var(--text-muted)', margin: 0 }}>Track your food spending.</p>
           </div>
-          <button onClick={() => { setEditingExpense(null); setExpenseForm(emptyExpenseForm); setShowExpenseModal(true); }}
+          <button onClick={() => { setEditingExpense(null); setExpenseForm(emptyExpenseForm); setShowExpenseModal(true); setTimeout(scrollToExpenses, 100); }}
             style={{ width: 'auto', padding: '0.6rem 1.25rem' }}>
             + Add Expense
           </button>

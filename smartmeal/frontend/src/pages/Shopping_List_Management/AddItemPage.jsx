@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingAPI } from '../../api/axios';
 import Toast from '../../components/Toast';
+import { ArrowLeft, PlusCircle, Zap } from 'lucide-react';
 
 function AddItemPage() {
   const navigate = useNavigate();
@@ -54,8 +55,12 @@ function AddItemPage() {
       {/* Header */}
       <header className="page-header">
         <div className="header-content">
-          <button onClick={goBack} className="btn-back">← Back to List</button>
-          <h1>➕ Add New Item</h1>
+          <button onClick={goBack} className="btn-back" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ArrowLeft size={18} /> Back to List
+          </button>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <PlusCircle size={32} /> Add New Item
+          </h1>
           <p>Add items to your shopping list</p>
         </div>
       </header>
@@ -140,8 +145,9 @@ function AddItemPage() {
 
           {/* Quick Actions */}
           <section className="card quick-actions-card">
-            <div className="card-header">
-              <h3>🚀 Quick Actions</h3>
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Zap size={20} color="var(--primary)" />
+              <h3 style={{ margin: 0 }}>Quick Actions</h3>
             </div>
             <div className="card-body">
               <div className="quick-actions">
@@ -153,7 +159,7 @@ function AddItemPage() {
                   }}
                   className="btn-quick"
                 >
-                  🥛 Add Milk
+                  Add Milk
                 </button>
                 <button
                   onClick={() => {
@@ -163,7 +169,7 @@ function AddItemPage() {
                   }}
                   className="btn-quick"
                 >
-                  🍚 Add Rice
+                  Add Rice
                 </button>
                 <button
                   onClick={() => {
@@ -173,7 +179,7 @@ function AddItemPage() {
                   }}
                   className="btn-quick"
                 >
-                  🥚 Add Eggs
+                  Add Eggs
                 </button>
               </div>
             </div>

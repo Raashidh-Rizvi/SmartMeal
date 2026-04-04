@@ -75,6 +75,7 @@ def serialize_user(doc: dict) -> dict:
         "role": doc.get("role", "USER"),
         "is_active": doc.get("is_active", True),
         "preferences": doc.get("preferences", {}),
+        "createdAt": doc.get("createdAt", doc.get("created_at")),
     }
 
 
@@ -93,7 +94,7 @@ async def register(req: RegisterRequest):
         "hashed_password": hash_password(req.password),
         "role": "USER",
         "is_active": True,
-        "created_at": now,
+        "createdAt": now,
     })
     user = await db.users.find_one({"_id": result.inserted_id})
     u = serialize_user(user)
@@ -124,7 +125,7 @@ async def google_auth(req: GoogleAuthRequest):
             "uid": req.uid,
             "role": "USER",
             "is_active": True,
-            "created_at": now,
+            "createdAt": now,
         })
         user = await db.users.find_one({"_id": result.inserted_id})
     u = serialize_user(user)

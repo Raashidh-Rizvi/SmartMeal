@@ -1,10 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { leftoverService } from '../services/leftoverService';
 import { getFoodImage } from '../services/imageService';
 import { getRecipes, createRecipe } from '../api/recipes';
 import { createMeal } from '../services/mealService';
 import { AuthContext } from '../context/AuthContext';
-import { useContext } from 'react';
+import { 
+  Check, 
+  AlertTriangle, 
+  CheckCircle, 
+  Utensils, 
+  Clock, 
+  XCircle, 
+  ShoppingBag, 
+  Sparkles, 
+  Snowflake, 
+  CloudSnow, 
+  Home, 
+  Pencil, 
+  List, 
+  Calendar, 
+  Bot, 
+  Salad, 
+  ChefHat,
+  Plus,
+  Trash2,
+  ChevronUp,
+  Search,
+  Info
+} from 'lucide-react';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 
@@ -13,33 +36,15 @@ const calcDaysLeft = (expiryDate) =>
   Math.floor((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
 
 const getExpiryBadge = (days, isUsed) => {
-  if (isUsed) return <span className="badge badge-user">✓ Used</span>;
-  if (days < 0)  return <span className="badge" style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,0.3)' }}>Expired</span>;
-  if (days <= 2) return <span className="badge" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>⚠️ Expiring Soon</span>;
-  return <span className="badge badge-admin">✅ Fresh · {days}d left</span>;
+  if (isUsed) return <span className="badge badge-user" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Check size={12} /> Used</span>;
+  if (days < 0)  return <span className="badge" style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><XCircle size={12} /> Expired</span>;
+  if (days <= 2) return <span className="badge" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><AlertTriangle size={12} /> Expiring Soon</span>;
+  return <span className="badge badge-admin" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><CheckCircle size={12} /> Fresh · {days}d left</span>;
 };
 
-// ── MEMBER 4: Ingredient Cleaning Logic ────────────────────────────────────
-// Common filler words to remove (cooking methods, connectors, articles)
-const FILLER_WORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'with', 'in', 'of', 'to', 'for',
-  'fried', 'baked', 'grilled', 'boiled', 'roasted', 'steamed', 'cooked',
-  'raw', 'fresh', 'dried', 'sliced', 'chopped', 'minced', 'crushed',
-  'hot', 'cold', 'spicy', 'sweet', 'salty', 'warm', 'whole', 'half',
-  'piece', 'cup', 'bowl', 'plate', 'serving', 'tablespoon', 'teaspoon'
-]);
+// Cleaner logic removed as it was unused
 
-const cleanIngredient = (text) => {
-  if (!text) return [];
-  let cleaned = text.toLowerCase().trim();
-  cleaned = cleaned.replace(/[\+\*\-\&\/\\,\.\_\(\)\[\]]/g, ' ');
-  return cleaned.split(/\s+/).filter(w => w.length > 0 && !FILLER_WORDS.has(w));
-};
-
-const extractIngredientsFromLeftover = (ingredientsList) => {
-  if (!ingredientsList || ingredientsList.length === 0) return [];
-  return [...new Set(ingredientsList.flatMap(ing => cleanIngredient(ing)).filter(Boolean))];
-};
+// extractIngredientsFromLeftover removed as it was unused
 
 // ── Empty form ──────────────────────────────────────────────────────────────
 const emptyForm = {
@@ -73,7 +78,7 @@ function Leftovers() {
   };
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
-  const fetchLeftovers = async () => {
+  const fetchLeftovers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await leftoverService.getAll(includeUsed);
@@ -81,9 +86,9 @@ function Leftovers() {
       setSelectedIds([]);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, [includeUsed]);
 
-  useEffect(() => { fetchLeftovers(); }, [includeUsed]);
+  useEffect(() => { fetchLeftovers(); }, [fetchLeftovers]);
 
   // ── Form validation ───────────────────────────────────────────────────────
   const validate = () => {
@@ -194,9 +199,7 @@ function Leftovers() {
 
   // ── Selected ingredients preview ──────────────────────────────────────────
   const selectedLeftovers = leftovers.filter(l => selectedIds.includes(l.id));
-  const combinedIngredients = [...new Set(
-    selectedLeftovers.flatMap(l => l.ingredients || [])
-  )];
+  // combinedIngredients removed as it was unused
 
   // ── Generate recipes via Leftover AI API ────────────────────────────────────
   const handleGenerateRecipes = async (overrideLeftovers = null) => {
@@ -293,7 +296,7 @@ function Leftovers() {
       });
 
       setScheduleForm(p => ({ ...p, [idx]: { ...form, loading: false, done: true, error: null } }));
-      showToast('success', `✅ "${recipe.name}" added to meal schedule!`);
+      showToast('success', `"${recipe.name}" added to meal schedule!`);
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to add to meal schedule';
       setScheduleForm(p => ({ ...p, [idx]: { ...form, loading: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg) } }));
@@ -314,12 +317,12 @@ function Leftovers() {
       {/* Stats */}
       <div className="stats-section" style={{ marginBottom: '1.5rem' }}>
         {[
-          { icon: '🍽️', label: 'Total Items',   value: stats.total },
-          { icon: '⚠️', label: 'Expiring Soon', value: stats.expiring },
-          { icon: '❌', label: 'Expired',        value: stats.expired },
-        ].map(({ icon, label, value }) => (
+          { icon: <Utensils size={20} />, label: 'Total Items',   value: stats.total, color: 'var(--primary)' },
+          { icon: <Clock size={20} />, label: 'Expiring Soon', value: stats.expiring, color: '#f59e0b' },
+          { icon: <XCircle size={20} />, label: 'Expired',        value: stats.expired, color: 'var(--danger)' },
+        ].map(({ icon, label, value, color }) => (
           <div className="stat-card" key={label}>
-            <div className="stat-icon">{icon}</div>
+            <div className="stat-icon" style={{ color }}>{icon}</div>
             <div className="stat-info"><h3>{label}</h3><p className="stat-value">{value}</p></div>
           </div>
         ))}
@@ -330,8 +333,8 @@ function Leftovers() {
         <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary)' }}>
-                🧺 Selected Items ({selectedIds.length} item{selectedIds.length > 1 ? 's' : ''})
+              <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShoppingBag size={18} /> Selected Items ({selectedIds.length} item{selectedIds.length > 1 ? 's' : ''})
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {selectedLeftovers.map((leftover, idx) => (
@@ -351,13 +354,15 @@ function Leftovers() {
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-muted)', borderLeft: '2px solid var(--primary)' }}>
-                💡 Each leftover will generate recipes individually with cleaned ingredients
+              <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: 'rgba(59,130,246,0.05)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-muted)', borderLeft: '2px solid var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={14} color="var(--primary)" />
+                <span>Each leftover will generate recipes individually with cleaned ingredients</span>
               </div>
             </div>
             <button onClick={handleGenerateRecipes}
-              style={{ width: 'auto', padding: '0.6rem 1.25rem', background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))', flexShrink: 0 }}>
-              🍳 Generate Recipes
+              className="btn-primary"
+              style={{ width: 'auto', padding: '0.6rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              <Sparkles size={18} /> Generate Recipes
             </button>
           </div>
         </div>
@@ -381,8 +386,8 @@ function Leftovers() {
             </label>
             {selectedIds.length > 0 && (
               <button onClick={handleGenerateRecipes}
-                style={{ width: 'auto', padding: '0.6rem 1.25rem' }}>
-                🍳 Generate Recipes
+                style={{ width: 'auto', padding: '0.6rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ChefHat size={18} /> Generate Recipes
               </button>
             )}
             <button onClick={() => openModal()}
@@ -394,8 +399,9 @@ function Leftovers() {
 
         {/* Hint when nothing selected */}
         {!loading && activeLeftovers.length > 0 && selectedIds.length === 0 && (
-          <div style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.15)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            💡 Tip: Select items using the checkboxes, then click <strong>Generate Recipes</strong> to get recipe ideas from your ingredients.
+          <div style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.15)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Info size={18} color="var(--primary)" />
+            <span>Tip: Select items using the checkboxes, then click <strong>Generate Recipes</strong> to get recipe ideas from your ingredients.</span>
           </div>
         )}
 
@@ -460,22 +466,27 @@ function Leftovers() {
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>—</span>
                         )}
                       </td>
-                      <td>{item.storage_location === 'fridge' ? '🧊 Fridge' : item.storage_location === 'freezer' ? '❄️ Freezer' : '🏠 Room'}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          {item.storage_location === 'fridge' ? <Snowflake size={14} /> : item.storage_location === 'freezer' ? <CloudSnow size={14} /> : <Home size={14} />}
+                          {item.storage_location === 'fridge' ? 'Fridge' : item.storage_location === 'freezer' ? 'Freezer' : 'Room'}
+                        </div>
+                      </td>
                       <td>{new Date(item.expiry_date).toLocaleDateString()}</td>
                       <td>{getExpiryBadge(days, item.is_used)}</td>
                       <td>
                         <div className="action-buttons">
                           {!item.is_used && (
                             <>
-                              <button onClick={() => openModal(item)} className="btn-icon">Edit</button>
+                              <button onClick={() => openModal(item)} className="btn-icon" title="Edit" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Pencil size={14} /> Edit</button>
                               <span style={{ color: 'var(--text-muted)' }}>|</span>
-                              <button onClick={() => handleUseNow(item)} className="btn-icon" title="Queue ingredients for recipe generation" style={{ color: '#f59e0b' }}>Use Now</button>
+                              <button onClick={() => handleUseNow(item)} className="btn-icon" title="Queue ingredients for recipe generation" style={{ color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Sparkles size={14} /> Use Now</button>
                               <span style={{ color: 'var(--text-muted)' }}>|</span>
-                              <button onClick={() => handleMarkUsed(item.id)} className="btn-icon">✓ Used</button>
+                              <button onClick={() => handleMarkUsed(item.id)} className="btn-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Check size={14} /> Used</button>
                               <span style={{ color: 'var(--text-muted)' }}>|</span>
                             </>
                           )}
-                          <button onClick={() => handleDelete(item.id)} className="btn-icon text-danger">Delete</button>
+                          <button onClick={() => handleDelete(item.id)} className="btn-icon text-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Trash2 size={14} /> Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -491,7 +502,10 @@ function Leftovers() {
       {showModal && (
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>
           <div className="modal-content" style={{ maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginBottom: '1.5rem' }}>{editingItem ? '✏️ Edit Leftover' : '🍽️ Add Leftover'}</h2>
+            <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {editingItem ? <Pencil size={24} color="var(--primary)" /> : <Utensils size={24} color="var(--primary)" />}
+              {editingItem ? 'Edit Leftover' : 'Add Leftover'}
+            </h2>
             <form onSubmit={handleSubmit} noValidate>
 
               {/* Food Name */}
@@ -569,12 +583,18 @@ function Leftovers() {
               {/* Storage */}
               <div className="form-group">
                 <label>Storage Location</label>
-                <select value={formData.storage_location}
-                  onChange={e => setFormData({ ...formData, storage_location: e.target.value })}>
-                  <option value="fridge">🧊 Fridge</option>
-                  <option value="freezer">❄️ Freezer</option>
-                  <option value="room">🏠 Room</option>
-                </select>
+                <div style={{ position: 'relative' }}>
+                  <select value={formData.storage_location}
+                    onChange={e => setFormData({ ...formData, storage_location: e.target.value })}
+                    style={{ paddingLeft: '2.5rem' }}>
+                    <option value="fridge">Fridge</option>
+                    <option value="freezer">Freezer</option>
+                    <option value="room">Room</option>
+                  </select>
+                  <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+                    {formData.storage_location === 'fridge' ? <Snowflake size={16} /> : formData.storage_location === 'freezer' ? <CloudSnow size={16} /> : <Home size={16} />}
+                  </div>
+                </div>
               </div>
 
               {/* Notes */}
@@ -597,8 +617,8 @@ function Leftovers() {
       {/* Recipe Results */}
       {(recipesLoading || recipes) && (
         <div className="card" style={{ marginTop: '1.5rem', padding: '1.25rem' }}>
-          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--primary)' }}>
-            🤖 AI Recipe Suggestions
+          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Bot size={20} /> AI Recipe Suggestions
           </h3>
 
           {recipesLoading && <p className="loading">Generating recipes…</p>}
@@ -611,17 +631,17 @@ function Leftovers() {
             <>
               {/* Combined ingredients used */}
               {recipes.combined_ingredients?.length > 0 && (
-                <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  <strong>Ingredients used:</strong>{' '}
-                  {recipes.combined_ingredients.join(', ')}
+                <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Salad size={14} />
+                  <span><strong>Ingredients used:</strong> {recipes.combined_ingredients.join(', ')}</span>
                 </div>
               )}
 
               {/* Rule-based quick suggestions */}
               {recipes.rule_based_suggestions?.length > 0 && (
-                <div style={{ marginBottom: '1rem', padding: '0.6rem 0.9rem', background: 'rgba(245,158,11,0.07)', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.25)', fontSize: '0.85rem' }}>
-                  <strong>⚡ Quick ideas:</strong>{' '}
-                  {recipes.rule_based_suggestions.join(' · ')}
+                <div style={{ marginBottom: '1rem', padding: '0.6rem 0.9rem', background: 'rgba(245,158,11,0.07)', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.25)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Sparkles size={14} color="#f59e0b" />
+                  <span><strong>Quick ideas:</strong> {recipes.rule_based_suggestions.join(' · ')}</span>
                 </div>
               )}
 
@@ -646,7 +666,9 @@ function Leftovers() {
                           <span className="badge badge-user" style={{ fontSize: '0.72rem' }}>{r.diet}</span>
                         )}
                         {r.prep_time && r.prep_time !== 'N/A' && (
-                          <span className="badge" style={{ fontSize: '0.72rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}>⏱ {r.prep_time}</span>
+                          <span className="badge" style={{ fontSize: '0.72rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                            <Clock size={10} /> {r.prep_time}
+                          </span>
                         )}
                       </div>
 
@@ -654,7 +676,9 @@ function Leftovers() {
                       {r.matched_ingredients?.length > 0 && (
                         <div style={{ marginBottom: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                           {r.matched_ingredients.map(ing => (
-                            <span key={ing} style={{ fontSize: '0.72rem', background: 'rgba(5,150,105,0.12)', color: 'var(--primary)', padding: '0.1rem 0.45rem', borderRadius: '999px', border: '1px solid rgba(5,150,105,0.25)' }}>✓ {ing}</span>
+                            <span key={ing} style={{ fontSize: '0.72rem', background: 'rgba(5,150,105,0.12)', color: 'var(--primary)', padding: '0.1rem 0.45rem', borderRadius: '999px', border: '1px solid rgba(5,150,105,0.25)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <Check size={10} /> {ing}
+                            </span>
                           ))}
                         </div>
                       )}
@@ -666,15 +690,17 @@ function Leftovers() {
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => setExpandedRecipe(isExpanded ? null : i)}
-                          style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: isExpanded ? 'var(--primary)' : 'transparent', color: isExpanded ? '#fff' : 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '6px' }}
+                          style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: isExpanded ? 'var(--primary)' : 'transparent', color: isExpanded ? '#fff' : 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                         >
-                          {isExpanded ? '▲ Hide Details' : '📋 Details'}
+                          {isExpanded ? <ChevronUp size={14} /> : <List size={14} />}
+                          {isExpanded ? 'Hide Details' : 'Details'}
                         </button>
                         <button
                           onClick={() => setScheduleForm(p => ({ ...p, [i]: { ...sf, open: !showScheduler, done: false, error: null } }))}
-                          style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: sf.done ? 'rgba(5,150,105,0.1)' : 'transparent', color: sf.done ? 'var(--primary)' : '#3b82f6', border: `1px solid ${sf.done ? 'var(--primary)' : '#3b82f6'}`, borderRadius: '6px' }}
+                          style={{ width: 'auto', padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: sf.done ? 'rgba(5,150,105,0.1)' : 'transparent', color: sf.done ? 'var(--primary)' : '#3b82f6', border: `1px solid ${sf.done ? 'var(--primary)' : '#3b82f6'}`, borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                         >
-                          {sf.done ? '✅ Scheduled' : '📅 Add to Meal Schedule'}
+                          {sf.done ? <CheckCircle size={14} /> : <Calendar size={14} />}
+                          {sf.done ? 'Scheduled' : 'Add to Schedule'}
                         </button>
                       </div>
 
@@ -683,7 +709,9 @@ function Leftovers() {
                         <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(5,150,105,0.15)' }}>
                           {r.ingredients?.length > 0 && (
                             <div style={{ marginBottom: '0.75rem' }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--primary)' }}>🥘 Ingredients</div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <Salad size={14} /> Ingredients
+                              </div>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                                 {r.ingredients.map((ing, j) => (
                                   <span key={j} style={{ fontSize: '0.75rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>{ing}</span>
@@ -693,7 +721,9 @@ function Leftovers() {
                           )}
                           {r.instructions && (
                             <div>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--primary)' }}>👨‍🍳 Instructions</div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <ChefHat size={14} /> Instructions
+                              </div>
                               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{r.instructions}</p>
                             </div>
                           )}
@@ -703,7 +733,9 @@ function Leftovers() {
                       {/* Meal schedule inline form */}
                       {showScheduler && !sf.done && (
                         <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(59,130,246,0.2)', background: 'rgba(59,130,246,0.04)', borderRadius: '6px', padding: '0.75rem' }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: '#3b82f6' }}>📅 Schedule this recipe</div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Calendar size={14} /> Schedule this recipe
+                          </div>
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
                             <input
                               type="date"
@@ -725,17 +757,18 @@ function Leftovers() {
                           <button
                             onClick={() => handleAddToMealSchedule(r, i)}
                             disabled={sf.loading}
-                            style={{ width: 'auto', padding: '0.35rem 0.9rem', fontSize: '0.82rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: sf.loading ? 'not-allowed' : 'pointer', opacity: sf.loading ? 0.7 : 1 }}
+                            className="btn-primary"
+                            style={{ width: 'auto', padding: '0.35rem 0.9rem', fontSize: '0.82rem', cursor: sf.loading ? 'not-allowed' : 'pointer', opacity: sf.loading ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                           >
-                            {sf.loading ? 'Adding...' : 'Confirm'}
+                            {sf.loading ? 'Adding...' : <><Check size={14} /> Confirm</>}
                           </button>
                         </div>
                       )}
 
                       {/* Already scheduled confirmation */}
                       {sf.done && (
-                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--primary)', padding: '0.4rem 0.6rem', background: 'rgba(5,150,105,0.08)', borderRadius: '6px' }}>
-                          ✅ Added to meal schedule for {sf.date} ({sf.meal_type})
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--primary)', padding: '0.4rem 0.6rem', background: 'rgba(5,150,105,0.08)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <CheckCircle size={14} /> Added for {sf.date} ({sf.meal_type})
                         </div>
                       )}
 

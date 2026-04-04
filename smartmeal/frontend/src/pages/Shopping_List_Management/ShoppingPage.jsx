@@ -8,6 +8,7 @@ import ShoppingTable from '../../components/ShoppingTable';
 import ShoppingChart from '../../components/ShoppingChart';
 import EditItemForm from '../../components/EditItemForm';
 import Toast from '../../components/Toast';
+import { Plus, PlusCircle, Share2, Edit3, ArrowLeft } from 'lucide-react';
 
 function ShoppingPage() {
 
@@ -154,8 +155,8 @@ function ShoppingPage() {
             {/* Add Item Button */}
             <section className="card add-item-button-card">
               <div className="card-body">
-                <button onClick={showAddView} className="btn-primary btn-large btn-add-item">
-                  ➕ Add New Item
+                <button onClick={showAddView} className="btn-primary btn-large btn-add-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', margin: '0 auto' }}>
+                  <Plus size={20} /> Add New Item
                 </button>
                 <p className="button-description">Click to add items to your shopping list</p>
               </div>
@@ -183,8 +184,9 @@ function ShoppingPage() {
                 a.click();
               }}
               className="btn-secondary ml-2"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'auto', padding: '0.6rem 1.2rem', marginBottom: '1.5rem' }}
             >
-              📥 Share List
+              <Share2 size={18} /> Share List
             </button>
 
             {/* Shopping List Table */}
@@ -205,8 +207,12 @@ function ShoppingPage() {
         {currentView === 'add' && (
           <div className="single-view-container">
             <div className="view-header">
-              <button onClick={showListView} className="btn-back">← Back to List</button>
-              <h2>➕ Add New Item</h2>
+              <button onClick={showListView} className="btn-back" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowLeft size={18} /> Back to List
+              </button>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <PlusCircle size={28} color="var(--primary)" /> Add New Item
+              </h2>
             </div>
             <ShoppingForm onAddItem={addItem} onCancel={showListView} />
           </div>
@@ -216,8 +222,12 @@ function ShoppingPage() {
         {currentView === 'edit' && (
           <div className="single-view-container">
             <div className="view-header">
-              <button onClick={showListView} className="btn-back">← Back to List</button>
-              <h2>✏️ Edit Item</h2>
+              <button onClick={showListView} className="btn-back" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowLeft size={18} /> Back to List
+              </button>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Edit3 size={28} color="var(--primary)" /> Edit Item
+              </h2>
             </div>
             <EditItemForm 
               itemId={editingItemId} 

@@ -52,6 +52,7 @@ def serialize_user(user: dict) -> dict:
         "role": user.get("role", "USER"),
         "is_active": user.get("is_active", True),
         "preferences": user.get("preferences", {}),
+        "createdAt": user.get("createdAt", user.get("created_at")),
     }
 
 

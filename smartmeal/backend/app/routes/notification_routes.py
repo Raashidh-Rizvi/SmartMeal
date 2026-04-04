@@ -7,11 +7,16 @@ from ..api.deps import get_current_user_id
 
 router = APIRouter()
 
-def serialize_notification(notification: dict) -> dict:
+def serialize_notification(notification: dict, user_id: Optional[str] = None) -> dict:
     if "_id" in notification:
         notification["_id"] = str(notification["_id"])
     if "createdAt" in notification and isinstance(notification["createdAt"], datetime):
         notification["createdAt"] = notification["createdAt"].isoformat()
+    
+    # For broadcast notifications, check if this specific user has read it
+    if notification.get("userId") == "ALL" and user_id:
+        notification["isRead"] = user_id in notification.get("readByUserIds", [])
+        
     return notification
 
 async def generate_expiring_food_alerts(db, user_id: str):
@@ -164,6 +169,7 @@ async def generate_meal_schedule_alerts(db, user_id: str):
 
 
 
+async def generate_budget_alerts(db, user_id: str):
     # Get current budget
     budget = await db.budgets.find_one({"user_id": user_id}, sort=[("created_at", -1)])
     if not budget:
@@ -229,15 +235,23 @@ async def get_user_notifications(
     await generate_meal_schedule_alerts(db, user_id)
     await generate_budget_alerts(db, user_id)
 
-    query = {"userId": {"$in": [user_id, "ALL"]}}
+    query = {
+        "$or": [
+            {"userId": user_id},
+            {"userId": "ALL", "hiddenByUserIds": {"$ne": user_id}}
+        ]
+    }
     if unread:
-        query["isRead"] = False
+        # For ALL, we only show if not in readByUserIds. For others, use isRead.
+        query["$or"] = [
+            {"userId": user_id, "isRead": False},
+            {"userId": "ALL", "hiddenByUserIds": {"$ne": user_id}, "readByUserIds": {"$ne": user_id}}
+        ]
 
     cursor = db.notifications.find(query).sort("createdAt", -1)
     notifications = await cursor.to_list(length=None)
     
-    # Exclude system broadcast notifications that the user explicitly deleted (optional mapping logic, but simplified here we just return all active).
-    return [serialize_notification(n) for n in notifications]
+    return [serialize_notification(n, user_id) for n in notifications]
 
 
 @router.put("/notifications/{notification_id}")
@@ -260,17 +274,23 @@ async def update_notification(
         update_data["isRead"] = bool(data["isRead"])
 
     if update_data:
-        # If it's an ALL notification, users marking it read should actually just track logically that they read it.
-        # But for MVP, let's keep it simple and update the single doc (affects everyone) 
-        # OR handle user_read mapping if required. The MVP implementation writes directly.
         if notification.get("userId") == "ALL":
-             # We won't mutate 'ALL' broadcast messages state to avoid affecting other users.
-             pass
+            # Track read status per user for broadcast messages
+            if update_data.get("isRead"):
+                await db.notifications.update_one(
+                    {"_id": ObjectId(notification_id)},
+                    {"$addToSet": {"readByUserIds": user_id}}
+                )
+            else:
+                await db.notifications.update_one(
+                    {"_id": ObjectId(notification_id)},
+                    {"$pull": {"readByUserIds": user_id}}
+                )
         else:
             await db.notifications.update_one({"_id": ObjectId(notification_id)}, {"$set": update_data})
 
     updated = await db.notifications.find_one({"_id": ObjectId(notification_id)})
-    return serialize_notification(updated)
+    return serialize_notification(updated, user_id)
 
 
 @router.delete("/notifications/{notification_id}")
@@ -287,8 +307,11 @@ async def delete_notification(
         raise HTTPException(status_code=403, detail="Not authorized to delete this notification")
 
     if notification.get("userId") == "ALL":
-        # Don't delete broadcast message from system, instead soft hide it from user. MVP: Return success.
-        pass
+        # Soft hide broadcast message for this user only
+        await db.notifications.update_one(
+            {"_id": ObjectId(notification_id)},
+            {"$addToSet": {"hiddenByUserIds": user_id}}
+        )
     else:
         await db.notifications.delete_one({"_id": ObjectId(notification_id)})
 

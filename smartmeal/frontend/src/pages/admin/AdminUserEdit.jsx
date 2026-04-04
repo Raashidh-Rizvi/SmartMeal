@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 
@@ -18,11 +18,7 @@ function AdminUserEdit() {
     }
   });
 
-  useEffect(() => {
-    fetchUser();
-  }, [id]);
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const res = await api.get(`/api/admin/users/${id}`);
       setUser(res.data);
@@ -42,17 +38,25 @@ function AdminUserEdit() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.startsWith('pref_')) {
       const prefName = name.replace('pref_', '');
+      let finalValue = value;
+      if (prefName === 'householdSize') {
+          finalValue = parseInt(value, 10) || 0;
+      }
       setFormData(prev => ({
         ...prev,
         preferences: {
           ...prev.preferences,
-          [prefName]: value
+          [prefName]: finalValue
         }
       }));
     } else {
@@ -68,8 +72,13 @@ function AdminUserEdit() {
       alert('User updated successfully');
       navigate('/admin/users');
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.detail || 'Failed to update user');
+      console.error('Update failed:', err);
+      const errorMsg = err.response?.data?.detail;
+      if (Array.isArray(errorMsg)) {
+        alert('Validation error: ' + JSON.stringify(errorMsg));
+      } else {
+        alert(errorMsg || 'Failed to update user');
+      }
     } finally {
       setSaving(false);
     }

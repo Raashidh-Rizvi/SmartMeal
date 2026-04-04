@@ -11,6 +11,19 @@ import {
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
+import { 
+    Pencil, 
+    Trash2, 
+    ArrowLeft, 
+    Plus, 
+    Search, 
+    Clock, 
+    Users, 
+    ChefHat, 
+    BookOpen,
+    User,
+    Check
+} from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -313,10 +326,11 @@ function RecipeManagement() {
         <div className="recipe-page">
 
             {/* Header */}
-            <div className="recipe-page-header" style={{ justifyContent: 'center' }}>
+            <div className="recipe-page-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem' }}>
+                <BookOpen size={48} color="var(--primary)" />
                 <div className="recipe-page-header-text" style={{ textAlign: 'center' }}>
-                    <h1 className="recipe-page-title">Recipe Repository</h1>
-                    <p className="recipe-page-subtitle">Browse, search, and manage your recipes</p>
+                    <h1 className="recipe-page-title" style={{ margin: 0 }}>Recipe Repository</h1>
+                    <p className="recipe-page-subtitle" style={{ margin: '0.5rem 0 0 0' }}>Browse, search, and manage your recipes</p>
                 </div>
             </div>
 
@@ -328,7 +342,7 @@ function RecipeManagement() {
                         onClick={() => { setView(VIEW.LIST); setActiveTab('all'); setSkip(0); }}
                         style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                     >
-                        View Recipes
+                        <Search size={18} /> View Recipes
                     </button>
                     {user && (
                         <button
@@ -336,7 +350,7 @@ function RecipeManagement() {
                             onClick={() => { setView(VIEW.LIST); setActiveTab('mine'); setSkip(0); }}
                             style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
-                            My Recipes
+                            <User size={18} /> My Recipes
                         </button>
                     )}
                     {user && view === VIEW.LIST && (
@@ -346,7 +360,7 @@ function RecipeManagement() {
                             id="add-recipe-btn"
                             style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
-                            <span className="add-icon" style={{ fontWeight: 'bold' }}>+</span> Add Recipe
+                            <Plus size={18} /> Add Recipe
                         </button>
                     )}
                     {view !== VIEW.LIST && (
@@ -355,7 +369,7 @@ function RecipeManagement() {
                             onClick={() => setView(editMode && view === VIEW.FORM ? VIEW.DETAIL : VIEW.LIST)}
                             style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
-                            <span>←</span> Back
+                            <ArrowLeft size={18} /> Back
                         </button>
                     )}
                 </div>
@@ -368,7 +382,7 @@ function RecipeManagement() {
                     {/* Filter Bar */}
                     <div className="filter-bar unified-filter-bar">
                         <div className="search-input-wrapper">
-                            <span className="search-icon"></span>
+                            <Search className="search-icon" size={18} />
                             <input
                                 id="recipe-search"
                                 className="filter-search premium-input"
@@ -395,13 +409,16 @@ function RecipeManagement() {
 
                     {/* Grid */}
                     {loading ? (
-                        <div className="loading-state">Loading recipes...</div>
+                        <div className="loading-state">
+                            <div className="spinner"></div>
+                            <p>Loading recipes...</p>
+                        </div>
                     ) : recipes.length === 0 ? (
-                        <div className="empty-state">
-                            <p className="empty-icon">—</p>
-                            <p>No recipes found.</p>
+                        <div className="empty-state" style={{ padding: '4rem 1rem' }}>
+                            <Search size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
+                            <p style={{ fontSize: '1.2rem', color: '#64748b' }}>No recipes found.</p>
                             {user && (
-                                <button className="btn-primary" onClick={openCreate}>Create your first recipe</button>
+                                <button className="btn-primary" onClick={openCreate} style={{ marginTop: '1rem' }}>Create your first recipe</button>
                             )}
                         </div>
                     ) : (
@@ -422,10 +439,12 @@ function RecipeManagement() {
                                                 src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
                                                 alt={recipe.title}
                                                 className="recipe-card-img"
-                                                onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"></div>'; }}
+                                                onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"><BookOpen size={48} color="#e2e8f0" /></div>'; }}
                                             />
                                         ) : (
-                                            <div className="recipe-card-placeholder"></div>
+                                            <div className="recipe-card-placeholder">
+                                                <BookOpen size={48} color="#e2e8f0" />
+                                            </div>
                                         )}
                                     </div>
 
@@ -448,10 +467,12 @@ function RecipeManagement() {
                                         <div className="recipe-card-meta">
                                             {recipe.estimated_cooking_time && (
                                                 <div className="meta-item">
+                                                    <Clock size={14} />
                                                     <span>{recipe.estimated_cooking_time} min</span>
                                                 </div>
                                             )}
                                             <div className="meta-item">
+                                                <Users size={14} />
                                                 <span>{recipe.ingredients.length} Ingred.</span>
                                             </div>
                                         </div>
@@ -462,15 +483,17 @@ function RecipeManagement() {
                                                 className="action-edit" 
                                                 onClick={() => openEdit(recipe)}
                                                 title="Edit Recipe"
+                                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                                             >
-                                                ✏️ Edit
+                                                <Pencil size={14} /> Edit
                                             </button>
                                             <button 
                                                 className="action-delete" 
                                                 onClick={(e) => handleDelete(recipe, e)}
                                                 title="Delete Recipe"
+                                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                                             >
-                                                🗑️ Delete
+                                                <Trash2 size={14} /> Delete
                                             </button>
                                         </div>
                                     </div>
@@ -486,16 +509,18 @@ function RecipeManagement() {
                                 className="btn-page"
                                 onClick={() => setSkip(Math.max(0, skip - LIMIT))}
                                 disabled={skip === 0}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                             >
-                                ← Previous
+                                <ArrowLeft size={16} /> Previous
                             </button>
                             <span className="page-info">Page {Math.floor(skip / LIMIT) + 1}</span>
                             <button
                                 className="btn-page"
                                 onClick={() => setSkip(skip + LIMIT)}
                                 disabled={recipes.length < LIMIT}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                             >
-                                Next →
+                                Next <ArrowLeft size={16} style={{ transform: 'rotate(180deg)' }} />
                             </button>
                         </div>
                     )}
@@ -524,12 +549,21 @@ function RecipeManagement() {
                             {selectedRecipe.description && (
                                 <p className="recipe-detail-desc">{selectedRecipe.description}</p>
                             )}
-                            <div className="recipe-meta">
+                            <div className="recipe-meta" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                                 {selectedRecipe.estimated_cooking_time && (
-                                    <span>{selectedRecipe.estimated_cooking_time} min cook time</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Clock size={18} color="var(--primary)" />
+                                        <span>{selectedRecipe.estimated_cooking_time} min cook time</span>
+                                    </div>
                                 )}
-                                <span>{selectedRecipe.ingredients.length} ingredients</span>
-                                <span>{selectedRecipe.preparation_steps.length} steps</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Users size={18} color="var(--primary)" />
+                                    <span>{selectedRecipe.ingredients.length} ingredients</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <ChefHat size={18} color="var(--primary)" />
+                                    <span>{selectedRecipe.preparation_steps.length} steps</span>
+                                </div>
                             </div>
                         </div>
 
@@ -539,16 +573,20 @@ function RecipeManagement() {
 
                     {/* Dietary Tags */}
                     {selectedRecipe.dietary_tags?.length > 0 && (
-                        <div className="tag-chips" style={{ marginBottom: '1.5rem' }}>
+                        <div className="tag-chips" style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {selectedRecipe.dietary_tags.map(tag => (
-                                <span key={tag} className="tag-chip">{tag}</span>
+                                <span key={tag} className="tag-chip" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    <Check size={12} /> {tag}
+                                </span>
                             ))}
                         </div>
                     )}
 
                     {/* Ingredients */}
                     <section className="recipe-section">
-                        <h2>Ingredients</h2>
+                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Users size={24} color="var(--primary)" /> Ingredients
+                        </h2>
                         <table className="ingredient-table">
                             <thead>
                                 <tr>
@@ -571,7 +609,9 @@ function RecipeManagement() {
 
                     {/* Preparation Steps */}
                     <section className="recipe-section">
-                        <h2>Preparation Steps</h2>
+                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <ChefHat size={24} color="var(--primary)" /> Preparation Steps
+                        </h2>
                         <ol className="steps-list">
                             {selectedRecipe.preparation_steps.map((step, i) => (
                                 <li key={i}>{step}</li>
@@ -585,15 +625,17 @@ function RecipeManagement() {
                             className="action-edit detail-action-btn"
                             onClick={() => openEdit(selectedRecipe)}
                             id="edit-recipe-btn"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
                         >
-                            ✏️ Edit
+                            <Pencil size={18} /> Edit
                         </button>
                         <button
                             className="action-delete detail-action-btn"
                             onClick={() => handleDelete(selectedRecipe)}
                             id="delete-recipe-btn"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
                         >
-                            🗑️ Delete
+                            <Trash2 size={18} /> Delete
                         </button>
                     </div>
                 </div>
@@ -602,7 +644,10 @@ function RecipeManagement() {
             {/* ── FORM VIEW ── */}
             {view === VIEW.FORM && (
                 <div className="recipe-form-wrapper">
-                    <h1 className="recipe-page-title">{editMode ? 'Edit Recipe' : 'Add New Recipe'}</h1>
+                    <h1 className="recipe-page-title" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
+                        {editMode ? <Pencil size={32} /> : <Plus size={32} />}
+                        {editMode ? 'Edit Recipe' : 'Add New Recipe'}
+                    </h1>
 
                     <form onSubmit={handleSubmit} className="recipe-form" id="recipe-form">
                         {formError && <div className="error">{formError}</div>}
@@ -702,10 +747,10 @@ function RecipeManagement() {
 
                         {/* Ingredients */}
                         <div className="form-section">
-                            <div className="form-section-header">
-                                <h3>Ingredients</h3>
-                                <button type="button" className="btn-add-row" onClick={addIngredient}>
-                                    + Add Ingredient
+                            <div className="form-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <h3 style={{ margin: 0 }}>Ingredients</h3>
+                                <button type="button" className="btn-add-row" onClick={addIngredient} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Plus size={16} /> Add Ingredient
                                 </button>
                             </div>
                             {form.ingredients.map((ing, idx) => {
@@ -747,7 +792,7 @@ function RecipeManagement() {
                                             onClick={() => removeIngredient(idx)}
                                             title="Remove ingredient"
                                         >
-                                            🗑️
+                                            <Trash2 size={18} />
                                         </button>
                                     )}
                                 </div>
@@ -757,10 +802,10 @@ function RecipeManagement() {
 
                         {/* Preparation Steps */}
                         <div className="form-section">
-                            <div className="form-section-header">
-                                <h3>Preparation Steps</h3>
-                                <button type="button" className="btn-add-row" onClick={addStep}>
-                                    + Add Step
+                            <div className="form-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <h3 style={{ margin: 0 }}>Preparation Steps</h3>
+                                <button type="button" className="btn-add-row" onClick={addStep} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Plus size={16} /> Add Step
                                 </button>
                             </div>
                             {form.preparation_steps.map((step, idx) => (
@@ -780,7 +825,7 @@ function RecipeManagement() {
                                             onClick={() => removeStep(idx)}
                                             title="Remove step"
                                         >
-                                            🗑️
+                                            <Trash2 size={18} />
                                         </button>
                                     )}
                                 </div>
