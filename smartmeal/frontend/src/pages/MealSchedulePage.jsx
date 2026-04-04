@@ -37,7 +37,7 @@ import {
 import "../styles/MealSchedule.css";
 
 const MEAL_TYPES  = ["breakfast", "lunch", "dinner", "snack"];
-const STATUS_OPTS = ["planned", "pending", "ready", "bought", "cooking", "completed", "skipped"];
+const STATUS_OPTS = ["planned", "completed", "skipped"];
 const EMPTY_FORM  = { meal_date: "", meal_type: "", recipe_id: "", status: "planned", description: "" };
 const ICONS = { 
     breakfast: <Sun size={18} color="#f59e0b" />, 
@@ -66,8 +66,14 @@ function Toast({ toasts, remove }) {
 function ConfirmModal({ message, onConfirm, onCancel }) {
     return (
         <div className="ms-overlay" onClick={onCancel}>
-            <div className="ms-modal" onClick={e => e.stopPropagation()}>
-                <p>{message}</p>
+            <div className="ms-modal ms-modal-small" onClick={e => e.stopPropagation()}>
+                <div className="ms-modal-header">
+                    <h3>🗑️ Delete Meal</h3>
+                    <button className="ms-modal-close" onClick={onCancel}>✕</button>
+                </div>
+                <div className="ms-modal-body">
+                    <p>{message}</p>
+                </div>
                 <div className="ms-modal-actions">
                     <button className="ms-btn ms-btn-secondary" onClick={onCancel}>Cancel</button>
                     <button className="ms-btn ms-btn-danger" onClick={onConfirm}>Delete</button>
@@ -218,10 +224,15 @@ function RecipeDetailsModal({ meal, recipe, onClose, ingredients, addedIng }) {
 // ✓✓ Meal Alert Badge ✓ shared helper ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 function MealAlertBadge({ meal, ingredients }) {
     const ings = ingredients[meal._id];
-    const unresolved = ings ? ings.filter(i => i.missing).length : (meal.warnings?.length || 0);
-    if (unresolved > 0) return <span className="ms-cal-warn" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}><AlertTriangle size={12} /> {unresolved} missing</span>;
-    if (ings) return <span className="ms-cal-ok" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}><Check size={12} /> OK</span>;
-    return null;
+    if (ings) {
+        const unresolved = ings.filter(i => i.missing).length;
+        if (unresolved > 0) return <span className="ms-cal-warn">⚠️ {unresolved} missing</span>;
+        return <span className="ms-cal-ok">✅ OK</span>;
+    }
+    // not loaded yet — use DB warnings_snapshot
+    const dbWarnings = meal.warnings || [];
+    if (dbWarnings.length > 0) return <span className="ms-cal-warn">⚠️ {dbWarnings.length} missing</span>;
+    return <span className="ms-cal-ok">✅ OK</span>;
 }
 
 // ✓✓ Ingredient Popover ✓ shared inline ingredient list ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
@@ -272,7 +283,7 @@ function DailyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, i
                     <CalendarDays size={20} /> Daily View
                 </h2>
                 <input type="date" className="ms-input" style={{ maxWidth: 180 }}
-                    value={date} onChange={e => setDate(e.target.value)} />
+                    value={date} onChange={e => setDate(e.target.value)} min={today} />
             </div>
             <div className="ms-cal-slots">
                 {MEAL_TYPES.map(type => {
@@ -313,9 +324,11 @@ function DailyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, i
                                 ) : (
                                     <div className="ms-cal-empty-body">
                                         <p className="ms-cal-no-meal">No {type} planned</p>
-                                        <button className="ms-btn ms-btn-sm ms-btn-primary" onClick={() => onAdd(date, type)} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-                                            <Plus size={14} /> Add {type.charAt(0).toUpperCase() + type.slice(1)}
-                                        </button>
+                                        {date >= today && (
+                                            <button className="ms-btn ms-btn-sm ms-btn-primary" onClick={() => onAdd(date, type)}>
+                                                + Add {type.charAt(0).toUpperCase() + type.slice(1)}
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -399,7 +412,7 @@ function WeeklyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, 
                                             </div>
                                         </div>
                                     ) : (
-                                        <div key={type} className="ms-week-empty-slot" onClick={() => onAdd(day, type)}>
+                                        <div key={type} className={`ms-week-empty-slot ${day < today ? "ms-week-empty-slot-disabled" : ""}`} onClick={day >= today ? () => onAdd(day, type) : undefined}>
                                             <span>{ICONS[type]}</span>
                                             <span className="ms-week-empty-label" style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem" }}><Plus size={10} /> {type.charAt(0).toUpperCase() + type.slice(1)}</span>
                                         </div>
@@ -518,7 +531,7 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div key={type} className="ms-month-empty-slot" onClick={() => onAdd(dateStr, type)}>
+                                            <div key={type} className={`ms-month-empty-slot ${dateStr < today ? "ms-month-empty-slot-disabled" : ""}`} onClick={dateStr >= today ? () => onAdd(dateStr, type) : undefined}>
                                                 <span>{ICONS[type]}</span>
                                                 <span className="ms-month-empty-label" style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem" }}><Plus size={10} /> {type.charAt(0).toUpperCase() + type.slice(1)}</span>
                                             </div>
@@ -573,7 +586,7 @@ export default function MealSchedulePage() {
         setLoading(true);
         try {
             const [mRes, rRes] = await Promise.all([
-                getMeals(userId),
+                getMeals(),
                 getRecipes({ limit: 200 }),
             ]);
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
@@ -592,7 +605,7 @@ export default function MealSchedulePage() {
                 const ings = ingResults[idx].value.data || [];
                 const resolvedNames = new Set(
                     (shoppingRes || [])
-                        .filter(s => s.meal_id === m._id)
+                        .filter(s => s.meal_id === m._id && s.status === "pending")
                         .map(s => (s.name || "").toLowerCase())
                 );
                 ingMap[m._id] = ings.map(ing => ({
@@ -608,7 +621,7 @@ export default function MealSchedulePage() {
             setAddedIng(addedMap);
         } catch (err) {
             console.error("Load error:", err?.response?.data || err?.message);
-            try { const r = await getMeals(userId); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
+            try { const r = await getMeals(); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
             try { const r = await getRecipes({ limit: 200 }); setAllRecipes(Array.isArray(r.data) ? r.data : []); } catch { setAllRecipes([]); }
         } finally {
             setLoading(false);
@@ -654,6 +667,8 @@ export default function MealSchedulePage() {
         if (!form.meal_date) e.meal_date = "Date is required";
         if (!form.meal_type) e.meal_type = "Meal type is required";
         if (!form.recipe_id) e.recipe_id = "Recipe is required";
+        const today = new Date().toISOString().slice(0, 10);
+        if (form.meal_date < today) e.meal_date = "Cannot create meal plans for past dates. Please select today or a future date.";
         const dup = meals.some(m =>
             m.meal_date === form.meal_date &&
             m.meal_type === form.meal_type &&
@@ -1093,14 +1108,20 @@ export default function MealSchedulePage() {
                                                     <td>
                                                         {(() => {
                                                             const ings = ingredients[m._id];
-                                                            const unresolvedCount = ings
-                                                                ? ings.filter(i => i.missing && !(i.addedToList || addedIng[`${m._id}_${i.name}`])).length
-                                                                : (m.warnings?.length || 0);
-                                                            return unresolvedCount > 0 ? (
-                                                                <Tooltip text={ings ? ings.filter(i => i.missing).map(i => i.name).join(", ") : m.warnings?.join(" | ")}>
-                                                                    <span className="ms-warn-badge" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-                                                                        <AlertTriangle size={12} /> {unresolvedCount} missing
-                                                                    </span>
+                                                            if (ings) {
+                                                                const unresolved = ings.filter(i => i.missing);
+                                                                return unresolved.length > 0 ? (
+                                                                    <Tooltip text={unresolved.map(i => i.name).join(", ")}>
+                                                                        <span className="ms-warn-badge">⚠️ {unresolved.length} missing</span>
+                                                                    </Tooltip>
+                                                                ) : (
+                                                                    <span className="ms-ok-badge">✅ OK</span>
+                                                                );
+                                                            }
+                                                            const dbWarnings = m.warnings || [];
+                                                            return dbWarnings.length > 0 ? (
+                                                                <Tooltip text={dbWarnings.join(" | ")}>
+                                                                    <span className="ms-warn-badge">⚠️ {dbWarnings.length} missing</span>
                                                                 </Tooltip>
                                                             ) : (
                                                                 <span className="ms-ok-badge" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}><Check size={12} /> OK</span>

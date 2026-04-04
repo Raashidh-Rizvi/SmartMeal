@@ -52,23 +52,17 @@ async def seed_data():
         
     all_user_ids = [target_user_id, guest_user_id]
 
-    # ... remaining seeding logic using target_user_id string ...
-    print("Seeding Recipes...")
-    recipe_names = ["Pasta", "Taco", "Salad", "Soup", "Pizza", "Stir Fry", "Risotto", "Burger", "Curry", "Sushi"]
-    categories = ["breakfast", "lunch", "dinner", "snack"]
-    recipe_ids = []
-    for i in range(10):
-        res = await db.recipes.insert_one({
-            "title": recipe_names[i],
-            "description": f"Best {recipe_names[i]}",
-            "ingredients": [{"name": "Ingredient A", "quantity": 1, "unit": "unit"}],
-            "preparation_steps": ["Cook"],
-            "estimated_cooking_time": 30,
-            "category": categories[i % 4],
-            "created_by": target_user_id,
-            "created_at": now
-        })
-        recipe_ids.append(str(res.inserted_id))
+    # NOTE: Recipe seeding disabled - users should create recipes manually
+    # If you want to restore seeding later, uncomment the section below:
+    # print("Seeding Recipes...")
+    # recipe_names = ["Pasta", "Taco", "Salad", "Soup", "Pizza", "Stir Fry", "Risotto", "Burger", "Curry", "Sushi"]
+    # categories = ["breakfast", "lunch", "dinner", "snack"]
+    # recipe_ids = []
+    # for i in range(10):
+    #     res = await db.recipes.insert_one({...})
+    #     recipe_ids.append(str(res.inserted_id))
+    
+    recipe_ids = []  # Empty list for any downstream reference
 
     print("Seeding Inventory...")
     inventory_items = ["Milk", "Eggs", "Bread", "Butter", "Cheese", "Apples", "Chicken", "Rice", "Tomato", "Onion"]

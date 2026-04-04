@@ -57,9 +57,9 @@ class RecipeInDB(RecipeBase):
 
 class RecipeResponse(RecipeBase):
     id: str = Field(alias="_id")
-    created_by: str
-    created_at: datetime
-    updated_at: datetime
+    created_by: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         populate_by_name = True

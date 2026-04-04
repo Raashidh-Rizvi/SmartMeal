@@ -60,42 +60,6 @@ async def create_recipe(recipe_in: RecipeCreate):
     return created_recipe
 
 
-@router.get("/{recipe_id}", response_model=RecipeResponse)
-async def get_recipe(recipe_id: str):
-    db = get_db()
-    if not ObjectId.is_valid(recipe_id):
-        raise HTTPException(status_code=400, detail="Invalid recipe ID")
-
-    recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
-    if not recipe:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-
-    recipe["_id"] = str(recipe["_id"])
-    return recipe
-
-
-@router.put("/{recipe_id}", response_model=RecipeResponse)
-async def update_recipe(recipe_id: str, recipe_in: RecipeUpdate):
-    db = get_db()
-    if not ObjectId.is_valid(recipe_id):
-        raise HTTPException(status_code=400, detail="Invalid recipe ID")
-
-    existing = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-
-    update_data = recipe_in.model_dump(exclude_unset=True)
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No valid fields provided for update")
-
-    update_data["updated_at"] = datetime.now(timezone.utc)
-    await db.recipes.update_one({"_id": ObjectId(recipe_id)}, {"$set": update_data})
-
-    updated_recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
-    updated_recipe["_id"] = str(updated_recipe["_id"])
-    return updated_recipe
-
-
 @router.get("/recommendations")
 async def get_recommendations(
     spicy: Optional[bool] = None,
@@ -131,6 +95,42 @@ async def get_recommendations(
     for recipe in recipes:
         recipe["_id"] = str(recipe["_id"])
     return recipes
+
+
+@router.get("/{recipe_id}", response_model=RecipeResponse)
+async def get_recipe(recipe_id: str):
+    db = get_db()
+    if not ObjectId.is_valid(recipe_id):
+        raise HTTPException(status_code=400, detail="Invalid recipe ID")
+
+    recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    recipe["_id"] = str(recipe["_id"])
+    return recipe
+
+
+@router.put("/{recipe_id}", response_model=RecipeResponse)
+async def update_recipe(recipe_id: str, recipe_in: RecipeUpdate):
+    db = get_db()
+    if not ObjectId.is_valid(recipe_id):
+        raise HTTPException(status_code=400, detail="Invalid recipe ID")
+
+    existing = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    update_data = recipe_in.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields provided for update")
+
+    update_data["updated_at"] = datetime.now(timezone.utc)
+    await db.recipes.update_one({"_id": ObjectId(recipe_id)}, {"$set": update_data})
+
+    updated_recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
+    updated_recipe["_id"] = str(updated_recipe["_id"])
+    return updated_recipe
 
 
 @router.post("/{recipe_id}/rate")
