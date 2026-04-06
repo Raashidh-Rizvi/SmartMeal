@@ -13,3 +13,4 @@ deep_translator
 pandas
 email-validator
 dnspython
+argon2-cffi==23.1.0

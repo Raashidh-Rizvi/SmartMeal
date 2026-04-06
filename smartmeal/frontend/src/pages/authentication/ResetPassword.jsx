@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import api from '../../api/axios';
+import { validatePassword, getPasswordStrength } from '../../utils/passwordValidation';
 
 function ResetPassword() {
   const [email, setEmail] = useState('');
@@ -30,8 +31,9 @@ function ResetPassword() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
+    const passwordErrors = validatePassword(newPassword, { email });
+    if (passwordErrors.length > 0) {
+      setError(passwordErrors[0]);
       return;
     }
 
@@ -91,16 +93,39 @@ function ResetPassword() {
             />
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
             <label>New Password</label>
             <input 
               type="password" 
               value={newPassword} 
               onChange={(e) => setNewPassword(e.target.value)} 
-              placeholder="Min 8 characters"
+              placeholder="Min. 12 characters, mixed types"
               required 
               disabled={loading}
             />
+            <div className="password-strength-container" style={{ marginTop: '0.5rem' }}>
+              <div 
+                className="password-strength-bar" 
+                style={{ 
+                  height: '4px', 
+                  backgroundColor: '#e5e7eb', 
+                  borderRadius: '2px',
+                  overflow: 'hidden'
+                }}
+              >
+                <div 
+                  style={{ 
+                    width: `${getPasswordStrength(newPassword)}%`, 
+                    height: '100%', 
+                    backgroundColor: getPasswordStrength(newPassword) < 60 ? '#ef4444' : getPasswordStrength(newPassword) < 100 ? '#f59e0b' : '#10b981',
+                    transition: 'width 0.3s ease'
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                Strength: {getPasswordStrength(newPassword) < 60 ? 'Weak' : getPasswordStrength(newPassword) < 100 ? 'Medium' : 'Strong'}
+              </span>
+            </div>
           </div>
 
           <div className="form-group">

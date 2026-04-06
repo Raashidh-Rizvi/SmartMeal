@@ -1595,3 +1595,184 @@ tr:hover td { background: rgba(5, 150, 105, 0.04); }
   border-color: rgba(248, 113, 113, 0.2);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   PasswordInput — Premium shared component
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Track colour token */
+:root { --pw-track: rgba(0,0,0,0.08); }
+.dark { --pw-track: rgba(255,255,255,0.1); }
+
+/* Field wrapper */
+.pw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 1.5rem;
+}
+
+/* Label */
+.pw-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Input + eye wrapper */
+.pw-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* The <input> itself inherits global styles; we just add padding-right */
+.pw-input-wrap .pw-input {
+  padding-right: 3rem !important;
+  width: 100%;
+}
+
+/* Error state border */
+.pw-input--error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important;
+}
+
+/* Eye toggle button */
+.pw-eye {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  /* reset global button styles */
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 50% !important;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, transform 0.2s ease;
+  z-index: 2;
+}
+
+.pw-eye:hover {
+  color: var(--primary) !important;
+  background: none !important;
+  transform: translateY(-50%) scale(1.15) !important;
+  box-shadow: none !important;
+}
+
+.pw-eye:active {
+  transform: translateY(-50%) scale(0.95) !important;
+}
+
+/* Inline error text */
+.pw-error-text {
+  font-size: 0.8rem;
+  color: var(--danger);
+  margin-top: 0.35rem;
+  display: block;
+  animation: pw-fade-in 0.2s ease;
+}
+
+/* ── Strength bar ─────────────────────────────────────────────────────────── */
+.pw-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.pw-segments {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.pw-segment {
+  flex: 1;
+  height: 5px;
+  border-radius: 99px;
+  transition: background 0.35s ease, transform 0.35s ease;
+  transform-origin: left center;
+}
+
+.pw-strength-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  min-width: 5.5rem;
+  text-align: right;
+  transition: color 0.35s ease;
+}
+
+/* ── Policy checklist ─────────────────────────────────────────────────────── */
+.pw-rules {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0.75rem 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem 1rem;
+  background: rgba(0,0,0,0.025);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  animation: pw-fade-in 0.25s ease;
+}
+
+.dark .pw-rules {
+  background: rgba(255,255,255,0.03);
+}
+
+.pw-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: color 0.25s ease;
+}
+
+.pw-rule--pass { color: #10b981; }
+.pw-rule--fail { color: var(--text-muted); }
+
+.pw-rule-icon {
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Match indicator ─────────────────────────────────────────────────────── */
+.pw-match {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.4rem;
+  display: block;
+  animation: pw-fade-in 0.2s ease;
+}
+
+.pw-match--ok  { color: #10b981; }
+.pw-match--bad { color: var(--danger); }
+
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
+@keyframes pw-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive: stack checklist to 1 col on small screens ──────────────── */
+@media (max-width: 480px) {
+  .pw-rules { grid-template-columns: 1fr; }
+}
+

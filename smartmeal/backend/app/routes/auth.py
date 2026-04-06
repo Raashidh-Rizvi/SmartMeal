@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
-import bcrypt
+from ..utils.password_utils import hash_password, verify_password, validate_password, check_password_reuse
 import random
 import string
 from jose import jwt, JWTError
@@ -21,15 +21,7 @@ def to_object_id(id_str: str) -> ObjectId:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
 
 
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode(), hashed.encode())
-    except Exception:
-        return False
+# Removed local bcrypt-based hash/verify functions as we now use password_utils
 
 
 from pydantic import BaseModel, Field, EmailStr
@@ -37,7 +29,7 @@ from pydantic import BaseModel, Field, EmailStr
 class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=2)
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str = Field(...)  # Validation handled in logic
 
 
 class LoginRequest(BaseModel):
@@ -59,7 +51,7 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
     otp: str
-    newPassword: str = Field(..., min_length=8)
+    newPassword: str = Field(...)  # Validation handled in logic
 
 
 def create_token(data: dict) -> str:
@@ -82,19 +74,29 @@ def serialize_user(doc: dict) -> dict:
 @router.post("/register")
 async def register(req: RegisterRequest):
     print("RECEIVED REGISTER REQUEST")
-    print(f"Body: {req}")
     db = get_db()
     email = req.email.lower().strip()
+    
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Password Validation
+    validation_errors = validate_password(req.password, {"name": req.name, "email": email})
+    if validation_errors:
+        raise HTTPException(status_code=400, detail=validation_errors[0]) # Return first error for simplicity
+
     now = datetime.now(timezone.utc)
+    hashed = hash_password(req.password)
     result = await db.users.insert_one({
         "name": req.name,
         "email": email,
-        "hashed_password": hash_password(req.password),
+        "hashed_password": hashed,
         "role": "USER",
         "is_active": True,
         "createdAt": now,
+        "password_history": [hashed],
+        "login_attempts": 0,
+        "lockout_until": None,
     })
     user = await db.users.find_one({"_id": result.inserted_id})
     u = serialize_user(user)
@@ -106,8 +108,35 @@ async def login(req: LoginRequest):
     db = get_db()
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
-    if not user or not verify_password(req.password, user.get("hashed_password", "")):
+    
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    # Check Lockout
+    lockout_until = user.get("lockout_until")
+    if lockout_until:
+        if lockout_until.tzinfo is None:
+            lockout_until = lockout_until.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) < lockout_until:
+            diff = (lockout_until - datetime.now(timezone.utc)).total_seconds()
+            minutes = int(diff // 60) + 1
+            raise HTTPException(status_code=403, detail=f"Account locked. Try again in {minutes} minutes.")
+
+    if not verify_password(req.password, user.get("hashed_password", "")):
+        # Increment attempts
+        attempts = user.get("login_attempts", 0) + 1
+        update_data = {"login_attempts": attempts}
+        
+        if attempts >= 5:
+            update_data["lockout_until"] = datetime.now(timezone.utc) + timedelta(minutes=15)
+            update_data["login_attempts"] = 0 # Reset after lockout starts
+            
+        await db.users.update_one({"_id": user["_id"]}, {"$set": update_data})
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Reset attempts on success
+    await db.users.update_one({"_id": user["_id"]}, {"$set": {"login_attempts": 0, "lockout_until": None}})
+    
     u = serialize_user(user)
     return {"user": u, "accessToken": create_token({"sub": u["_id"], "role": u["role"]})}
 
@@ -188,7 +217,6 @@ async def reset_password(req: ResetPasswordRequest):
     if not stored_otp or not expiry:
         raise HTTPException(status_code=400, detail="No OTP requested")
 
-    # Ensure expiry is timezone-aware
     if expiry.tzinfo is None:
         expiry = expiry.replace(tzinfo=timezone.utc)
 
@@ -198,12 +226,30 @@ async def reset_password(req: ResetPasswordRequest):
     if datetime.now(timezone.utc) > expiry:
         raise HTTPException(status_code=400, detail="OTP has expired")
 
-    # Update password and clear OTP
+    # Password Policy Validation
+    validation_errors = validate_password(req.newPassword, {"name": user.get("name"), "email": email})
+    if validation_errors:
+        raise HTTPException(status_code=400, detail=validation_errors[0])
+        
+    # Check Password Reuse (last 5)
+    history = user.get("password_history", [])
+    if check_password_reuse(req.newPassword, history):
+        raise HTTPException(status_code=400, detail="Cannot reuse any of your last 5 passwords")
+
+    # Update password, history, and clear OTP
     new_hashed_password = hash_password(req.newPassword)
+    new_history = [new_hashed_password] + history
+    new_history = new_history[:5] # Keep only last 5
+
     await db.users.update_one(
         {"_id": user["_id"]},
         {
-            "$set": {"hashed_password": new_hashed_password},
+            "$set": {
+                "hashed_password": new_hashed_password,
+                "password_history": new_history,
+                "login_attempts": 0,
+                "lockout_until": None
+            },
             "$unset": {"reset_otp": "", "reset_otp_expiry": ""}
         }
     )

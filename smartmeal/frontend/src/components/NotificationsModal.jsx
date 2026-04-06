@@ -18,7 +18,8 @@ const getTypeMeta = (type = '') => {
 
 function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]             = useState(true);
+  const [markingAll, setMarkingAll]       = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -26,7 +27,7 @@ function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
       const res = await api.get('/api/notifications');
       const data = res.data || [];
       setNotifications(data);
-      
+
       // Update unread count in navbar
       const unread = data.filter(n => !n.isRead).length;
       if (onUnreadCountChange) {
@@ -57,6 +58,20 @@ function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
     }
   };
 
+  // ── Mark ALL as read (TC_NM_05) ─────────────────────────────────────────────
+  const handleMarkAllRead = async () => {
+    setMarkingAll(true);
+    try {
+      await api.patch('/api/notifications/mark-all-read');
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.detail || 'Unable to mark all as read');
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
   const handleDelete = async (notificationId) => {
     if (!window.confirm('Delete this notification?')) {
       return;
@@ -72,31 +87,51 @@ function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
 
   if (!isOpen) return null;
 
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
   return ReactDOM.createPortal(
-    <div 
-      className="modal-overlay" 
-      onClick={onClose} 
+    <div
+      className="modal-overlay"
+      onClick={onClose}
       style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999,
         display: 'flex', justifyContent: 'center', alignItems: 'center',
         padding: '1rem'
       }}
     >
-      <div 
-        className="modal-content admin-card" 
-        onClick={e => e.stopPropagation()} 
+      <div
+        className="modal-content admin-card"
+        onClick={e => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: '600px', maxHeight: '85vh', 
+          width: '100%', maxWidth: '600px', maxHeight: '85vh',
           display: 'flex', flexDirection: 'column',
-          backgroundColor: 'var(--bg-card, #fff)', 
+          backgroundColor: 'var(--bg-card, #fff)',
           borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
           margin: 0, overflow: 'hidden'
         }}
       >
-        <div className="admin-card-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color, #eee)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>Notifications</h3>
-          <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="admin-card-header" style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color, #eee)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h3 style={{ margin: 0 }}>
+            🔔 Notifications
+            {unreadCount > 0 && (
+              <span style={{ marginLeft: '0.6rem', background: 'var(--primary-color, #059669)', color: '#fff', borderRadius: '999px', padding: '0.1rem 0.55rem', fontSize: '0.72rem', fontWeight: 600 }}>
+                {unreadCount}
+              </span>
+            )}
+          </h3>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {unreadCount > 0 && (
+              <button
+                id="modal-btn-mark-all-read"
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleMarkAllRead}
+                disabled={markingAll}
+              >
+                {markingAll ? 'Marking…' : '✓ Mark All Read'}
+              </button>
+            )}
             <button type="button" className="btn btn-secondary btn-sm" onClick={fetchNotifications}>
               Refresh
             </button>
@@ -122,33 +157,33 @@ function NotificationsModal({ isOpen, onClose, onUnreadCountChange }) {
               {notifications.map((notification) => {
                 const meta = getTypeMeta(notification.type);
                 return (
-                <div 
-                  key={notification._id} 
-                  className={`notification-item ${notification.isRead ? 'read' : 'unread'}`} 
-                  style={{ 
-                    padding: '1rem', 
-                    borderBottom: '1px solid var(--border-color, #eee)',
-                    backgroundColor: notification.isRead ? 'transparent' : 'var(--bg-hover, #f8f9fa)'
-                  }}
-                >
-                  <div className="notification-content">
-                    <div className="notification-title" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                      <strong style={{ color: notification.isRead ? 'inherit' : 'var(--primary-color)' }}>
-                        {meta.icon} {meta.label}
-                      </strong>
-                      <span className="text-muted text-sm">{new Date(notification.createdAt).toLocaleString()}</span>
+                  <div
+                    key={notification._id}
+                    className={`notification-item ${notification.isRead ? 'read' : 'unread'}`}
+                    style={{
+                      padding: '1rem',
+                      borderBottom: '1px solid var(--border-color, #eee)',
+                      backgroundColor: notification.isRead ? 'transparent' : 'var(--bg-hover, #f8f9fa)'
+                    }}
+                  >
+                    <div className="notification-content">
+                      <div className="notification-title" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                        <strong style={{ color: notification.isRead ? 'inherit' : 'var(--primary-color)' }}>
+                          {meta.icon} {meta.label}
+                        </strong>
+                        <span className="text-muted text-sm">{new Date(notification.createdAt).toLocaleString()}</span>
+                      </div>
+                      <p style={{ margin: '0 0 1rem 0' }}>{notification.message}</p>
                     </div>
-                    <p style={{ margin: '0 0 1rem 0' }}>{notification.message}</p>
+                    <div className="notification-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button type="button" className="btn btn-sm btn-secondary" onClick={() => handleToggleRead(notification)}>
+                        {notification.isRead ? 'Mark Unread' : 'Mark Read'}
+                      </button>
+                      <button type="button" className="btn btn-sm btn-danger" onClick={() => handleDelete(notification._id)}>
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <div className="notification-actions" style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button type="button" className="btn btn-sm btn-secondary" onClick={() => handleToggleRead(notification)}>
-                      {notification.isRead ? 'Mark Unread' : 'Mark Read'}
-                    </button>
-                    <button type="button" className="btn btn-sm btn-danger" onClick={() => handleDelete(notification._id)}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
                 );
               })}
             </div>

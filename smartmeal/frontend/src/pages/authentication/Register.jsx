@@ -2,6 +2,8 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import { AuthContext } from '../../context/AuthContext';
+import { validatePassword } from '../../utils/passwordValidation';
+import PasswordInput from '../../components/PasswordInput';
 
 function Register() {
   const [email, setEmail] = useState('');
@@ -23,17 +25,18 @@ function Register() {
     }
   };
 
-  const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const validateForm = () => {
     const newErrors = {};
-    if (name.trim().length < 2) newErrors.name = "Name must be at least 2 characters";
-    if (!validateEmail(email)) newErrors.email = "Invalid email format";
-    if (password.length < 8) newErrors.password = "Password must be at least 8 characters";
-    if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
-    
+    if (name.trim().length < 2) newErrors.name = 'Name must be at least 2 characters';
+    if (!validateEmail(email)) newErrors.email = 'Invalid email format';
+
+    const passwordErrors = validatePassword(password, { name, email });
+    if (passwordErrors.length > 0) newErrors.password = passwordErrors[0];
+
+    if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -43,7 +46,6 @@ function Register() {
     setErrors({});
 
     const normalizedEmail = email.toLowerCase().trim();
-
     if (!validateForm()) return;
 
     setLoading(true);
@@ -54,11 +56,8 @@ function Register() {
     } catch (err) {
       const errMsg = err.response?.data?.detail;
       if (Array.isArray(errMsg)) {
-        // Handle Pydantic validation errors
         const backendErrors = {};
-        errMsg.forEach(e => {
-          backendErrors[e.loc[1]] = e.msg;
-        });
+        errMsg.forEach(e => { backendErrors[e.loc[1]] = e.msg; });
         setErrors(backendErrors);
       } else {
         setErrors({ general: errMsg || 'Registration failed. Please try again.' });
@@ -72,11 +71,11 @@ function Register() {
     <div className="auth-container">
       <h2>Create Account</h2>
       {errors.general && <p className="error-message general-error">{errors.general}</p>}
-      
-      <button 
-        type="button" 
-        onClick={handleGoogleLogin} 
-        className="btn-secondary" 
+
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        className="btn-secondary"
         style={{ marginBottom: '1.5rem', width: '100%', display: 'flex', justifyContent: 'center', gap: '10px' }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -93,70 +92,74 @@ function Register() {
       </div>
 
       <form onSubmit={handleSubmit}>
+        {/* Name */}
         <div className="form-group">
           <label>Name</label>
-          <input 
-            type="text" 
-            value={name} 
+          <input
+            type="text"
+            value={name}
             onChange={(e) => {
               setName(e.target.value);
               if (errors.name) setErrors(prev => ({ ...prev, name: null }));
-            }} 
+            }}
             placeholder="Your full name"
             className={errors.name ? 'input-error' : ''}
-            required 
+            required
           />
           {errors.name && <span className="error-text">{errors.name}</span>}
         </div>
+
+        {/* Email */}
         <div className="form-group">
           <label>Email</label>
-          <input 
-            type="email" 
-            value={email} 
+          <input
+            type="email"
+            value={email}
             onChange={(e) => {
               setEmail(e.target.value.toLowerCase());
               if (errors.email) setErrors(prev => ({ ...prev, email: null }));
-            }} 
+            }}
             placeholder="you@example.com"
             className={errors.email ? 'input-error' : ''}
-            required 
+            required
           />
           {errors.email && <span className="error-text">{errors.email}</span>}
         </div>
-        <div className="form-group">
-          <label>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (errors.password) setErrors(prev => ({ ...prev, password: null }));
-            }} 
-            placeholder="Min. 8 characters"
-            className={errors.password ? 'input-error' : ''}
-            required 
-          />
-          {errors.password && <span className="error-text">{errors.password}</span>}
-        </div>
-        <div className="form-group">
-          <label>Confirm Password</label>
-          <input 
-            type="password" 
-            value={confirmPassword} 
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: null }));
-            }} 
-            placeholder="Re-enter your password"
-            className={errors.confirmPassword ? 'input-error' : ''}
-            required 
-          />
-          {errors.confirmPassword && <span className="error-text">{errors.confirmPassword}</span>}
-        </div>
+
+        {/* Password — with strength + policy checklist */}
+        <PasswordInput
+          id="register-password"
+          label="Password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) setErrors(prev => ({ ...prev, password: null }));
+          }}
+          placeholder="Min. 12 chars, mixed types"
+          error={errors.password}
+          showStrength
+        />
+
+        {/* Confirm Password — with match indicator */}
+        <PasswordInput
+          id="register-confirm-password"
+          label="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => {
+            setConfirmPassword(e.target.value);
+            if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: null }));
+          }}
+          placeholder="Re-enter your password"
+          error={errors.confirmPassword}
+          showMatch
+          matchValue={password}
+        />
+
         <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
-          {loading ? 'Creating account...' : 'Create Account'}
+          {loading ? 'Creating account…' : 'Create Account'}
         </button>
       </form>
+
       <p>
         Already have an account? <Link to="/login">Log in here</Link>
       </p>
