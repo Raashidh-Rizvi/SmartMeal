@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../api/axios';
 import { 
   XCircle, 
@@ -53,8 +54,8 @@ function Inventory() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState('name'); // 'name' | 'expiry'
   
-  // Ref for scrolling to table
-  const tableRef = useRef(null);
+
+  // Modal state
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -70,9 +71,6 @@ function Inventory() {
 
   const limit = 15;
 
-  const scrollToSection = () => {
-    tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   // Calculate summary of expiring items
   const getExpirySummary = () => {
@@ -170,8 +168,7 @@ function Inventory() {
         expiryDate: '',
         notes: ''
       });
-      // Scroll to table when adding new item
-      setTimeout(scrollToSection, 100);
+      // Modal will be centered via CSS, no need to scroll
     }
     setShowModal(true);
   };
@@ -192,8 +189,6 @@ function Inventory() {
         await api.put(`/api/inventory/${editingItem._id}`, submitData);
       } else {
         await api.post('/api/inventory', submitData);
-        // Scroll to table after adding new item
-        setTimeout(scrollToSection, 500);
       }
       setShowModal(false);
       fetchInventory();
@@ -217,7 +212,8 @@ function Inventory() {
   };
 
   return (
-    <div className="card" ref={tableRef} style={{ display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
+    <>
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
       <div className="flex justify-between align-center mb-4">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <ChefHat size={32} color="var(--primary)" />
@@ -283,7 +279,7 @@ function Inventory() {
             </label>
           </div>
 
-          <div className="table-responsive" style={{ flexGrow: 1 }} ref={tableRef}>
+          <div className="table-responsive" style={{ flexGrow: 1 }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -374,21 +370,20 @@ function Inventory() {
         </>
       )}
 
-      {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{maxWidth: '500px'}}>
-            <h2>{editingItem ? 'Edit Kitchen Item' : 'Add Kitchen Item'}</h2>
-            <form onSubmit={handleFormSubmit} className="auth-form mt-4">
-              
-              <div className="form-group mb-3">
-                <label>Ingredient Name</label>
-                <div style={{ position: 'relative' }}>
+    </div>
+      {showModal && createPortal(
+        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>{editingItem ? <Pencil size={24} color="var(--primary)" /> : <Plus size={24} color="var(--primary)" />} {editingItem ? 'Edit Item' : 'Add Item'}</h2>
+            <form onSubmit={handleFormSubmit} className="auth-form">
+              <div className="form-grid">
+                <div className="form-group form-group-full">
+                  <label>Ingredient Name</label>
                   <input 
                     type="text" 
                     value={formData.name} 
                     onChange={e => handleIngredientSelect(e.target.value)}
                     required
-                    className="auth-input"
                     list="ingredient-suggestions"
                     placeholder="E.g., Apples, Milk, Chicken"
                   />
@@ -398,22 +393,19 @@ function Inventory() {
                     ))}
                   </datalist>
                 </div>
-              </div>
 
-              <div className="form-group mb-3">
-                <label>Category (Optional)</label>
-                <input 
-                  type="text" 
-                  value={formData.category} 
-                  onChange={e => setFormData({...formData, category: e.target.value})}
-                  className="auth-input"
-                  placeholder="Produce, Dairy, Meat etc."
-                />
-              </div>
+                <div className="form-group form-group-full">
+                  <label>Category (Optional)</label>
+                  <input 
+                    type="text" 
+                    value={formData.category} 
+                    onChange={e => setFormData({...formData, category: e.target.value})}
+                    placeholder="Produce, Dairy, Meat etc."
+                  />
+                </div>
 
-              <div className="form-group mb-3">
-                <label>Quantity</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="form-group">
+                  <label>Quantity</label>
                   <input 
                     type="number" 
                     min="0"
@@ -421,52 +413,51 @@ function Inventory() {
                     value={formData.quantity} 
                     onChange={e => setFormData({...formData, quantity: parseFloat(e.target.value) || 0})}
                     required
-                    className="auth-input"
-                    style={{ flex: 1 }}
                   />
+                </div>
+
+                <div className="form-group">
+                  <label>Unit</label>
                   <select
                     value={formData.unit}
                     onChange={e => setFormData({...formData, unit: e.target.value})}
-                    className="auth-input"
-                    style={{ flex: 1 }}
                     required
                   >
                     <option value="">Select unit</option>
                     {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
+
+                <div className="form-group form-group-full">
+                  <label>Expiry Date (Optional)</label>
+                  <input 
+                    type="date" 
+                    value={formData.expiryDate} 
+                    onChange={e => setFormData({...formData, expiryDate: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group form-group-full">
+                  <label>Notes (Optional)</label>
+                  <textarea 
+                    value={formData.notes} 
+                    onChange={e => setFormData({...formData, notes: e.target.value})}
+                    rows="2"
+                    placeholder="Low fat, organic, etc."
+                  />
+                </div>
               </div>
 
-              <div className="form-group mb-3">
-                <label>Expiry Date (Optional)</label>
-                <input 
-                  type="date" 
-                  value={formData.expiryDate} 
-                  onChange={e => setFormData({...formData, expiryDate: e.target.value})}
-                  className="auth-input"
-                />
-              </div>
-
-              <div className="form-group mb-4">
-                <label>Notes (Optional)</label>
-                <textarea 
-                  value={formData.notes} 
-                  onChange={e => setFormData({...formData, notes: e.target.value})}
-                  className="auth-input"
-                  rows="2"
-                  placeholder="Low fat, organic, etc."
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1">{editingItem ? 'Update Item' : 'Add to Kitchen'}</button>
+              <div className="flex gap-2 mt-4">
+                <button type="submit" className="btn btn-primary flex-1">{editingItem ? 'Update' : 'Add to Kitchen'}</button>
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 

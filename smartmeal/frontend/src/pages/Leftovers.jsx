@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { leftoverService } from '../services/leftoverService';
 import { getFoodImage } from '../services/imageService';
 import { getRecipes, createRecipe } from '../api/recipes';
@@ -499,48 +500,47 @@ function Leftovers() {
       </div>
 
       {/* Modal */}
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {editingItem ? <Pencil size={24} color="var(--primary)" /> : <Utensils size={24} color="var(--primary)" />}
               {editingItem ? 'Edit Leftover' : 'Add Leftover'}
             </h2>
             <form onSubmit={handleSubmit} noValidate>
+              <div className="form-grid">
+                {/* Food Name */}
+                <div className="form-group form-group-full">
+                  <label>Food Name *</label>
+                  <input type="text" value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Chicken Curry"
+                    style={formErrors.name ? { borderColor: 'var(--danger)' } : {}} />
+                  {formErrors.name && <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{formErrors.name}</span>}
+                </div>
 
-              {/* Food Name */}
-              <div className="form-group">
-                <label>Food Name *</label>
-                <input type="text" value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Chicken Curry"
-                  style={formErrors.name ? { borderColor: 'var(--danger)' } : {}} />
-                {formErrors.name && <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{formErrors.name}</span>}
-              </div>
+                {/* Ingredients */}
+                <div className="form-group form-group-full">
+                  <label>Ingredients * <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem' }}>(comma-separated)</span></label>
+                  <input type="text" value={formData.ingredients}
+                    onChange={e => setFormData({ ...formData, ingredients: e.target.value })}
+                    placeholder="e.g., chicken, rice, onion, garlic"
+                    style={formErrors.ingredients ? { borderColor: 'var(--danger)' } : {}} />
+                  {formErrors.ingredients
+                    ? <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{formErrors.ingredients}</span>
+                    : <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Used for AI recommendations</span>}
+                </div>
 
-              {/* Ingredients */}
-              <div className="form-group">
-                <label>Ingredients * <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem' }}>(comma-separated)</span></label>
-                <input type="text" value={formData.ingredients}
-                  onChange={e => setFormData({ ...formData, ingredients: e.target.value })}
-                  placeholder="e.g., chicken, rice, onion, garlic"
-                  style={formErrors.ingredients ? { borderColor: 'var(--danger)' } : {}} />
-                {formErrors.ingredients
-                  ? <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{formErrors.ingredients}</span>
-                  : <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Used for AI recipe recommendations</span>}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 {/* Quantity value + unit */}
                 <div className="form-group">
                   <label>Quantity *</label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input type="number" min="0.1" step="0.1" value={formData.qty_value}
                       onChange={e => setFormData({ ...formData, qty_value: e.target.value })}
-                      placeholder="2" style={{ width: '60%', ...(formErrors.qty_value ? { borderColor: 'var(--danger)' } : {}) }} />
+                      placeholder="2" style={{ width: '55%', ...(formErrors.qty_value ? { borderColor: 'var(--danger)' } : {}) }} />
                     <select value={formData.qty_unit}
                       onChange={e => setFormData({ ...formData, qty_unit: e.target.value })}
-                      style={{ width: '40%' }}>
+                      style={{ width: '45%' }}>
                       {['servings','cups','grams','kg','pieces','bowls','plates','liters','ml'].map(u => (
                         <option key={u} value={u}>{u}</option>
                       ))}
@@ -578,40 +578,36 @@ function Leftovers() {
                     style={formErrors.expiry_date ? { borderColor: 'var(--danger)' } : {}} />
                   {formErrors.expiry_date && <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{formErrors.expiry_date}</span>}
                 </div>
-              </div>
 
-              {/* Storage */}
-              <div className="form-group">
-                <label>Storage Location</label>
-                <div style={{ position: 'relative' }}>
+                {/* Storage */}
+                <div className="form-group form-group-full">
+                  <label>Storage Location</label>
                   <select value={formData.storage_location}
-                    onChange={e => setFormData({ ...formData, storage_location: e.target.value })}
-                    style={{ paddingLeft: '2.5rem' }}>
+                    onChange={e => setFormData({ ...formData, storage_location: e.target.value })}>
                     <option value="fridge">Fridge</option>
                     <option value="freezer">Freezer</option>
                     <option value="room">Room</option>
                   </select>
-                  <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
-                    {formData.storage_location === 'fridge' ? <Snowflake size={16} /> : formData.storage_location === 'freezer' ? <CloudSnow size={16} /> : <Home size={16} />}
-                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="form-group form-group-full">
+                  <label>Notes (optional)</label>
+                  <textarea value={formData.notes}
+                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                    rows="2"
+                    placeholder="Any additional notes..." />
                 </div>
               </div>
 
-              {/* Notes */}
-              <div className="form-group">
-                <label>Notes (optional)</label>
-                <input type="text" value={formData.notes}
-                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Any additional notes..." />
-              </div>
-
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                <button type="submit">{editingItem ? 'Update' : 'Add Leftover'}</button>
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">{editingItem ? 'Update' : 'Add Leftover'}</button>
+                <button type="button" className="btn btn-secondary flex-1" onClick={() => setShowModal(false)}>Cancel</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Recipe Results */}
