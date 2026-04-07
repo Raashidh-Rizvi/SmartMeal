@@ -32,7 +32,12 @@ function Navbar() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [latestNotification, setLatestNotification] = useState('');
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
   const userDropdownRef = useRef(null);
+  const prevCountRef = useRef(0);
   const isAdmin = user?.role?.toString()?.toUpperCase() === 'ADMIN';
 
   useEffect(() => {
@@ -48,7 +53,16 @@ function Navbar() {
         });
         if (response.ok) {
           const data = await response.json();
-          setUnreadNotifications(data.length || 0);
+          const currentCount = data.length || 0;
+          
+          if (currentCount > prevCountRef.current && user) {
+            setLatestNotification(data[0]?.message || 'New notification received!');
+            setShowBanner(true);
+            setTimeout(() => setShowBanner(false), 3000);
+          }
+          
+          setUnreadNotifications(currentCount);
+          prevCountRef.current = currentCount;
         }
       } catch {
         setUnreadNotifications(0);
@@ -56,20 +70,39 @@ function Navbar() {
     };
 
     loadUnreadCount();
-    // Re-check every 5 minutes while app is open
     const interval = setInterval(loadUnreadCount, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [user]);
 
-  // Click outside dropdowns logic
   useEffect(() => {
+    const controlNavbar = () => {
+      if (typeof window !== 'undefined') {
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+          // scrolling down
+          setIsVisible(false);
+        } else {
+          // scrolling up
+          setIsVisible(true);
+        }
+        
+        lastScrollY.current = currentScrollY;
+      }
+    };
+
+    window.addEventListener('scroll', controlNavbar);
+
     const handleClickOutside = (event) => {
       if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
         setShowUserDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('scroll', controlNavbar);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -82,8 +115,7 @@ function Navbar() {
 
   return (
     <>
-      <nav className="navbar">
-        {/* Top Row: Brand, Primary Links & User Actions */}
+      <nav className={`navbar ${!isVisible ? 'navbar--hidden' : ''}`}>
         <div className="navbar-row navbar-top-row">
           <div className="navbar-brand">
             <Link to={user ? "/dashboard" : "/login"} onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -110,7 +142,6 @@ function Navbar() {
                   </Link>
                 )}
                 
-                {/* Mobile-only visible planning links */}
                 <div className="mobile-planning-links">
                   <div className="dropdown-divider"></div>
                   <Link to="/meals" className={`navbar-link${location.pathname === '/meals' ? ' active' : ''}`} onClick={closeMenu}>
@@ -141,57 +172,59 @@ function Navbar() {
             )}
           </div>
 
-          {/* User Actions */}
           <div className="navbar-actions">
             {user ? (
               <div className="navbar-utility-btns">
                 <button
                   type="button"
-                  className="notification-btn"
+                  className="nav-trigger-bell"
                   title="View notifications"
                   onClick={() => setShowNotificationsModal(true)}
                 >
-                  <Bell size={22} className="lucide-bell" />
-                  {unreadNotifications > 0 && <span className="notification-badge">{unreadNotifications}</span>}
+                  <Bell size={24} />
+                  {unreadNotifications > 0 && (
+                    <span className="notification-badge" style={{ top: '2px', right: '2px', minWidth: '18px', height: '18px', padding: '0 4px', fontSize: '10px' }}>
+                      {unreadNotifications}
+                    </span>
+                  )}
                 </button>
                 
                 <div className="user-dropdown-container" ref={userDropdownRef}>
                   <button 
-                    className="user-profile-trigger icon-only" 
+                    className="nav-trigger-avatar-circle" 
                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    aria-label="User Account Menu"
                     title={user.name}
                   >
-                    <div className="user-avatar">{user.name?.charAt(0).toUpperCase() || 'U'}</div>
+                    {user.name?.charAt(0).toUpperCase()}
                   </button>
 
                   {showUserDropdown && (
-                    <div className="user-dropdown-menu">
-                      <div className="dropdown-header">
-                        <p className="dropdown-user-name">{user.name}</p>
-                        <p className="dropdown-user-email">{user.email}</p>
+                    <div className="user-dropdown-menu premium-popover" style={{ width: '310px', padding: '0 0 1rem 0', marginTop: '1rem' }}>
+                      <div className="dropdown-header-premium">
+                        <p className="user-name">{user.name}</p>
+                        <p className="user-email">{user.email}</p>
                       </div>
-                      <div className="dropdown-divider"></div>
+                      <div className="dropdown-divider" style={{ margin: '0 1.5rem 1rem', opacity: 0.1 }}></div>
                       
-                      <Link to="/profile" className="dropdown-item" onClick={() => setShowUserDropdown(false)}>
-                        <span className="dropdown-icon"><User size={18} /></span> Profile
+                      <Link to="/profile" className="dropdown-item-pill" onClick={() => setShowUserDropdown(false)}>
+                        <User size={20} style={{ opacity: 0.7 }} /> Profile
                       </Link>
                       
-                      <button className="dropdown-item appearance-toggle" onClick={() => { toggleTheme(); setShowUserDropdown(false); }}>
-                        <span className="dropdown-icon">{isDark ? <Sun size={18} /> : <Moon size={18} />}</span> 
-                        <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                      <button className="dropdown-item-pill" onClick={() => { toggleTheme(); setShowUserDropdown(false); }}>
+                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                        <span>Dark Mode</span>
                       </button>
                       
                       {isAdmin && (
-                        <Link to="/admin" className={`dropdown-item${location.pathname === '/admin' ? ' active' : ''}`} onClick={() => setShowUserDropdown(false)}>
-                          <span className="dropdown-icon"><ShieldCheck size={18} /></span> Admin Panel
+                        <Link to="/admin" className="dropdown-item-pill" onClick={() => setShowUserDropdown(false)}>
+                          <ShieldCheck size={20} style={{ opacity: 0.7 }} /> Admin Panel
                         </Link>
                       )}
                       
-                      <div className="dropdown-divider"></div>
+                      <div className="dropdown-divider" style={{ margin: '1rem 1.5rem', opacity: 0.1 }}></div>
                       
-                      <button className="dropdown-item logout-item" onClick={handleLogout}>
-                        <span className="dropdown-icon"><LogOut size={18} /></span> Logout
+                      <button className="dropdown-item-pill" onClick={handleLogout}>
+                        <LogOut size={20} style={{ opacity: 0.7 }} /> Logout
                       </button>
                     </div>
                   )}
@@ -207,7 +240,6 @@ function Navbar() {
               </button>
             )}
 
-            {/* Hamburger Toggle (Mobile) */}
             <button
               className="navbar-toggle"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -222,7 +254,6 @@ function Navbar() {
           </div>
         </div>
 
-        {/* Bottom Row: Planning Links (Only for authed users) */}
         {user && (
           <div className="navbar-row navbar-bottom-row">
             <div className="navbar-planning-links">
@@ -243,18 +274,24 @@ function Navbar() {
         )}
       </nav>
 
-      {/* Overlay rendered at body level via portal for mobile menu */}
       {menuOpen && ReactDOM.createPortal(
         <div className="navbar-overlay" onClick={closeMenu} />,
         document.body
       )}
 
-      {/* Notifications Modal */}
       <NotificationsModal 
         isOpen={showNotificationsModal} 
         onClose={() => setShowNotificationsModal(false)} 
         onUnreadCountChange={setUnreadNotifications}
       />
+
+      {/* Notification Banner */}
+      {showBanner && (
+        <div className="notification-banner">
+          <Bell size={20} color="var(--primary)" />
+          <span>{latestNotification}</span>
+        </div>
+      )}
     </>
   );
 }

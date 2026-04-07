@@ -3,8 +3,6 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
-  Package, 
-  Apple, 
   Bell 
 } from 'lucide-react';
 
@@ -22,12 +20,7 @@ function AdminLayout() {
           <NavLink to="/admin/users" className={({isActive}) => isActive ? "active" : ""} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Users size={18} /> Users
           </NavLink>
-          <NavLink to="/admin/inventory" className={({isActive}) => isActive ? "active" : ""} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Package size={18} /> Inventory
-          </NavLink>
-          <NavLink to="/admin/ingredients" className={({isActive}) => isActive ? "active" : ""} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Apple size={18} /> Ingredients
-          </NavLink>
+
           <NavLink to="/admin/notifications" className={({isActive}) => isActive ? "active" : ""} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Bell size={18} /> Notifications
           </NavLink>

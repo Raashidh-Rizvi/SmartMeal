@@ -8,16 +8,16 @@ function Footer() {
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-brand">
-          <h3>🍽️ Smart Meal</h3>
+          <h3>🍽️ Smart Recipe</h3>
           <p>Your intelligent recipe and meal planning assistant.</p>
         </div>
         
         <div className="footer-links">
           <div className="footer-section">
             <h4>Features</h4>
-            <Link to="/inventory">Inventory</Link>
-            <Link to="/recommendations">Recommendations</Link>
-            <Link to="/mealplan">Meal Plan</Link>
+            <Link to="/inventory">Ingredients</Link>
+            <Link to="/recommendations">Explore</Link>
+            <Link to="/mealplan">Schedules</Link>
             <Link to="/shoppinglist">Shopping List</Link>
           </div>
           
@@ -30,7 +30,7 @@ function Footer() {
       </div>
       
       <div className="footer-bottom">
-        <p>&copy; {currentYear} Smart Meal. All rights reserved.</p>
+        <p>&copy; {currentYear} Smart Recipe. All rights reserved.</p>
       </div>
     </footer>
   );

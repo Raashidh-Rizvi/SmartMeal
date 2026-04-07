@@ -321,11 +321,21 @@ async def mark_all_notifications_read(
 ):
     """Mark all of the current user's personal notifications as read."""
     db = get_db()
-    result = await db.notifications.update_many(
+    
+    # Mark personal notifications as read
+    result_personal = await db.notifications.update_many(
         {"userId": user_id, "isRead": False},
         {"$set": {"isRead": True}}
     )
-    return {"message": "All notifications marked as read", "updated": result.modified_count}
+    
+    # Mark broadcast notifications as read (add user to readByUserIds)
+    result_broadcast = await db.notifications.update_many(
+        {"userId": "ALL", "readByUserIds": {"$ne": user_id}},
+        {"$addToSet": {"readByUserIds": user_id}}
+    )
+    
+    total_updated = result_personal.modified_count + result_broadcast.modified_count
+    return {"message": "All notifications marked as read", "updated": total_updated}
 
 
 # ── PUT individual notification ────────────────────────────────────────────────

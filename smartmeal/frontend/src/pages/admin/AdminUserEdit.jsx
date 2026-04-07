@@ -11,6 +11,7 @@ function AdminUserEdit() {
   const [formData, setFormData] = useState({
     name: '',
     role: 'USER',
+    is_active: true,
     preferences: {
       dietType: '',
       budgetLevel: '',
@@ -25,6 +26,7 @@ function AdminUserEdit() {
       setFormData({
         name: res.data.name || '',
         role: res.data.role || 'USER',
+        is_active: res.data.is_active !== undefined ? res.data.is_active : true,
         preferences: {
           dietType: res.data.preferences?.dietType || '',
           budgetLevel: res.data.preferences?.budgetLevel || '',
@@ -62,6 +64,11 @@ function AdminUserEdit() {
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleSubmit = async (e) => {
@@ -118,6 +125,18 @@ function AdminUserEdit() {
               <option value="USER">USER</option>
               <option value="ADMIN">ADMIN</option>
             </select>
+          </div>
+
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+            <input 
+              type="checkbox" 
+              id="is_active"
+              name="is_active" 
+              checked={formData.is_active} 
+              onChange={handleCheckboxChange} 
+              style={{ width: 'auto', margin: 0 }}
+            />
+            <label htmlFor="is_active" style={{ margin: 0 }}>Active Account</label>
           </div>
 
           <h3 className="section-title">Preferences</h3>

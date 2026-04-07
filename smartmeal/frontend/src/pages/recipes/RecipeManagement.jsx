@@ -81,11 +81,21 @@ function RecipeManagement() {
         return () => clearTimeout(t);
     }, [searchInput]);
 
-    // Check for ?tab=mine from Navbar link or existing parameters
+    // Check for URL parameters
     useEffect(() => {
         const params = new URLSearchParams(location.search);
+        
+        // Tab/Filter parameters
         if (params.get('tab') === 'mine' || params.get('created_by_me') === '1') {
             setActiveTab('mine');
+        }
+
+        // Search parameter
+        const searchParam = params.get('search');
+        if (searchParam) {
+            setSearchInput(searchParam);
+            setSearch(searchParam);
+            setSkip(0);
         }
     }, [location.search]);
 

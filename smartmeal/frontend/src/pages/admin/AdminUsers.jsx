@@ -114,8 +114,11 @@ function AdminUsers() {
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
-                    <span className={`badge ${u.role === 'ADMIN' ? 'badge-admin' : 'badge-user'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span className={`badge ${u.role === 'ADMIN' ? 'badge-admin' : 'badge-user'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginRight: '0.5rem' }}>
                       {u.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />} {u.role}
+                    </span>
+                    <span className={`badge ${u.is_active !== false ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                      {u.is_active !== false ? 'Active' : 'Deactivated'}
                     </span>
                   </td>
                   <td>

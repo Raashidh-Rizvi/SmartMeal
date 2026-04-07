@@ -112,6 +112,9 @@ async def login(req: LoginRequest):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
         
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Account is deactivated. Please contact support.")
+        
     # Check Lockout
     lockout_until = user.get("lockout_until")
     if lockout_until:

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from bson import ObjectId
+from bson.errors import InvalidId
 from datetime import datetime, timezone, timedelta
 from ..db.database import get_db
 
@@ -10,7 +11,7 @@ router = APIRouter()
 @router.get("/users")
 async def list_users(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=1000),
     search: Optional[str] = None,
     role: Optional[str] = None
 ):
@@ -31,38 +32,59 @@ async def list_users(
         u["_id"] = str(u["_id"])
         u.pop("hashed_password", None)
         u["createdAt"] = u.get("createdAt", u.get("created_at"))
+        u["is_active"] = u.get("is_active", True)
     return {"items": users, "total": total, "page": page, "limit": limit}
-
 
 @router.get("/users/{user_id}")
 async def get_user(user_id: str):
+    try:
+        obj_id = ObjectId(user_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
     db = get_db()
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user = await db.users.find_one({"_id": obj_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user["_id"] = str(user["_id"])
     user.pop("hashed_password", None)
     user["createdAt"] = user.get("createdAt", user.get("created_at"))
+    user["is_active"] = user.get("is_active", True)
     return user
 
 
 @router.put("/users/{user_id}")
 async def update_user(user_id: str, data: dict):
+    try:
+        obj_id = ObjectId(user_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
     db = get_db()
     data.pop("_id", None)
     data.pop("hashed_password", None)
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": data})
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if "is_active" in data:
+        data["is_active"] = bool(data["is_active"])
+    
+    # ensure atomic update doesn't crash if data is empty
+    if data:
+        await db.users.update_one({"_id": obj_id}, {"$set": data})
+    user = await db.users.find_one({"_id": obj_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     user["_id"] = str(user["_id"])
     user.pop("hashed_password", None)
     user["createdAt"] = user.get("createdAt", user.get("created_at"))
+    user["is_active"] = user.get("is_active", True)
     return user
 
 
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str):
+    try:
+        obj_id = ObjectId(user_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
     db = get_db()
-    result = await db.users.delete_one({"_id": ObjectId(user_id)})
+    result = await db.users.delete_one({"_id": obj_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted"}

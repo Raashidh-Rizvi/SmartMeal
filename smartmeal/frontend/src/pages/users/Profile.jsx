@@ -83,7 +83,7 @@ function Profile() {
             <PartyPopper size={32} />
           </div>
           <div className="onboarding-banner__body">
-            <h3>Welcome to Smart Meal, {user.name}!</h3>
+            <h3>Welcome to Smart Recipe, {user.name}!</h3>
             <p>
               To get personalised recipe recommendations, please fill in your dietary preferences below.
               This only takes a minute and helps us suggest meals you'll love.
