@@ -522,7 +522,7 @@ function Dashboard() {
           <Zap size={14} fill="currentColor" /> The #1 Kitchen Intelligence Platform
         </div>
         
-        <h1 style={s.gradientTitle} className="premium-gradient-text">Find Your Next Favorite Recipe Smart Recipe</h1>
+        <h1 style={s.gradientTitle} className="premium-gradient-text">Find Your Next Favorite Recipe In SmartMeal</h1>
         <div style={{ padding: '0 1rem' }}>
           <p style={s.subtitle}>
             SmartRecipe connects your ingredients with AI-powered inspiration. <br />

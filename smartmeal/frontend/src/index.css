@@ -354,9 +354,8 @@ button:active, .btn-primary:active {
 /* Notification Banner */
 .notification-banner {
   position: fixed;
-  top: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 20%;
+  right: 2rem;
   z-index: 9999;
   background: var(--navbar-bg);
   backdrop-filter: var(--glass-blur);
@@ -373,8 +372,8 @@ button:active, .btn-primary:active {
 }
 
 @keyframes bannerFadeIn {
-  0% { transform: translate(-50%, -100%); opacity: 0; }
-  100% { transform: translate(-50%, 0); opacity: 1; }
+  0% { transform: translateY(-20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 .notification-banner.fade-out {
@@ -382,8 +381,8 @@ button:active, .btn-primary:active {
 }
 
 @keyframes bannerFadeOut {
-  0% { transform: translate(-50%, 0); opacity: 1; }
-  100% { transform: translate(-50%, -20px); opacity: 0; }
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
 }
 
 /* Custom Dropdown Specific Styles (for Account Settings and Notifications) */
@@ -1756,16 +1755,21 @@ tr:hover td { background: rgba(5, 150, 105, 0.04); }
 /* Toast */
 .toast {
   position: fixed;
-  bottom: 2rem;
+  top: 20%;
   right: 2rem;
   padding: 1rem 1.5rem;
   border-radius: 14px;
   font-weight: 600;
   font-size: 0.95rem;
   z-index: 9999;
-  animation: slideUp 0.3s ease-out;
+  animation: toastSlideIn 0.3s ease-out;
   box-shadow: var(--shadow-lg);
   max-width: 360px;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
