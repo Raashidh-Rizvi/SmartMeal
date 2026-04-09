@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
+import { 
+  Bell, 
+  Send, 
+  Trash2, 
+  CheckCircle, 
+  RefreshCw, 
+  AlertTriangle,
+  Mail,
+  User,
+  Users
+} from 'lucide-react';
 
 function AdminNotifications() {
   const [formData, setFormData] = useState({
@@ -13,32 +24,32 @@ function AdminNotifications() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => {
-    fetchNotifications();
-    fetchUsers();
-  }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await api.get('/api/admin/users?limit=1000');
       setUsers(res.data.items || []);
     } catch (err) {
       console.error('Failed to fetch users', err);
     }
-  };
+  }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/api/admin/notifications');
       setNotifications(res.data || []);
     } catch (err) {
       console.error(err);
-      alert('Unable to load notifications');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    fetchUsers();
+  }, [fetchNotifications, fetchUsers]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,8 +116,9 @@ function AdminNotifications() {
 
   return (
     <div className="admin-page">
-      <header className="admin-header">
-        <h1>System Notifications</h1>
+      <header className="admin-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <Bell size={32} color="var(--primary)" />
+        <h1 style={{ margin: 0 }}>System Notifications</h1>
       </header>
 
       <div className="admin-card max-w-lg">
@@ -117,14 +129,15 @@ function AdminNotifications() {
               Select a user or choose 'All Users' to broadcast a message.
             </p>
           </div>
-          <button
-            type="button"
-            disabled={actionLoading}
-            className="btn btn-secondary"
-            onClick={handleGenerateAlerts}
-          >
-            {actionLoading ? 'Generating...' : 'Generate Expiration Alerts'}
-          </button>
+            <button
+              type="button"
+              disabled={actionLoading}
+              className="btn btn-secondary"
+              onClick={handleGenerateAlerts}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <AlertTriangle size={16} /> {actionLoading ? 'Generating...' : 'Generate Alerts'}
+            </button>
         </div>
 
         {successMessage && <div className="alert alert-success mb-3">{successMessage}</div>}
@@ -159,8 +172,8 @@ function AdminNotifications() {
             />
           </div>
 
-          <button type="submit" disabled={sending} className="btn btn-primary mt-3">
-            {sending ? 'Sending...' : 'Send Notification'}
+          <button type="submit" disabled={sending} className="btn btn-primary mt-3" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Send size={18} /> {sending ? 'Sending...' : 'Send Notification'}
           </button>
         </form>
       </div>
@@ -171,7 +184,9 @@ function AdminNotifications() {
             <h3>Notification History</h3>
             <p className="text-muted mb-2">All user notifications created by the admin and expiration alerts.</p>
           </div>
-          <button type="button" className="btn btn-secondary" onClick={fetchNotifications}>Refresh</button>
+          <button type="button" className="btn btn-secondary" onClick={fetchNotifications} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <RefreshCw size={16} /> Refresh
+          </button>
         </div>
 
         {loading ? (
@@ -194,11 +209,11 @@ function AdminNotifications() {
                   </div>
                 </div>
                 <div className="notification-actions">
-                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => handleToggleRead(notification)}>
-                    {notification.isRead ? 'Mark Unread' : 'Mark Read'}
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => handleToggleRead(notification)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    {notification.isRead ? 'Mark Unread' : <><CheckCircle size={14} /> Mark Read</>}
                   </button>
-                  <button type="button" className="btn btn-sm btn-danger" onClick={() => handleDelete(notification._id)}>
-                    Delete
+                  <button type="button" className="btn btn-sm btn-danger" onClick={() => handleDelete(notification._id)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Trash2 size={14} /> Delete
                   </button>
                 </div>
               </div>

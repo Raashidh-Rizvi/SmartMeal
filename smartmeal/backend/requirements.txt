@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-motor[srv]
+motor
 pymongo
 pydantic
 bcrypt==4.0.1
@@ -8,8 +8,7 @@ python-jose[cryptography]
 python-dotenv
 python-multipart
 certifi
-scikit-learn
-deep_translator
 pandas
-email-validator
-dnspython
+numpy
+scikit-learn
+deep-translator

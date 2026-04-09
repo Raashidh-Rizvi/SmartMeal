@@ -1,210 +1,136 @@
-from fastapi import APIRouter, HTTPException, Header
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from app.db.database import get_db
+from app.core.security import verify_password, get_password_hash, create_access_token
+from app.core.config import settings
+from app.models.user import UserCreate, UserResponse, UserInDB, Token, UserBase
+from app.api.deps import get_current_user
 from bson import ObjectId
-import bcrypt
-import random
-import string
-from jose import jwt, JWTError
-from bson.errors import InvalidId
-from ..db.database import get_db
-from ..core.config import settings
-from ..utils.email import send_otp_email
 
 router = APIRouter()
 
-def to_object_id(id_str: str) -> ObjectId:
-    try:
-        return ObjectId(id_str)
-    except InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
-
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode(), hashed.encode())
-    except Exception:
-        return False
-
-
-from pydantic import BaseModel, Field, EmailStr
-
-class RegisterRequest(BaseModel):
-    name: str = Field(..., min_length=2)
-    email: EmailStr
-    password: str = Field(..., min_length=8)
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class GoogleAuthRequest(BaseModel):
-    email: EmailStr
-    name: Optional[str] = None
-    firebaseToken: str
-    uid: str
-
-
-class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
-
-
-class ResetPasswordRequest(BaseModel):
-    email: EmailStr
-    otp: str
-    newPassword: str = Field(..., min_length=8)
-
-
-def create_token(data: dict) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return jwt.encode({**data, "exp": expire}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-
-
-def serialize_user(doc: dict) -> dict:
+@router.post("/login")
+async def login_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends()
+) -> Any:
+    db = get_db()
+    login_email = form_data.username.strip().lower()
+    user_dict = await db["users"].find_one({"email": {"$regex": f"^{login_email}$", "$options": "i"}})
+    if not user_dict:
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    
+    user_dict["_id"] = str(user_dict["_id"])
+    user = UserInDB(**user_dict)
+    if not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
-        "_id": str(doc["_id"]),
-        "name": doc.get("name", ""),
-        "email": doc["email"],
-        "role": doc.get("role", "USER"),
-        "is_active": doc.get("is_active", True),
-        "preferences": doc.get("preferences", {}),
+        "accessToken": create_access_token(
+            subject=user.email, expires_delta=access_token_expires
+        ),
+        "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
     }
 
+@router.get("/me", response_model=dict)
+async def read_users_me(
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
+    return {"user": UserResponse(**current_user.model_dump(by_alias=True)).model_dump(by_alias=True)}
 
-@router.post("/register")
-async def register(req: RegisterRequest):
-    print("RECEIVED REGISTER REQUEST")
-    print(f"Body: {req}")
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register_user(user_in: UserCreate) -> Any:
     db = get_db()
-    email = req.email.lower().strip()
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
-    now = datetime.now(timezone.utc)
-    result = await db.users.insert_one({
-        "name": req.name,
-        "email": email,
-        "hashed_password": hash_password(req.password),
-        "role": "USER",
-        "is_active": True,
-        "created_at": now,
-    })
-    user = await db.users.find_one({"_id": result.inserted_id})
-    u = serialize_user(user)
-    return {"user": u, "accessToken": create_token({"sub": u["_id"], "role": u["role"]})}
+    normalized_email = user_in.email.strip().lower()
+    # Case-insensitive email check
+    user_exists = await db["users"].find_one({"email": {"$regex": f"^{normalized_email}$", "$options": "i"}})
+    if user_exists:
+        raise HTTPException(
+            status_code=400,
+            detail="The user with this email already exists in the system.",
+        )
+    
+    user_dict = user_in.model_dump()
+    user_dict["email"] = normalized_email
+    password = user_dict.pop("password")
+    user_dict["password_hash"] = get_password_hash(password)
+    user_dict["createdAt"] = datetime.now(timezone.utc)
+    user_dict["updatedAt"] = datetime.now(timezone.utc)
+    
+    new_user = await db["users"].insert_one(user_dict)
+    
+    created_user = await db["users"].find_one({"_id": new_user.inserted_id})
+    created_user["_id"] = str(created_user["_id"])
+    
+    return {
+        "message": "registered",
+        "user": UserResponse(**created_user).model_dump(by_alias=True)
+    }
 
+from app.models.user import GoogleLoginRequest
+import secrets
+import string
 
-@router.post("/login")
-async def login(req: LoginRequest):
-    db = get_db()
-    email = req.email.lower().strip()
-    user = await db.users.find_one({"email": email})
-    if not user or not verify_password(req.password, user.get("hashed_password", "")):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    u = serialize_user(user)
-    return {"user": u, "accessToken": create_token({"sub": u["_id"], "role": u["role"]})}
-
+def generate_random_password(length=16):
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(secrets.choice(alphabet) for i in range(length))
 
 @router.post("/google")
-async def google_auth(req: GoogleAuthRequest):
+async def google_login(req: GoogleLoginRequest) -> Any:
     db = get_db()
-    email = req.email.lower().strip()
-    user = await db.users.find_one({"email": email})
-    if not user:
-        now = datetime.now(timezone.utc)
-        result = await db.users.insert_one({
-            "name": req.name or email.split("@")[0],
-            "email": email,
-            "uid": req.uid,
+    # Find user by email (case-insensitive)
+    user_dict = await db["users"].find_one({"email": {"$regex": f"^{req.email}$", "$options": "i"}})
+    
+    if not user_dict:
+        # Create a new user since they don't exist
+        random_pwd = generate_random_password()
+        new_user_data = {
+            "name": req.name,
+            "email": req.email.lower(),
             "role": "USER",
-            "is_active": True,
-            "created_at": now,
-        })
-        user = await db.users.find_one({"_id": result.inserted_id})
-    u = serialize_user(user)
-    return {"user": u, "accessToken": create_token({"sub": u["_id"], "role": u["role"]})}
-
-
-@router.get("/me")
-async def get_me(authorization: Optional[str] = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    token = authorization.split(" ", 1)[1]
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id = payload.get("sub")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    db = get_db()
-    user = await db.users.find_one({"_id": to_object_id(user_id)})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"user": serialize_user(user)}
-
-
-@router.post("/forgot-password")
-async def forgot_password(req: ForgotPasswordRequest):
-    db = get_db()
-    email = req.email.lower().strip()
-    user = await db.users.find_one({"email": email})
-    if not user:
-        # For security, don't explicitly say the email doesn't exist
-        return {"message": "If an account exists with this email, you will receive an OTP shortly."}
-
-    # Generate 6-digit OTP
-    otp = "".join(random.choices(string.digits, k=6))
-    expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
-
-    # Store OTP in DB
-    await db.users.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"reset_otp": otp, "reset_otp_expiry": expiry}}
-    )
-
-    # Send matching email
-    send_otp_email(email, otp)
-    return {"message": "OTP sent successfully"}
-
-
-@router.post("/reset-password")
-async def reset_password(req: ResetPasswordRequest):
-    db = get_db()
-    email = req.email.lower().strip()
-    user = await db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Check OTP and expiry
-    stored_otp = user.get("reset_otp")
-    expiry = user.get("reset_otp_expiry")
-
-    if not stored_otp or not expiry:
-        raise HTTPException(status_code=400, detail="No OTP requested")
-
-    # Ensure expiry is timezone-aware
-    if expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=timezone.utc)
-
-    if stored_otp != req.otp:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
-
-    if datetime.now(timezone.utc) > expiry:
-        raise HTTPException(status_code=400, detail="OTP has expired")
-
-    # Update password and clear OTP
-    new_hashed_password = hash_password(req.newPassword)
-    await db.users.update_one(
-        {"_id": user["_id"]},
-        {
-            "$set": {"hashed_password": new_hashed_password},
-            "$unset": {"reset_otp": "", "reset_otp_expiry": ""}
+            "preferences": {}, # defaults
+            "password_hash": get_password_hash(random_pwd),
+            "createdAt": datetime.now(timezone.utc),
+            "updatedAt": datetime.now(timezone.utc)
         }
-    )
-
-    return {"message": "Password reset successfully"}
+        insert_result = await db["users"].insert_one(new_user_data)
+        user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
+    else:
+        # Update missing fields to avoid Pydantic validation errors
+        updates = {}
+        if not user_dict.get("name"):
+            updates["name"] = req.name
+            user_dict["name"] = req.name
+        
+        if not user_dict.get("password_hash"):
+            # Provide a random password hash for socially-joined users who haven't set a password
+            pwd_hash = get_password_hash(generate_random_password())
+            updates["password_hash"] = pwd_hash
+            user_dict["password_hash"] = pwd_hash
+            
+        if not user_dict.get("createdAt"):
+            now = datetime.now(timezone.utc)
+            updates["createdAt"] = now
+            user_dict["createdAt"] = now
+            
+        if not user_dict.get("updatedAt"):
+            now = datetime.now(timezone.utc)
+            updates["updatedAt"] = now
+            user_dict["updatedAt"] = now
+            
+        if updates:
+            await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": updates})
+            
+    user_dict["_id"] = str(user_dict["_id"])
+    user = UserInDB(**user_dict)
+    
+    # Generate SmartMeal token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return {
+        "accessToken": create_access_token(
+            subject=user.email, expires_delta=access_token_expires
+        ),
+        "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
+    }

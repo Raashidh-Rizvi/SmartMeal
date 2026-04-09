@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
+import { 
+  Apple, 
+  Plus, 
+  Search, 
+  Trash2, 
+  Pencil, 
+  ChevronLeft, 
+  ChevronRight,
+  X
+} from 'lucide-react';
 
 function AdminIngredients() {
   const [items, setItems] = useState([]);
@@ -20,7 +30,7 @@ function AdminIngredients() {
 
   const limit = 15;
 
-  const fetchIngredients = async () => {
+  const fetchIngredients = useCallback(async () => {
     try {
       setLoading(true);
       let params = new URLSearchParams({ page, limit });
@@ -31,16 +41,15 @@ function AdminIngredients() {
       setTotalPages(Math.ceil(res.data.total / limit));
     } catch (err) {
       console.error(err);
-      alert('Error fetching ingredients');
+      // alert removed
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search]);
 
   useEffect(() => {
     fetchIngredients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [fetchIngredients]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -103,9 +112,14 @@ function AdminIngredients() {
 
   return (
     <div className="admin-page">
-      <header className="admin-header flex justify-between align-center">
-        <h1>Ingredient Management</h1>
-        <button onClick={() => openFormModal()} className="btn btn-primary">Add Ingredient</button>
+      <header className="admin-header flex justify-between align-center" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justify_content: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Apple size={32} color="var(--primary)" />
+          <h1 style={{ margin: 0 }}>Ingredient Management</h1>
+        </div>
+        <button onClick={() => openFormModal()} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: 'auto' }}>
+          <Plus size={18} /> Add Ingredient
+        </button>
       </header>
 
       <div className="admin-filters">
@@ -117,8 +131,12 @@ function AdminIngredients() {
             onChange={(e) => setSearch(e.target.value)}
             className="admin-input"
           />
-          <button type="submit" className="btn btn-primary">Search</button>
-          <button type="button" onClick={handleClearSearch} className="btn btn-secondary">Clear</button>
+          <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Search size={16} /> Search
+          </button>
+          <button type="button" onClick={handleClearSearch} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <X size={16} /> Clear
+          </button>
         </form>
       </div>
 
@@ -144,9 +162,13 @@ function AdminIngredients() {
                   <td>{item.unit}</td>
                   <td>{item.calories}</td>
                   <td>
-                    <button onClick={() => openFormModal(item)} className="btn-icon">Edit</button>
+                    <button onClick={() => openFormModal(item)} className="btn-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Pencil size={14} /> Edit
+                    </button>
                     {' | '}
-                    <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger">Delete</button>
+                    <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Trash2 size={14} /> Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -158,10 +180,14 @@ function AdminIngredients() {
             </tbody>
           </table>
           
-          <div className="admin-pagination mt-4">
-            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary mr-2">Prev</button>
-            <span>Page {page} of {totalPages || 1}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary ml-2">Next</button>
+          <div className="admin-pagination mt-4" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
+            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ChevronLeft size={16} /> Prev
+            </button>
+            <span style={{ fontWeight: 500 }}>Page {page} of {totalPages || 1}</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              Next <ChevronRight size={16} />
+            </button>
           </div>
         </div>
       )}

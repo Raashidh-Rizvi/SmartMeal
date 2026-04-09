@@ -14,7 +14,6 @@ recommendRecipes()     -> list[dict]
 import re
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 

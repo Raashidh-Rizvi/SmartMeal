@@ -1,6 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
+import { 
+  Users, 
+  Search, 
+  Pencil, 
+  Trash2, 
+  ChevronLeft, 
+  ChevronRight,
+  UserPlus,
+  Shield,
+  User,
+  Calendar
+} from 'lucide-react';
 
 function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -11,7 +23,7 @@ function AdminUsers() {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       let url = `/api/admin/users?page=${page}&limit=${limit}`;
@@ -27,11 +39,11 @@ function AdminUsers() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, roleFilter, search, limit]);
 
   useEffect(() => {
     fetchUsers();
-  }, [page, roleFilter]); // Trigger when page or role changes. search is manual on submit
+  }, [fetchUsers]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -52,8 +64,9 @@ function AdminUsers() {
 
   return (
     <div className="admin-page">
-      <header className="admin-header">
-        <h1>Users Management</h1>
+      <header className="admin-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <Users size={32} color="var(--primary)" />
+        <h1 style={{ margin: 0 }}>Users Management</h1>
       </header>
 
       <div className="admin-filters">
@@ -65,7 +78,9 @@ function AdminUsers() {
             onChange={(e) => setSearch(e.target.value.toLowerCase())}
             className="admin-input"
           />
-          <button type="submit" className="btn btn-primary">Search</button>
+          <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Search size={16} /> Search
+          </button>
         </form>
         
         <select 
@@ -99,15 +114,32 @@ function AdminUsers() {
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
-                    <span className={`badge ${u.role === 'ADMIN' ? 'badge-admin' : 'badge-user'}`}>
-                      {u.role}
+                    <span className={`badge ${u.role === 'ADMIN' ? 'badge-admin' : 'badge-user'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginRight: '0.5rem' }}>
+                      {u.role === 'ADMIN' ? <Shield size={12} /> : <User size={12} />} {u.role}
+                    </span>
+                    <span className={`badge ${u.is_active !== false ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                      {u.is_active !== false ? 'Active' : 'Deactivated'}
                     </span>
                   </td>
-                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    {u.createdAt ? (
+                      new Date(u.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })
+                    ) : (
+                      <span className="text-muted">N/A</span>
+                    )}
+                  </td>
                   <td>
                     <div className="action-buttons">
-                      <Link to={`/admin/users/${u._id}`} className="btn-icon text-primary">Edit</Link>
-                      <button onClick={() => handleDelete(u._id)} className="btn-icon text-danger">Delete</button>
+                      <Link to={`/admin/users/${u._id}`} className="btn-icon text-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Pencil size={14} /> Edit
+                      </Link>
+                      <button onClick={() => handleDelete(u._id)} className="btn-icon text-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Trash2 size={14} /> Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -120,21 +152,23 @@ function AdminUsers() {
             </tbody>
           </table>
           
-          <div className="admin-pagination">
+          <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
             <button 
               disabled={page === 1} 
               onClick={() => setPage(p => Math.max(1, p - 1))}
               className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              Previous
+              <ChevronLeft size={16} /> Previous
             </button>
-            <span>Page {page} of {totalPages || 1}</span>
+            <span style={{ fontWeight: 500 }}>Page {page} of {totalPages || 1}</span>
             <button 
               disabled={page >= totalPages} 
               onClick={() => setPage(p => p + 1)}
               className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
             >
-              Next
+              Next <ChevronRight size={16} />
             </button>
           </div>
         </div>

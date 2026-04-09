@@ -91,6 +91,11 @@ async def create_meal(
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid recipe ID")
 
+    # Check if meal_date is today or future
+    today = datetime.now(timezone.utc).date()
+    if schedule.meal_date < today:
+        raise HTTPException(status_code=400, detail="Cannot create meal plans for past dates. Please select today or a future date.")
+
     existing = await db.meal_schedules.find_one({
         "$or": [{"user_id": user_id}, {"user_id": "1"}],
         "meal_date": schedule.meal_date.isoformat(),
@@ -225,6 +230,11 @@ async def update_meal(
 
     if "meal_date" in update_fields and update_fields["meal_date"]:
         update_fields["meal_date"] = update_fields["meal_date"].isoformat()
+        # Check if new meal_date is today or future
+        new_date_obj = datetime.fromisoformat(update_fields["meal_date"]).date()
+        today = datetime.now(timezone.utc).date()
+        if new_date_obj < today:
+            raise HTTPException(status_code=400, detail="Cannot update meal plans to past dates. Please select today or a future date.")
     if "meal_type" in update_fields and update_fields["meal_type"]:
         update_fields["meal_type"] = update_fields["meal_type"].value
     if "status" in update_fields and update_fields["status"]:
@@ -280,13 +290,57 @@ async def delete_meal(
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid meal ID")
 
-    result = await db.meal_schedules.delete_one(
+    meal = await db.meal_schedules.find_one(
         {"_id": obj_id, "$or": [{"user_id": user_id}, {"user_id": "1"}]}
     )
-    if result.deleted_count == 0:
+    if not meal:
         raise HTTPException(status_code=404, detail="Meal not found or unauthorized")
 
-    return {"message": "Meal deleted successfully"}
+    # Only restore inventory if meal was NOT completed (completed already used ingredients)
+    if meal.get("status") != "completed":
+        now = datetime.now(timezone.utc)
+        snapshot = meal.get("ingredients_snapshot", [])
+        for ing in snapshot:
+            # Only restore what was actually deducted (not missing ingredients)
+            if ing.get("missing"):
+                continue
+            ing_name    = ing["name"]
+            recipe_unit = _norm(ing.get("unit", ""))
+            used_qty    = float(ing.get("quantity", 0))
+            if used_qty <= 0:
+                continue
+            inv_item = await db.inventory_items.find_one({
+                "name": {"$regex": f"^{ing_name}$", "$options": "i"},
+                "userId": user_id
+            })
+            if inv_item:
+                inv_unit = _norm(inv_item.get("unit", recipe_unit))
+                inv_qty  = float(inv_item.get("quantity", 0))
+                if same_group(recipe_unit, inv_unit):
+                    r_factor = ALL_FACTORS.get(recipe_unit, 1.0)
+                    i_factor = ALL_FACTORS.get(inv_unit, 1.0)
+                    restored = round((inv_qty * i_factor + used_qty * r_factor) / i_factor, 4)
+                else:
+                    restored = round(inv_qty + used_qty, 4)
+                await db.inventory_items.update_one(
+                    {"_id": inv_item["_id"]},
+                    {"$set": {"quantity": restored, "updatedAt": now}}
+                )
+            else:
+                # Item not in inventory — create it back
+                await db.inventory_items.insert_one({
+                    "name":      ing_name,
+                    "quantity":  used_qty,
+                    "unit":      ing.get("unit", ""),
+                    "userId":    user_id,
+                    "category":  "",
+                    "notes":     "Restored from deleted meal plan",
+                    "createdAt": now,
+                    "updatedAt": now,
+                })
+
+    await db.meal_schedules.delete_one({"_id": obj_id})
+    return {"message": "Meal deleted and inventory restored successfully"}
 
 
 @router.get("/{meal_id}/ingredients")

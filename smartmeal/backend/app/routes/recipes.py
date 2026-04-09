@@ -1,186 +1,283 @@
-from fastapi import APIRouter, HTTPException, Query
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone
-from bson import ObjectId
-from ..db.database import get_db
-from ..schemas.recipe_schema import RecipeCreate, RecipeUpdate, RecipeResponse
-from ..schemas.rating_schema import RecipeRatingCreate
-from ..services.recommendation import get_recipe_recommendations
-from ..services.output_service import filter_recipes, format_output, limit_results
+from typing import Any, List, Optional
+from fastapi import APIRouter, Depends, Query, status, HTTPException
+from fastapi.responses import Response
+from pydantic import BaseModel, ValidationError
+from app.db.database import get_db
+from app.models.recipe import Category, RecipeCreate, RecipeUpdate, RecipeResponse, RecipeResponseRaw
+from app.models.user import UserInDB
+from app.api.deps import get_current_user
+import app.services.recipe_service as recipe_service
+from app.services.recommendation import get_recipe_recommendations
+import logging
 
-router = APIRouter(tags=["recipes"])
+logger = logging.getLogger(__name__)
+
+
+class RecommendationRequest(BaseModel):
+    ingredients: Optional[str] = ""
+    cuisine: Optional[str] = ""
+    diet: Optional[str] = ""
+    course: Optional[str] = ""
+
+
+router = APIRouter()
+
+
+def _format_validation_error(error: dict) -> str:
+    """Format a single validation error into a user-friendly message."""
+    loc = error.get("loc")
+    msg = error.get("msg", "Validation failed")
+    
+    # Build field path (e.g., "ingredients[0].unit")
+    if loc:
+        field_path = ".".join(str(x) for x in loc)
+    else:
+        field_path = "Unknown field"
+    
+    # Extract the actual error message (may be wrapped in "Value error, ")
+    if "Value error, " in msg:
+        actual_msg = msg.replace("Value error, ", "")
+    else:
+        actual_msg = msg
+    
+    return f"{field_path}: {actual_msg}"
+
+
+@router.post("/", response_model=RecipeResponse, status_code=status.HTTP_201_CREATED)
+async def create_recipe(
+    recipe_in: RecipeCreate,
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
+    """
+    Create a new recipe (authenticated users only).
+    
+    **Validation:**
+    - Title: 3-200 characters
+    - Description: Max 2000 characters
+    - At least 1 ingredient (max 100)
+    - At least 1 preparation step (max 50 steps)
+    - Cooking time: 1-1440 minutes
+    - Valid dietary tags from predefined list
+    - Image URL must be http/https
+    
+    **Returns:** Created recipe with ID
+    """
+    try:
+        db = get_db()
+        return await recipe_service.create_recipe(db, recipe_in, current_user.id)
+    except ValidationError as e:
+        logger.warning(f"Recipe validation error: {e}")
+        # Format first error for user-friendly display
+        errors = e.errors()
+        formatted_msg = _format_validation_error(errors[0]) if errors else "Validation failed"
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=formatted_msg
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating recipe: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create recipe"
+        )
+
+
+@router.post("/recommend", status_code=status.HTTP_200_OK)
+async def recommend_recipes_ai(
+    request: RecommendationRequest,
+) -> Any:
+    """
+    [MEMBER 2: AI INTEGRATION]
+    Uses TF-IDF NLP and Cosine Similarity to compare user preferences
+    against the pre-processed recipe dataset and returns the top 5 matches.
+    
+    **Parameters:**
+    - ingredients: Comma-separated ingredient names
+    - cuisine: Cuisine type preference
+    - diet: Dietary preference
+    - course: Meal course (breakfast, lunch, dinner, snack)
+    
+    **Returns:** List of recommended recipes with similarity scores
+    """
+    try:
+        matches = get_recipe_recommendations(request.model_dump(), top_k=5)
+        return {"recommendations": matches, "count": len(matches)}
+    except Exception as e:
+        logger.error(f"Error generating recommendations: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate recommendations"
+        )
 
 
 @router.get("/by-type/{meal_type}")
-async def get_recipes_by_type(meal_type: str):
-    db = get_db()
-    cursor = db.recipes.find({"category": meal_type.lower()}).sort("title", 1)
-    recipes = await cursor.to_list(length=None)
-    for r in recipes:
-        r["_id"] = str(r["_id"])
-    return recipes
+async def list_recipes_by_type(meal_type: str) -> Any:
+    """
+    Get recipes filtered by meal type/category.
+    Used by meal schedule UI.
+    
+    **Parameters:**
+    - meal_type: breakfast, lunch, dinner, or snack
+    
+    **Returns:** List of recipes for the specified meal type
+    """
+    try:
+        db = get_db()
+        return await recipe_service.get_recipes_by_meal_type(db, meal_type)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching recipes by meal type: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch recipes"
+        )
 
 
-@router.get("/", response_model=List[RecipeResponse])
-async def get_recipes(
-    search: Optional[str] = None,
-    category: Optional[str] = None,
-    created_by: Optional[str] = None,
+@router.get("/", status_code=status.HTTP_200_OK)
+async def list_recipes(
+    search: Optional[str] = Query(None, max_length=100),
+    category: Optional[str] = Query(None),
+    created_by: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(12, ge=1, le=200)
-):
-    db = get_db()
-    query = {}
-    if search:
-        query["title"] = {"$regex": search, "$options": "i"}
-    if category:
-        query["category"] = category
-    if created_by:
-        query["created_by"] = created_by
-
-    cursor = db.recipes.find(query).skip(skip).limit(limit).sort("created_at", -1)
-    recipes = await cursor.to_list(length=limit)
-    for recipe in recipes:
-        recipe["_id"] = str(recipe["_id"])
-    return recipes
-
-
-@router.post("/", response_model=RecipeResponse)
-async def create_recipe(recipe_in: RecipeCreate):
-    db = get_db()
-    now = datetime.now(timezone.utc)
-    recipe_data = recipe_in.model_dump()
-    recipe_data["created_by"] = "1"
-    recipe_data["created_at"] = now
-    recipe_data["updated_at"] = now
-
-    result = await db.recipes.insert_one(recipe_data)
-    created_recipe = await db.recipes.find_one({"_id": result.inserted_id})
-    created_recipe["_id"] = str(created_recipe["_id"])
-    return created_recipe
-
-
-@router.get("/{recipe_id}", response_model=RecipeResponse)
-async def get_recipe(recipe_id: str):
-    db = get_db()
-    if not ObjectId.is_valid(recipe_id):
-        raise HTTPException(status_code=400, detail="Invalid recipe ID")
-
-    recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
-    if not recipe:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-
-    recipe["_id"] = str(recipe["_id"])
-    return recipe
-
-
-@router.put("/{recipe_id}", response_model=RecipeResponse)
-async def update_recipe(recipe_id: str, recipe_in: RecipeUpdate):
-    db = get_db()
-    if not ObjectId.is_valid(recipe_id):
-        raise HTTPException(status_code=400, detail="Invalid recipe ID")
-
-    existing = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-
-    update_data = recipe_in.model_dump(exclude_unset=True)
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No valid fields provided for update")
-
-    update_data["updated_at"] = datetime.now(timezone.utc)
-    await db.recipes.update_one({"_id": ObjectId(recipe_id)}, {"$set": update_data})
-
-    updated_recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
-    updated_recipe["_id"] = str(updated_recipe["_id"])
-    return updated_recipe
-
-
-@router.get("/recommendations")
-async def get_recommendations(
-    spicy: Optional[bool] = None,
-    cooking_time_max: Optional[int] = None,
-    diet: Optional[str] = None,
-    limit: int = Query(20, ge=1, le=100)
-):
+    limit: int = Query(20, ge=1, le=100),
+) -> Any:
     """
-    Get filtered recipe recommendations based on user preferences.
-    Filters: spicy (bool), cooking_time_max (minutes), diet (veg/non-veg)
-    Returns recipes sorted by average_rating descending.
+    List recipes with optional filtering and search.
+    
+    **Parameters:**
+    - search: Search term for recipe titles/descriptions (max 100 chars)
+    - category: Filter by meal type (breakfast, lunch, dinner, snack)
+    - created_by: Filter by creator user ID
+    - skip: Pagination offset (default 0)
+    - limit: Results per page (1-100, default 20)
+    
+    **Returns:** List of recipe dictionaries
     """
-    db = get_db()
-    query = {}
-
-    if spicy is not None:
-        if spicy:
-            query["dietary_tags"] = {"$in": ["spicy"]}
-        else:
-            query["dietary_tags"] = {"$nin": ["spicy"]}
-
-    if cooking_time_max is not None:
-        query["estimated_cooking_time"] = {"$lte": cooking_time_max}
-
-    if diet:
-        if diet.lower() == "veg":
-            query["dietary_tags"] = {"$in": ["vegetarian", "vegan"]}
-        elif diet.lower() == "non-veg":
-            query["dietary_tags"] = {"$nin": ["vegetarian", "vegan"]}
-
-    cursor = db.recipes.find(query).sort("average_rating", -1).limit(limit)
-    recipes = await cursor.to_list(length=limit)
-    for recipe in recipes:
-        recipe["_id"] = str(recipe["_id"])
-    return recipes
-
-
-@router.post("/{recipe_id}/rate")
-async def rate_recipe(recipe_id: str, rating_in: RecipeRatingCreate):
-    """
-    Rate a recipe (1-5 stars). Updates the average rating.
-    """
-    from ..deps import get_current_user
-    from fastapi import Depends
-    from ..schemas.rating_schema import RecipeRatingCreate
-
-    # Note: This would need authentication, but for simplicity, assuming user_id is passed or from auth
-    # For now, we'll simulate with a dummy user_id
-    user_id = "dummy_user"  # In real app, get from auth
-
-    db = get_db()
-    if not ObjectId.is_valid(recipe_id):
-        raise HTTPException(status_code=400, detail="Invalid recipe ID")
-
-    recipe = await db.recipes.find_one({"_id": ObjectId(recipe_id)})
-    if not recipe:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-
-    # Check if user already rated
-    existing_rating = await db.recipe_ratings.find_one({"recipe_id": recipe_id, "user_id": user_id})
-    if existing_rating:
-        # Update existing rating
-        await db.recipe_ratings.update_one(
-            {"recipe_id": recipe_id, "user_id": user_id},
-            {"$set": {"rating": rating_in.rating}}
+    try:
+        if search and len(search) > 100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Search term cannot exceed 100 characters"
+            )
+        
+        db = get_db()
+        result = await recipe_service.get_all_recipes(
+            db,
+            search=search,
+            category=category,
+            created_by=created_by,
+            skip=skip,
+            limit=limit,
         )
-    else:
-        # Insert new rating
-        rating_data = {
-            "recipe_id": recipe_id,
-            "user_id": user_id,
-            "rating": rating_in.rating,
-            "created_at": datetime.now(timezone.utc)
-        }
-        await db.recipe_ratings.insert_one(rating_data)
-
-    # Recalculate average rating
-    ratings_cursor = db.recipe_ratings.find({"recipe_id": recipe_id})
-    ratings = await ratings_cursor.to_list(length=None)
-    if ratings:
-        avg_rating = sum(r["rating"] for r in ratings) / len(ratings)
-        await db.recipes.update_one(
-            {"_id": ObjectId(recipe_id)},
-            {"$set": {"average_rating": avg_rating}}
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing recipes: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch recipes"
         )
 
-    return {"message": "Rating submitted successfully"}
 
+@router.get("/{recipe_id}", status_code=status.HTTP_200_OK)
+async def get_recipe(recipe_id: str) -> Any:
+    """
+    Retrieve a single recipe by its ID.
+    
+    **Parameters:**
+    - recipe_id: MongoDB ObjectId (24-character hex string)
+    
+    **Returns:** RecipeResponse with full recipe details
+    """
+    try:
+        db = get_db()
+        return await recipe_service.get_recipe_by_id(db, recipe_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching recipe: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch recipe"
+        )
+
+
+@router.put("/{recipe_id}", response_model=RecipeResponse, status_code=status.HTTP_200_OK)
+async def update_recipe(
+    recipe_id: str,
+    recipe_in: RecipeUpdate,
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
+    """
+    Update a recipe. Only the creator can update.
+    
+    **Parameters:**
+    - recipe_id: MongoDB ObjectId
+    - recipe_in: RecipeUpdate with fields to update (all optional)
+    
+    **Returns:** Updated RecipeResponse
+    
+    **Errors:**
+    - 403: If you're not the recipe creator
+    - 404: If recipe not found
+    - 422: If validation fails
+    """
+    try:
+        db = get_db()
+        return await recipe_service.update_recipe(db, recipe_id, recipe_in, current_user.id)
+    except ValidationError as e:
+        logger.warning(f"Recipe update validation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid recipe data"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating recipe: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update recipe"
+        )
+
+
+@router.delete("/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_recipe(
+    recipe_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+) -> Response:
+    """
+    Delete a recipe. Only the creator can delete.
+    
+    **Parameters:**
+    - recipe_id: MongoDB ObjectId
+    
+    **Returns:** 204 No Content on success
+    
+    **Errors:**
+    - 403: If you're not the recipe creator
+    - 404: If recipe not found
+    """
+    try:
+        db = get_db()
+        await recipe_service.delete_recipe(db, recipe_id, current_user.id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting recipe: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete recipe"
+        )
+
+
+@router.get("/debug/test-data", status_code=status.HTTP_200_OK)
+async def debug_test_data() -> Any:
+    """Debug endpoint returning hardcoded data."""
+    return [{"id": "1", "title": "Test 1"}, {"id": "2", "title": "Test 2"}]

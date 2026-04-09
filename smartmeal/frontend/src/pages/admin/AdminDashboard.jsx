@@ -44,18 +44,7 @@ function AdminDashboard() {
           <h3>Total Users</h3>
           <p className="metric-value">{metrics.totalUsers}</p>
         </div>
-        <div className="metric-card">
-          <h3>Total Inventory Items</h3>
-          <p className="metric-value">{metrics.totalInventoryItems}</p>
-        </div>
-        <div className="metric-card warning">
-          <h3>Items Expiring Soon (3 days)</h3>
-          <p className="metric-value">{metrics.itemsExpiringSoon}</p>
-        </div>
-        <div className="metric-card danger">
-          <h3>Expired Items</h3>
-          <p className="metric-value">{metrics.expiredItems}</p>
-        </div>
+
       </div>
     </div>
   );

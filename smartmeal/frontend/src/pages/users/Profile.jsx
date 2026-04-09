@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
+import { Check, PartyPopper } from 'lucide-react';
 
 function Profile() {
   const { user, setUser } = useContext(AuthContext);
@@ -57,7 +58,7 @@ function Profile() {
 
       const response = await api.put('/api/users/me', updatePayload);
       setUser(response.data.user);
-      setMessage({ type: 'success', text: isNewUser ? '🎉 Preferences saved! You\'re all set.' : 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: isNewUser ? 'Preferences saved! You\'re all set.' : 'Profile updated successfully!' });
 
       // Remove the welcome flag from the URL once they save
       if (isNewUser) {
@@ -78,9 +79,11 @@ function Profile() {
       {/* Welcome / Onboarding Banner for new users */}
       {isNewUser && (
         <div className="onboarding-banner">
-          <div className="onboarding-banner__icon">🎉</div>
+          <div className="onboarding-banner__icon">
+            <PartyPopper size={32} />
+          </div>
           <div className="onboarding-banner__body">
-            <h3>Welcome to Smart Meal, {user.name}!</h3>
+            <h3>Welcome to Smart Recipe, {user.name}!</h3>
             <p>
               To get personalised recipe recommendations, please fill in your dietary preferences below.
               This only takes a minute and helps us suggest meals you'll love.
@@ -92,7 +95,8 @@ function Profile() {
       <h2>{isNewUser ? 'Set Up Your Dietary Preferences' : 'My Profile'}</h2>
 
       {message.text && (
-        <div className={`alert alert-${message.type}`}>
+        <div className={`alert alert-${message.type}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {message.type === 'success' && <Check size={18} />}
           {message.text}
         </div>
       )}
@@ -178,8 +182,13 @@ function Profile() {
         </div>
 
         <div className="form-actions">
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Saving...' : isNewUser ? '✓ Save & Get Started' : 'Save Changes'}
+          <button type="submit" disabled={loading} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+            {loading ? 'Saving...' : (
+              <>
+                <Check size={20} />
+                {isNewUser ? 'Save & Get Started' : 'Save Changes'}
+              </>
+            )}
           </button>
         </div>
       </form>

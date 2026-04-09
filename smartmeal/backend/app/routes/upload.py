@@ -10,7 +10,7 @@ UPLOAD_DIR = os.path.join(
 )
 
 
-@router.post("/")
+@router.post("/image")
 async def upload_file(file: UploadFile = File(...)):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]

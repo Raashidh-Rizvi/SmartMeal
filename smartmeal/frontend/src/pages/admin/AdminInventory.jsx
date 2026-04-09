@@ -1,5 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
+import { 
+  Search, 
+  Filter, 
+  Trash2, 
+  AlertTriangle, 
+  ChevronLeft, 
+  ChevronRight,
+  ClipboardList
+} from 'lucide-react';
 
 function AdminInventory() {
   const [items, setItems] = useState([]);
@@ -13,7 +22,7 @@ function AdminInventory() {
   });
   const limit = 15;
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
       let params = new URLSearchParams({ page, limit });
@@ -36,11 +45,11 @@ function AdminInventory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filters.expiredOnly, filters.userEmail, filters.expiringBefore, limit]);
 
   useEffect(() => {
     fetchInventory();
-  }, [page, filters.expiredOnly]); // Manual trigger on some, auto on others
+  }, [fetchInventory]);
 
   const handleFilterSubmit = (e) => {
     e.preventDefault();
@@ -66,8 +75,9 @@ function AdminInventory() {
 
   return (
     <div className="admin-page">
-      <header className="admin-header">
-        <h1>Inventory Oversight</h1>
+      <header className="admin-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <ClipboardList size={32} color="var(--primary)" />
+        <h1 style={{ margin: 0 }}>Inventory Oversight</h1>
       </header>
 
       <div className="admin-filters">
@@ -99,7 +109,9 @@ function AdminInventory() {
             Expired Only
           </label>
 
-          <button type="submit" className="btn btn-primary">Apply Filters</button>
+          <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Filter size={16} /> Apply Filters
+          </button>
           <button type="button" onClick={handleClearFilters} className="btn btn-secondary">Clear</button>
         </form>
       </div>
@@ -132,10 +144,12 @@ function AdminInventory() {
                       {item.expiryDate 
                         ? new Date(item.expiryDate).toLocaleDateString() 
                         : 'No Expiry'}
-                      {isExpired && <span className="warning-icon ms-2">⚠️</span>}
+                      {isExpired && <span className="warning-icon ms-2" style={{ color: 'var(--danger)', display: 'inline-flex', alignItems: 'center' }}><AlertTriangle size={14} /></span>}
                     </td>
                     <td>
-                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger">Delete</button>
+                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Trash2 size={14} /> Delete
+                      </button>
                     </td>
                   </tr>
                 );
@@ -148,10 +162,14 @@ function AdminInventory() {
             </tbody>
           </table>
           
-          <div className="admin-pagination">
-            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary">Prev</button>
-            <span>Page {page} of {totalPages || 1}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary">Next</button>
+          <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
+            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ChevronLeft size={16} /> Prev
+            </button>
+            <span style={{ fontWeight: 500 }}>Page {page} of {totalPages || 1}</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              Next <ChevronRight size={16} />
+            </button>
           </div>
         </div>
       )}

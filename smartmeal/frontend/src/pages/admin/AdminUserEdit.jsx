@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 
@@ -11,6 +11,7 @@ function AdminUserEdit() {
   const [formData, setFormData] = useState({
     name: '',
     role: 'USER',
+    is_active: true,
     preferences: {
       dietType: '',
       budgetLevel: '',
@@ -18,17 +19,14 @@ function AdminUserEdit() {
     }
   });
 
-  useEffect(() => {
-    fetchUser();
-  }, [id]);
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const res = await api.get(`/api/admin/users/${id}`);
       setUser(res.data);
       setFormData({
         name: res.data.name || '',
         role: res.data.role || 'USER',
+        is_active: res.data.is_active !== undefined ? res.data.is_active : true,
         preferences: {
           dietType: res.data.preferences?.dietType || '',
           budgetLevel: res.data.preferences?.budgetLevel || '',
@@ -42,22 +40,35 @@ function AdminUserEdit() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.startsWith('pref_')) {
       const prefName = name.replace('pref_', '');
+      let finalValue = value;
+      if (prefName === 'householdSize') {
+          finalValue = parseInt(value, 10) || 0;
+      }
       setFormData(prev => ({
         ...prev,
         preferences: {
           ...prev.preferences,
-          [prefName]: value
+          [prefName]: finalValue
         }
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleSubmit = async (e) => {
@@ -68,8 +79,13 @@ function AdminUserEdit() {
       alert('User updated successfully');
       navigate('/admin/users');
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.detail || 'Failed to update user');
+      console.error('Update failed:', err);
+      const errorMsg = err.response?.data?.detail;
+      if (Array.isArray(errorMsg)) {
+        alert('Validation error: ' + JSON.stringify(errorMsg));
+      } else {
+        alert(errorMsg || 'Failed to update user');
+      }
     } finally {
       setSaving(false);
     }
@@ -109,6 +125,18 @@ function AdminUserEdit() {
               <option value="USER">USER</option>
               <option value="ADMIN">ADMIN</option>
             </select>
+          </div>
+
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+            <input 
+              type="checkbox" 
+              id="is_active"
+              name="is_active" 
+              checked={formData.is_active} 
+              onChange={handleCheckboxChange} 
+              style={{ width: 'auto', margin: 0 }}
+            />
+            <label htmlFor="is_active" style={{ margin: 0 }}>Active Account</label>
           </div>
 
           <h3 className="section-title">Preferences</h3>
