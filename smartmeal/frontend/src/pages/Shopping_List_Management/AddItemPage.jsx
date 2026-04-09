@@ -13,7 +13,7 @@ function AddItemPage() {
 
   const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
   const [source, setSource] = useState('Manual');
-  const [user_id, setUser_id] = useState('user123');
+  const [user_id] = useState('user123');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 

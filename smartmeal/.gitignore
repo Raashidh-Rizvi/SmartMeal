@@ -1,3 +1,6 @@
+# Nested duplicate project tree (do not commit; develop only in ./backend and ./frontend)
+SmartMeal/
+
 # Temporary / scratch files
 git_status.txt
 out.txt

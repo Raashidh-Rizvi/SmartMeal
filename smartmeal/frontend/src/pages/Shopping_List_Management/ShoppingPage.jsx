@@ -93,7 +93,7 @@ function ShoppingPage() {
     }
   };
 
-  const updateItem = async (itemId, updateData) => {
+  const updateItem = async (itemId) => {
     // Navigate to edit view instead of inline editing
     showEditView(itemId);
     return true;
