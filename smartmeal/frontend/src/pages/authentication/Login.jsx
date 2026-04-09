@@ -26,7 +26,15 @@ function Login() {
     setError('');
     const normalizedEmail = email.toLowerCase().trim();
     try {
-      const response = await api.post('/api/auth/login', { email: normalizedEmail, password });
+      // Use URLSearchParams for application/x-www-form-urlencoded (OAuth2 requirement)
+      const params = new URLSearchParams();
+      params.append('username', normalizedEmail);
+      params.append('password', password);
+      
+      const response = await api.post('/api/auth/login', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+      
       const { accessToken, user } = response.data;
       login(user, accessToken);
       navigate('/');

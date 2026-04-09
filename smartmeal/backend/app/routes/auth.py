@@ -98,10 +98,30 @@ async def google_login(req: GoogleLoginRequest) -> Any:
         insert_result = await db["users"].insert_one(new_user_data)
         user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
     else:
-        # Update name if missing
+        # Update missing fields to avoid Pydantic validation errors
+        updates = {}
         if not user_dict.get("name"):
-            await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": {"name": req.name}})
+            updates["name"] = req.name
             user_dict["name"] = req.name
+        
+        if not user_dict.get("password_hash"):
+            # Provide a random password hash for socially-joined users who haven't set a password
+            pwd_hash = get_password_hash(generate_random_password())
+            updates["password_hash"] = pwd_hash
+            user_dict["password_hash"] = pwd_hash
+            
+        if not user_dict.get("createdAt"):
+            now = datetime.now(timezone.utc)
+            updates["createdAt"] = now
+            user_dict["createdAt"] = now
+            
+        if not user_dict.get("updatedAt"):
+            now = datetime.now(timezone.utc)
+            updates["updatedAt"] = now
+            user_dict["updatedAt"] = now
+            
+        if updates:
+            await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": updates})
             
     user_dict["_id"] = str(user_dict["_id"])
     user = UserInDB(**user_dict)
