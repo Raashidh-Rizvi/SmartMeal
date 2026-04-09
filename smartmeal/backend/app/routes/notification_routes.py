@@ -5,7 +5,10 @@ from bson import ObjectId
 from pydantic import BaseModel
 from ..db.database import get_db
 from ..api.deps import get_current_user_id
+from ..utils.email import send_digest_email
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -35,11 +38,12 @@ def serialize_notification(notification: dict, user_id: str = None) -> dict:
 
 async def generate_expiring_food_alerts(db, user_id: str):
     now = datetime.now(timezone.utc)
-    soon = now + timedelta(days=7)
+    now_naive = datetime.utcnow()
+    soon_naive = now_naive + timedelta(days=7)
 
     cursor = db.inventory_items.find({
         "userId": user_id,
-        "expiryDate": {"$gte": now, "$lte": soon}
+        "expiryDate": {"$gte": now_naive, "$lte": soon_naive}
     })
     items = await cursor.to_list(length=None)
 
@@ -68,13 +72,14 @@ async def generate_expiring_food_alerts(db, user_id: str):
 
 
 async def generate_expiring_leftover_alerts(db, user_id: str):
-    now = datetime.now(timezone.utc)
-    soon = now + timedelta(days=3)
+    now_naive = datetime.utcnow()
+    soon_naive = now_naive + timedelta(days=3)
+    now_aware = datetime.now(timezone.utc)
 
     cursor = db.leftovers.find({
         "user_id": user_id,
         "is_used": {"$ne": True},
-        "expiry_date": {"$gte": now, "$lte": soon}
+        "expiry_date": {"$gte": now_naive, "$lte": soon_naive}
     })
     items = await cursor.to_list(length=None)
 
@@ -89,8 +94,14 @@ async def generate_expiring_leftover_alerts(db, user_id: str):
             continue
 
         expiry_date = item.get("expiry_date")
-        days_left = (expiry_date - now).days if isinstance(expiry_date, datetime) else 0
-        expiry_text = expiry_date.strftime("%Y-%m-%d") if isinstance(expiry_date, datetime) else "soon"
+        if isinstance(expiry_date, datetime):
+            # normalise to naive UTC for safe arithmetic
+            exp_naive = expiry_date.replace(tzinfo=None) if expiry_date.tzinfo else expiry_date
+            days_left = (exp_naive - now_naive).days
+            expiry_text = exp_naive.strftime("%Y-%m-%d")
+        else:
+            days_left = 0
+            expiry_text = "soon"
         item_name = item.get("name", "Leftover item")
 
         if days_left < 0:
@@ -106,7 +117,7 @@ async def generate_expiring_leftover_alerts(db, user_id: str):
             "message": f"🍽️ Leftover '{item_name}' {urgency}. Use it now or generate a recipe!",
             "leftoverId": leftover_id,
             "isRead": False,
-            "createdAt": now,
+            "createdAt": now_aware,
         })
 
 
@@ -232,24 +243,34 @@ async def get_user_notifications(
 ):
     db = get_db()
 
-    # Check if user has notifications disabled
-    prefs = await db.notification_preferences.find_one({"userId": user_id})
-    notifications_enabled = True
-    if prefs:
-        notifications_enabled = prefs.get("notificationsEnabled", True)
+    # ── collect IDs that already exist before generation ──────────────────────
+    existing_ids = set(
+        str(n["_id"])
+        for n in await db.notifications.find({"userId": user_id}).to_list(length=None)
+    )
 
-    if notifications_enabled:
-        await generate_expiring_food_alerts(db, user_id)
-        await generate_expiring_leftover_alerts(db, user_id)
-        await generate_meal_schedule_alerts(db, user_id)
-        await generate_budget_alerts(db, user_id)
+    # ── generate new notifications ────────────────────────────────────────────
+    await generate_expiring_food_alerts(db, user_id)
+    await generate_expiring_leftover_alerts(db, user_id)
+    await generate_meal_schedule_alerts(db, user_id)
+    await generate_budget_alerts(db, user_id)
 
-    query = {
-        "$or": [
-            {"userId": user_id},
-            {"userId": "ALL", "hiddenByUserIds": {"$ne": user_id}}
-        ]
-    }
+    # ── find newly created ones ───────────────────────────────────────────────
+    all_now = await db.notifications.find({"userId": user_id}).to_list(length=None)
+    new_notifications = [n for n in all_now if str(n["_id"]) not in existing_ids]
+
+    # ── send digest email if any new notifications were created ───────────────
+    if new_notifications:
+        try:
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+            email = user.get("email") if user else None
+            if email:
+                send_digest_email(email, new_notifications)
+        except Exception as e:
+            logger.error(f"[EMAIL] Could not send digest for user {user_id}: {e}")
+
+    # ── return all notifications ──────────────────────────────────────────────
+    query = {"userId": {"$in": [user_id, "ALL"]}}
     if unread:
         query["$or"] = [
             {"userId": user_id, "isRead": False},

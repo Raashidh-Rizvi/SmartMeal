@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, HTTPException, Query, Depends
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -23,7 +24,7 @@ async def check_inventory(db, recipe_id: str, user_id: str, servings: int = 1):
             ing_name = ing["name"]
             recipe_unit = ing.get("unit", "")
             inventory = await db.inventory_items.find_one({
-                "name": {"$regex": f"^{ing_name}$", "$options": "i"},
+                "name": {"$regex": f"^{re.escape(ing_name)}$", "$options": "i"},
                 "userId": user_id
             })
             inv_qty  = float(inventory["quantity"]) if inventory else 0.0
@@ -57,7 +58,7 @@ async def get_meal_with_recipe_details(db, meal_doc: dict, user_id: str) -> Meal
             for ing in recipe.get("ingredients", []):
                 ing_qty = ing["quantity"] * meal_doc.get("servings", 1)
                 base_ing = await db.ingredients.find_one(
-                    {"name": {"$regex": f"^{ing['name']}$", "$options": "i"}}
+                    {"name": {"$regex": f"^{re.escape(ing['name'])}$", "$options": "i"}}
                 )
                 if base_ing and base_ing.get("calories"):
                     total_calories += base_ing["calories"] * ing_qty
@@ -113,7 +114,7 @@ async def create_meal(
         recipe_unit = _norm(ing.get("unit", ""))
         required    = ing.get("quantity", 1) * servings
         inv_item = await db.inventory_items.find_one({
-            "name": {"$regex": f"^{ing['name']}$", "$options": "i"},
+            "name": {"$regex": f"^{re.escape(ing['name'])}$", "$options": "i"},
             "userId": user_id
         })
         inv_qty  = float(inv_item["quantity"]) if inv_item else 0.0
@@ -151,7 +152,7 @@ async def create_meal(
         required    = ing.get("quantity", 1) * servings
 
         inv_item = await db.inventory_items.find_one({
-            "name": {"$regex": f"^{ing['name']}$", "$options": "i"},
+            "name": {"$regex": f"^{re.escape(ing['name'])}$", "$options": "i"},
             "userId": user_id
         })
 
@@ -369,7 +370,7 @@ async def get_meal_ingredients(meal_id: str):
         for ing in recipe.get("ingredients", []):
             recipe_unit = ing.get("unit", "")
             inventory   = await db.inventory_items.find_one({
-                "name": {"$regex": f"^{ing['name']}$", "$options": "i"},
+                "name": {"$regex": f"^{re.escape(ing['name'])}$", "$options": "i"},
                 "userId": meal.get("user_id", "1")
             })
             inv_qty  = float(inventory["quantity"]) if inventory else 0.0
@@ -431,7 +432,7 @@ async def use_ingredients(meal_id: str):
         required    = ing.get("quantity", 1) * servings
 
         inv_item = await db.inventory_items.find_one({
-            "name": {"$regex": f"^{ing['name']}$", "$options": "i"},
+            "name": {"$regex": f"^{re.escape(ing['name'])}$", "$options": "i"},
             "userId": user_id
         })
         if not inv_item:

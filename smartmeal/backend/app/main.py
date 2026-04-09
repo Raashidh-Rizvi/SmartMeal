@@ -110,6 +110,9 @@ app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["meal-schedules"])
 app.include_router(leftovers_router)
 app.include_router(budget_router)
+app.include_router(leftover_ai_router)
+app.include_router(notification_router, prefix="/api", tags=["notifications"])
+app.include_router(recommendation_router)
 
 @app.get("/")
 async def root():

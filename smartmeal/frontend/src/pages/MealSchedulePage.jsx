@@ -126,102 +126,106 @@ function StatusBadge({ status }) {
     );
 }
 // ✓✓ 📖 Recipe Details Modal ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
-function RecipeDetailsModal({ meal, recipe, onClose, ingredients, addedIng }) {
-    if (!recipe) {
-        return (
-            <div className="ms-overlay" onClick={onClose}>
-                <div className="ms-modal ms-modal-large" onClick={e => e.stopPropagation()}>
-                    <div className="ms-modal-header">
-                        <h3>📖 Recipe Details</h3>
-                        <button className="ms-modal-close" onClick={onClose}></button>
-                    </div>
-                    <div className="ms-modal-body">
-                        <p>Recipe details not available.</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
+function RecipeDetailsModal({ meal, recipe, onClose, ingredients, addedIng, addingIng, onAddToShopping }) {
+    const ings = ingredients?.[meal?._id] || [];
     return (
         <div className="ms-overlay" onClick={onClose}>
             <div className="ms-modal ms-modal-large" onClick={e => e.stopPropagation()}>
-                <div className="ms-modal-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0 }}>
-                        <BookOpen size={20} color="var(--primary)" /> {recipe.title}
-                    </h3>
-                    <button className="ms-modal-close" onClick={onClose} aria-label="Close modal"><X size={20} /></button>
+                <div className="ms-modal-header">
+                    <h3>📖 {recipe?.title || "Recipe Details"}</h3>
+                    <button className="ms-modal-close" onClick={onClose}>✕</button>
                 </div>
-                <div className="ms-modal-body">
-                    {recipe.description && <p className="ms-recipe-desc"><em>{recipe.description}</em></p>}
-                    
-                    <div className="ms-detail-grid">
-                        <div><strong>Category:</strong> {recipe.category}</div>
-                        <div><strong>Cook Time:</strong> {recipe.estimated_cooking_time ? `${recipe.estimated_cooking_time} min` : "N/A"}</div>
-                        <div><strong>Tags:</strong> {recipe.dietary_tags?.join(", ") || "None"}</div>
-                        {meal.total_calories_estimate && (
-                            <div><strong>Est. Calories:</strong> {meal.total_calories_estimate} kcal</div>
+                {!recipe ? (
+                    <div className="ms-modal-body"><p className="ms-muted">Recipe details not available.</p></div>
+                ) : (
+                    <div className="ms-modal-body">
+                        {recipe.image_url && (
+                            <img src={recipe.image_url} alt={recipe.title}
+                                style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 10, marginBottom: "1rem" }} />
                         )}
-                    </div>
-
-                    <div className="ms-detail-sections">
-                        {/* 🥘 Ingredients */}
-                        <div className="ms-detail-section">
-                            <h4 className="ms-section-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                <Utensils size={18} /> Ingredients
-                            </h4>
-                            {recipe.ingredients?.length > 0 ? (
-                                <ul className="ms-ing-list">
-                                    {recipe.ingredients.map((ing, i) => (
-                                        <li key={i}>
-                                            <span className="ms-ing-qty">{ing.quantity} {ing.unit}</span>
-                                            <span className="ms-ing-name">{ing.name}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : <p className="ms-muted">No ingredients listed.</p>}
+                        {recipe.description && <p className="ms-recipe-desc"><em>{recipe.description}</em></p>}
+                        <div className="ms-rdm-meta">
+                            <span className="ms-rdm-chip ms-rdm-chip-cat">🍽️ {recipe.category?.charAt(0).toUpperCase() + recipe.category?.slice(1)}</span>
+                            {recipe.estimated_cooking_time && <span className="ms-rdm-chip ms-rdm-chip-time">⏱️ {recipe.estimated_cooking_time} min</span>}
+                            {meal?.total_calories_estimate && <span className="ms-rdm-chip ms-rdm-chip-cal">🔥 {meal.total_calories_estimate} kcal</span>}
+                            {recipe.average_rating != null && <span className="ms-rdm-chip ms-rdm-chip-rating">⭐ {recipe.average_rating.toFixed(1)}</span>}
                         </div>
-
-                        {/* 👨‍🍳 Preparation Steps */}
-                        <div className="ms-detail-section">
-                            <h4 className="ms-section-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                <ChefHat size={18} /> Preparation Steps
-                            </h4>
-                            {recipe.preparation_steps?.length > 0 ? (
-                                <ol className="ms-steps-list">
-                                    {recipe.preparation_steps.map((step, i) => (
-                                        <li key={i} className="ms-step-item">{step}</li>
-                                    ))}
-                                </ol>
-                            ) : <p className="ms-muted">No preparation steps listed.</p>}
-                        </div>
-                    </div>
-
-                    {(() => {
-                        const ings = ingredients?.[meal._id];
-                        const activeWarnings = meal.warnings?.filter(w => {
-                            if (!ings) return true;
-                            // hide warning if the ingredient was added to shopping list
-                            return !ings.some(ing =>
-                                w.toLowerCase().includes(ing.name.toLowerCase()) &&
-                                (ing.addedToList || addedIng?.[`${meal._id}_${ing.name}`])
-                            );
-                        });
-                        return activeWarnings?.length > 0 ? (
-                            <div className="ms-warn-list">
-                                <strong style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                                    <AlertTriangle size={16} color="#ef4444" /> Inventory Warnings:
-                                </strong>
-                                <ul>{activeWarnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+                        {recipe.dietary_tags?.length > 0 && (
+                            <div className="ms-rdm-tags">
+                                {recipe.dietary_tags.map(tag => <span key={tag} className="ms-rdm-tag">🏷️ {tag}</span>)}
                             </div>
-                        ) : null;
-                    })()}
-                </div>
+                        )}
+                        <div className="ms-detail-sections">
+                            <div className="ms-detail-section">
+                                <h4 className="ms-section-title">🥘 Ingredients</h4>
+                                {ings.length > 0 ? (
+                                    <ul className="ms-ing-list" style={{ gap: ".5rem" }}>
+                                        {ings.map((ing, i) => {
+                                            const key = `${ing.meal_id}_${ing.name}`;
+                                            const isAdded = ing.addedToList || addedIng?.[key];
+                                            const isMissing = ing.missing && !isAdded;
+                                            return (
+                                                <li key={i} className={`ms-ing-row ${isMissing ? "ms-ing-row-missing" : isAdded ? "ms-ing-row-added" : "ms-ing-row-ok"}`}>
+                                                    <div className="ms-ing-left">
+                                                        <span className="ms-ing-qty">{ing.quantity} {ing.unit}</span>
+                                                        <span className="ms-ing-name">{ing.name}</span>
+                                                        {isMissing && ing.missing_quantity < ing.quantity && (
+                                                            <span className="ms-ing-have">(have {round2(ing.inventory_quantity)} {ing.unit})</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="ms-ing-right">
+                                                        {isMissing && (
+                                                            <>
+                                                                <span className="ms-ing-badge ms-ing-badge-missing">⚠️ Need {round2(ing.missing_quantity)} {ing.unit}</span>
+                                                                {onAddToShopping && (
+                                                                    <button className="ms-btn ms-btn-sm ms-btn-shopping"
+                                                                        disabled={addingIng?.[key]}
+                                                                        onClick={() => onAddToShopping(ing)}>
+                                                                        {addingIng?.[key] ? "⏳" : "✚ Add"}
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                        {isAdded && <span className="ms-ing-badge ms-ing-badge-added">✓ In Shopping List</span>}
+                                                        {!isMissing && !isAdded && <span className="ms-ing-badge ms-ing-badge-ok">✓ Available</span>}
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                ) : recipe.ingredients?.length > 0 ? (
+                                    <ul className="ms-ing-list">
+                                        {recipe.ingredients.map((ing, i) => (
+                                            <li key={i} className="ms-ing-row ms-ing-row-ok">
+                                                <div className="ms-ing-left">
+                                                    <span className="ms-ing-qty">{ing.quantity} {ing.unit}</span>
+                                                    <span className="ms-ing-name">{ing.name}</span>
+                                                </div>
+                                                <div className="ms-ing-right">
+                                                    <span className="ms-ing-badge ms-ing-badge-ok">✓ Available</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : <p className="ms-muted">No ingredients listed.</p>}
+                            </div>
+                            <div className="ms-detail-section">
+                                <h4 className="ms-section-title">👨🍳 Preparation Steps</h4>
+                                {recipe.preparation_steps?.length > 0 ? (
+                                    <ol className="ms-steps-list">
+                                        {recipe.preparation_steps.map((step, i) => (
+                                            <li key={i} className="ms-step-item">{step}</li>
+                                        ))}
+                                    </ol>
+                                ) : <p className="ms-muted">No preparation steps listed.</p>}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
-// ✓✓ Meal Alert Badge ✓ shared helper ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 function MealAlertBadge({ meal, ingredients }) {
     const ings = ingredients[meal._id];
     if (ings) {
@@ -722,10 +726,37 @@ export default function MealSchedulePage() {
                 }
                 toast("Meal updated ✓", "success");
             } else {
-                await createMeal(payload);
+                const createRes = await createMeal(payload);
+                const newMeal = createRes.data;
                 toast("Meal created ✓", "success");
                 // Add a small delay before refreshing to ensure DB sync
                 await new Promise(r => setTimeout(r, 300));
+                // Prompt to add missing ingredients to shopping list
+                if (newMeal?._id) {
+                    try {
+                        const ingRes = await getMealIngredients(newMeal._id);
+                        const missing = (ingRes.data || []).filter(i => i.missing);
+                        if (missing.length > 0) {
+                            const names = missing.map(i => i.name).join(", ");
+                            if (window.confirm(`⚠️ Missing ingredients for this meal:\n${names}\n\nAdd them to your Shopping List?`)) {
+                                await Promise.all(missing.map(ing =>
+                                    ShoppingAPI.addItem({
+                                        user_id: userId,
+                                        name: ing.name,
+                                        quantity: ing.missing_quantity ?? ing.quantity ?? 1,
+                                        unit: ing.unit || "",
+                                        category: "meal-plan",
+                                        source: "meal-plan",
+                                        meal_id: newMeal._id,
+                                        notes: `From Meal: ${ing.recipe_title} (${payload.meal_date})`,
+                                        status: "pending",
+                                    })
+                                ));
+                                toast(`✓ ${missing.length} missing ingredient${missing.length !== 1 ? "s" : ""} added to Shopping List`, "success");
+                            }
+                        }
+                    } catch { /* non-critical */ }
+                }
             }
             setForm(EMPTY_FORM);
             setErrors({});
