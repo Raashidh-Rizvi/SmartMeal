@@ -258,18 +258,28 @@ function Leftovers() {
       } else {
         // 2. Auto-create the recipe from AI data
         const ingredients = (recipe.ingredients || []).map(ing => {
-          // ing is a string like "chicken" or "2 cups rice"
-          const parts = String(ing).trim().split(' ');
-          const qty = parseFloat(parts[0]);
-          if (!isNaN(qty) && parts.length >= 3) {
-            return { name: parts.slice(2).join(' '), quantity: qty, unit: parts[1] };
+          const str = String(ing).trim();
+          const match = str.match(/^([\d.]+)\s+(\S+)\s+(.+)$/);
+          if (match) {
+            return { name: match[3].trim().slice(0, 100), quantity: parseFloat(match[1]), unit: match[2].trim().slice(0, 50) };
           }
-          return { name: String(ing).trim(), quantity: 1, unit: 'serving' };
-        }).filter(i => i.name);
+          return { name: str.slice(0, 100) || 'ingredient', quantity: 1, unit: 'serving' };
+        }).filter(i => i.name && i.name.length > 0);
+
+        // Ensure at least one ingredient
+        if (ingredients.length === 0) {
+          ingredients.push({ name: recipe.name, quantity: 1, unit: 'serving' });
+        }
 
         const steps = recipe.instructions
           ? String(recipe.instructions).split(/[.\n]/).map(s => s.trim()).filter(Boolean)
           : [`Prepare ${recipe.name} using the listed ingredients.`];
+
+        const cookTime = (() => {
+          const m = String(recipe.prep_time || '').match(/(\d+)/);
+          const val = m ? parseInt(m[1]) : null;
+          return val && val >= 1 && val <= 1440 ? val : null;
+        })();
 
         const newRecipe = await createRecipe({
           title: recipe.name,
@@ -277,11 +287,8 @@ function Leftovers() {
           category: form.meal_type,
           ingredients,
           preparation_steps: steps,
-          dietary_tags: recipe.diet && recipe.diet !== 'N/A' ? [recipe.diet] : [],
-          estimated_cooking_time: (() => {
-            const m = String(recipe.prep_time || '').match(/(\d+)/);
-            return m ? parseInt(m[1]) : null;
-          })(),
+          dietary_tags: [],
+          estimated_cooking_time: cookTime,
         });
         recipeId = newRecipe.data._id || newRecipe.data.id;
       }

@@ -62,6 +62,44 @@ class LeftoverUpdate(BaseModel):
     ingredients: Optional[List[str]] = None
 
 
+@router.post("/api/leftovers/generate-recipes")
+async def generate_recipes(
+    data: dict,
+    user_id: str = Depends(get_current_user_id)
+):
+    from app.services.recommendation import get_recipe_recommendations
+    
+    leftovers = data.get("leftovers", [])
+    top_n = data.get("top_n", 5)
+    
+    if not leftovers:
+        raise HTTPException(status_code=400, detail="No leftovers provided")
+    
+    # Collect all ingredients from all selected leftovers
+    all_ingredients = []
+    for leftover in leftovers:
+        ingredients = leftover.get("ingredients", [])
+        all_ingredients.extend(ingredients)
+    
+    if not all_ingredients:
+        raise HTTPException(status_code=400, detail="Selected leftovers have no ingredients")
+    
+    combined_ingredients = list(set(all_ingredients))
+    query = ", ".join(combined_ingredients)
+    
+    results = get_recipe_recommendations({"ingredients": query}, top_k=top_n)
+    
+    has_error = any(r.get("error") for r in results)
+    
+    return {
+        "success": not has_error,
+        "message": results[0]["message"] if has_error else f"Found {len(results)} recipes",
+        "recipes": [] if has_error else results,
+        "combined_ingredients": combined_ingredients,
+        "rule_based_suggestions": []
+    }
+
+
 @router.get("/api/leftovers")
 async def get_leftovers(
     include_used: bool = False,

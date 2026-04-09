@@ -591,7 +591,7 @@ export default function MealSchedulePage() {
         try {
             const [mRes, rRes] = await Promise.all([
                 getMeals(),
-                getRecipes({ limit: 200 }),
+                getRecipes({ limit: 100 }),
             ]);
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
             setMeals(loadedMeals);
@@ -626,7 +626,7 @@ export default function MealSchedulePage() {
         } catch (err) {
             console.error("Load error:", err?.response?.data || err?.message);
             try { const r = await getMeals(); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
-            try { const r = await getRecipes({ limit: 200 }); setAllRecipes(Array.isArray(r.data) ? r.data : []); } catch { setAllRecipes([]); }
+            try { const r = await getRecipes({ limit: 100 }); setAllRecipes(Array.isArray(r.data) ? r.data : []); } catch { setAllRecipes([]); }
         } finally {
             setLoading(false);
         }

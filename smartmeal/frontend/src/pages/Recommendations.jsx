@@ -114,8 +114,8 @@ function Recommendations() {
       const parts = String(ing).trim().split(' ');
       const qty = parseFloat(parts[0]);
       if (!isNaN(qty) && parts.length >= 3)
-        return { name: parts.slice(2).join(' '), quantity: qty, unit: parts[1] };
-      return { name: String(ing).trim(), quantity: 1, unit: 'serving' };
+        return { name: parts.slice(2).join(' ').slice(0, 100), quantity: qty, unit: parts[1].slice(0, 50) };
+      return { name: String(ing).trim().slice(0, 100), quantity: 1, unit: 'serving' };
     }).filter(i => i.name);
 
     const steps = r.instructions

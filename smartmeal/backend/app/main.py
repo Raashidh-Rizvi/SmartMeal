@@ -19,6 +19,7 @@ from app.routes.upload import router as upload_router
 from app.routes.meal_schedule_routes import router as meal_schedule_router
 from app.routes.leftovers import router as leftovers_router
 from app.routes.budget import router as budget_router
+from app.routes.notification_routes import router as notification_router
 import logging
 import os
 
@@ -110,9 +111,28 @@ app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["meal-schedules"])
 app.include_router(leftovers_router)
 app.include_router(budget_router)
-app.include_router(leftover_ai_router)
 app.include_router(notification_router, prefix="/api", tags=["notifications"])
-app.include_router(recommendation_router)
+
+# Recommendations search endpoint
+from fastapi import Request
+from app.services.recommendation import recommendRecipes
+
+@app.post("/api/recommendations/search")
+async def recommendations_search(request: Request):
+    body = await request.json()
+    query = body.get("query", "")
+    top_n = body.get("top_n", 5)
+    diet = body.get("diet")
+    cooking_time_max = body.get("cooking_time_max")
+    if not query:
+        return {"success": False, "message": "Query is required", "recipes": []}
+    results = recommendRecipes(query, top_n=top_n, diet_filter=diet, cooking_time_max=cooking_time_max)
+    has_error = any(r.get("error") for r in results)
+    return {
+        "success": not has_error,
+        "message": results[0]["message"] if has_error else f"Found {len(results)} recipes",
+        "recipes": [] if has_error else results
+    }
 
 @app.get("/")
 async def root():
