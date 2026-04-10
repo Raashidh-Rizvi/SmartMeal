@@ -93,24 +93,100 @@ async def delete_user(user_id: str):
 @router.get("/metrics")
 async def get_metrics():
     db = get_db()
-    now = datetime.now(timezone.utc)
-    soon = now + timedelta(days=7)
-    total_inventory = await db.inventory_items.count_documents({})
-    expiring_soon = await db.inventory_items.count_documents({
-        "expiryDate": {"$lte": soon, "$gte": now}
-    })
-    expired = await db.inventory_items.count_documents({
-        "expiryDate": {"$lt": now}
-    })
     return {
         "totalUsers": await db.users.count_documents({}),
         "total_users": await db.users.count_documents({}),
-        "totalInventoryItems": total_inventory,
-        "total_inventory": total_inventory,
-        "itemsExpiringSoon": expiring_soon,
-        "expiredItems": expired,
         "total_recipes": await db.recipes.count_documents({}),
         "total_meals": await db.meal_schedules.count_documents({}),
+    }
+
+
+@router.get("/analytics")
+async def get_analytics():
+    db = get_db()
+    
+    # 1. Meal Type Distribution
+    pipeline_type = [
+        {"$group": {"_id": "$meal_type", "count": {"$sum": 1}}}
+    ]
+    type_cursor = db.meal_schedules.aggregate(pipeline_type)
+    meal_types = await type_cursor.to_list(length=None)
+    
+    # 2. Most Scheduled (Favorite) Recipes
+    pipeline_favs = [
+        {"$group": {"_id": "$recipe_id", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    fav_cursor = db.meal_schedules.aggregate(pipeline_favs)
+    fav_raw = await fav_cursor.to_list(length=None)
+    
+    most_favorited = []
+    for item in fav_raw:
+        recipe = await db.recipes.find_one({"_id": ObjectId(item["_id"])})
+        most_favorited.append({
+            "name": recipe.get("title") if recipe else "Unknown",
+            "count": item["count"]
+        })
+
+    # 3. Highly Rated (Most Recommended) Recipes
+    pipeline_rated = [
+        {"$match": {"rating": {"$exists": True, "$ne": None}}},
+        {"$group": {
+            "_id": "$recipe_id", 
+            "avgRating": {"$avg": "$rating"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"avgRating": -1, "count": -1}},
+        {"$limit": 5}
+    ]
+    rated_cursor = db.meal_schedules.aggregate(pipeline_rated)
+    rated_raw = await rated_cursor.to_list(length=None)
+    
+    highly_rated = []
+    for item in rated_raw:
+        recipe = await db.recipes.find_one({"_id": ObjectId(item["_id"])})
+        highly_rated.append({
+            "name": recipe.get("title") if recipe else "Unknown",
+            "rating": round(item["avgRating"], 1),
+            "count": item["count"]
+        })
+
+    # 4. Usage Trends (Last 7 days)
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+    # Note: simple string comparison if meal_date is ISO string or date objects
+    # We aggregate count per day
+    pipeline_trends = [
+        {"$match": {"created_at": {"$gte": week_ago}}},
+        {"$group": {
+            "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    trend_cursor = db.meal_schedules.aggregate(pipeline_trends)
+    trends = await trend_cursor.to_list(length=None)
+
+    # 5. Category Distribution
+    cat_cursor = db.meal_schedules.aggregate([
+        {"$lookup": {
+            "from": "recipes",
+            "localField": "recipe_id",
+            "foreignField": "_id",
+            "as": "recipe_details"
+        }},
+        {"$unwind": "$recipe_details"},
+        {"$group": {"_id": "$recipe_details.category", "count": {"$sum": 1}}}
+    ])
+    categories = await cat_cursor.to_list(length=None)
+
+    return {
+        "mealTypes": {item["_id"]: item["count"] for item in meal_types if item["_id"]},
+        "mostFavorited": most_favorited,
+        "highlyRated": highly_rated,
+        "categories": {item["_id"]: item["count"] for item in categories if item["_id"]},
+        "usageTrends": trends
     }
 
 

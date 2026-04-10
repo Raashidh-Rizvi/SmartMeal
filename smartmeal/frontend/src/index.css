@@ -1131,10 +1131,17 @@ button:active, .btn-primary:active {
   margin: 0 auto;
 }
 
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .footer-brand h3 {
   font-size: 1.5rem;
   color: var(--text-main);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 .footer-brand p {

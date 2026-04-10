@@ -163,43 +163,49 @@ function Recommendations() {
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div>
+    <div className="main-content">
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ marginBottom: '0.25rem' }}>🤖 AI Recipe Recommendations</h2>
-        <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-          Add your available ingredients — the AI finds recipes that use them all together.
+      <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
+        <h1 className="premium-gradient-text" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
+          AI Recipe Recommendations
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
+          Discover culinary masterpieces with your available ingredients. Our AI finds recipes that harmonize perfectly.
         </p>
       </div>
 
       {/* Search form */}
-      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="card" style={{ padding: '2rem', marginBottom: '3rem', border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
         <form onSubmit={handleSearch}>
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label style={{ fontWeight: 600 }}>
-              Your Ingredients
-              <span style={{ fontWeight: 400, fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                (press Enter or comma after each)
+          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span>YOUR INGREDIENTS</span>
+              <span style={{ fontWeight: 400, fontSize: '0.75rem', opacity: 0.7 }}>
+                Press Enter or comma to add
               </span>
             </label>
 
             {/* Tag box */}
             <div onClick={() => inputRef.current?.focus()} style={{
-              display: 'flex', flexWrap: 'wrap', gap: '0.4rem',
-              padding: '0.5rem 0.75rem', minHeight: '46px',
+              display: 'flex', flexWrap: 'wrap', gap: '0.6rem',
+              padding: '0.75rem 1rem', minHeight: '56px',
               border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--card-border)'}`,
-              borderRadius: '8px', background: 'var(--card-bg)', cursor: 'text', alignItems: 'center',
+              borderRadius: '16px', background: 'rgba(255,255,255,0.4)', cursor: 'text', alignItems: 'center',
+              transition: 'all 0.3s ease',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
             }}>
               {ingredients.map((ing, i) => (
-                <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                  padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.82rem',
-                  background: 'rgba(5,150,105,0.12)', color: 'var(--primary)',
-                  border: '1px solid rgba(5,150,105,0.3)',
+                <span key={i} className="badge" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                  padding: '0.4rem 0.8rem', borderRadius: '50px', fontSize: '0.85rem',
+                  background: 'var(--primary-gradient)', color: '#fff',
+                  boxShadow: '0 4px 10px var(--primary-glow)',
+                  fontWeight: 600,
+                  animation: 'slideUp 0.3s ease-out'
                 }}>
                   {ing}
                   <span onClick={e => { e.stopPropagation(); removeIngredient(i); }}
-                    style={{ cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', lineHeight: 1 }}>×</span>
+                    style={{ cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem', marginLeft: '0.2rem', lineHeight: 1 }}>×</span>
                 </span>
               ))}
               <input ref={inputRef} type="text" value={inputVal}
@@ -207,46 +213,50 @@ function Recommendations() {
                 onKeyDown={handleKeyDown}
                 onBlur={() => { if (inputVal.trim()) addIngredient(inputVal); }}
                 placeholder={ingredients.length === 0 ? 'e.g. chicken, rice, onion…' : 'Add more…'}
-                style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.9rem', color: 'var(--text)', flex: '1', minWidth: '120px', padding: '0.1rem 0' }}
+                style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '1rem', color: 'var(--text-main)', flex: '1', minWidth: '150px', padding: '0.2rem 0' }}
               />
             </div>
 
-            {errorMsg && <span style={{ fontSize: '0.82rem', color: 'var(--danger)', marginTop: '0.3rem', display: 'block' }}>{errorMsg}</span>}
+            {errorMsg && <span style={{ fontSize: '0.82rem', color: 'var(--danger)', marginTop: '0.5rem', display: 'block', fontWeight: 500 }}>{errorMsg}</span>}
 
             {/* Quick examples */}
-            <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Try:</span>
+            <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Try:</span>
               {['chicken rice onion', 'egg tomato garlic', 'potato spinach curry', 'pasta cheese garlic'].map(ex => (
                 <button key={ex} type="button"
                   onClick={() => ex.split(' ').forEach(w => addIngredient(w))}
-                  style={{ fontSize: '0.75rem', padding: '0.15rem 0.6rem', borderRadius: '999px', background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  className="btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', borderRadius: '50px', width: 'auto' }}>
                   {ex}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ margin: 0, minWidth: '150px' }}>
-              <label style={{ fontSize: '0.85rem' }}>Diet</label>
-              <select value={diet} onChange={e => setDiet(e.target.value)}>
+          {/* Filters Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>Dietary Preference</label>
+              <select value={diet} onChange={e => setDiet(e.target.value)} style={{ borderRadius: '12px' }}>
                 {DIET_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
-            <div className="form-group" style={{ margin: 0, minWidth: '150px' }}>
-              <label style={{ fontSize: '0.85rem' }}>Max Prep Time (min)</label>
-              <input type="number" min="1" value={timeMax} onChange={e => setTimeMax(e.target.value)} placeholder="e.g. 30" />
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>Max Preparation Time</label>
+              <div style={{ position: 'relative' }}>
+                <input type="number" min="1" value={timeMax} onChange={e => setTimeMax(e.target.value)} placeholder="e.g. 30" style={{ borderRadius: '12px', paddingRight: '3rem' }} />
+                <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>min</span>
+              </div>
             </div>
-            <div className="form-group" style={{ margin: 0, minWidth: '120px' }}>
-              <label style={{ fontSize: '0.85rem' }}>Results</label>
-              <select value={topN} onChange={e => setTopN(parseInt(e.target.value))}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>Number of Results</label>
+              <select value={topN} onChange={e => setTopN(parseInt(e.target.value))} style={{ borderRadius: '12px' }}>
                 {[3, 5, 8, 10].map(n => <option key={n} value={n}>{n} recipes</option>)}
               </select>
             </div>
-            <button type="submit" disabled={loading}
-              style={{ width: 'auto', padding: '0.6rem 1.5rem', alignSelf: 'flex-end' }}>
-              {loading ? 'Searching…' : '🔍 Find Recipes'}
+            <button type="submit" disabled={loading} className="btn-primary"
+              style={{ padding: '1.1rem 2rem', boxShadow: 'var(--shadow-premium)' }}>
+              {loading ? 'Searching…' : '✨ Find Perfect Recipes'}
             </button>
           </div>
         </form>
@@ -256,65 +266,81 @@ function Recommendations() {
 
       {/* Results */}
       {searched && !loading && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ animation: 'slideUp 0.5s ease-out' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
             <div>
-              <h3 style={{ margin: '0 0 0.2rem' }}>
-                {recipes.length === 0 ? 'No recipes found' : `${recipes.length} Recipe${recipes.length > 1 ? 's' : ''} Found`}
-              </h3>
+              <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.75rem', fontWeight: 800 }}>
+                {recipes.length === 0 ? 'No recipes found' : `${recipes.length} ${recipes.length > 1 ? 'Recipes' : 'Recipe'} Found`}
+              </h2>
               {ingredients.length > 0 && (
-                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  Using: {ingredients.join(', ')}
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  Ingredients: <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{ingredients.join(', ')}</span>
                 </p>
               )}
             </div>
             <button className="btn-secondary" onClick={handleReset}
-              style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
+              style={{ width: 'auto', padding: '0.6rem 1.25rem', fontSize: '0.9rem', borderRadius: '12px' }}>
               ← New Search
             </button>
           </div>
 
           {recipes.length === 0 ? (
-            <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No recipes matched your ingredients. Try adding more or removing filters.
+            <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)', borderRadius: '28px' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👩‍🍳</div>
+              <p style={{ fontSize: '1.1rem' }}>No recipes matched your selection. Try adding more ingredients or broadening your filters.</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '2rem' }}>
               {recipes.map((r, i) => {
                 const isExpanded = expandedIdx === i;
                 const form       = sf(i);
                 const showSched  = !!form.open;
+                const score      = Math.round(r.similarity_score * 100);
 
                 return (
-                  <div key={i} className="card" style={{ padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div key={i} className="card" style={{
+                    padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem',
+                    border: '1px solid var(--card-border)', background: 'var(--card-bg)',
+                    borderRadius: '28px', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  }}>
 
-                    {/* Name + match % */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                      <div style={{ fontWeight: 700, fontSize: '1rem', flex: 1 }}>{r.name}</div>
-                      <span style={{
-                        fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '999px',
-                        background: 'rgba(5,150,105,0.1)', color: scoreColor(r.similarity_score),
-                        border: `1px solid ${scoreColor(r.similarity_score)}44`, flexShrink: 0,
+                    {/* Header: Name + Match Score Badge */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                      <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)', lineHeight: 1.3 }}>{r.name}</div>
+                      <div style={{
+                        padding: '4px', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '50px',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', paddingRight: '0.75rem'
                       }}>
-                        {(r.similarity_score * 100).toFixed(0)}% match
-                      </span>
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '50%',
+                          background: 'var(--primary-gradient)', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', color: '#fff',
+                          fontSize: '0.7rem', fontWeight: 800
+                        }}>
+                          {score}%
+                        </div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>MATCH</span>
+                      </div>
                     </div>
 
-                    {/* Badges */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                      {r.cuisine   && <span className="badge badge-admin" style={{ fontSize: '0.72rem' }}>{r.cuisine}</span>}
-                      {r.diet      && <span className="badge badge-user"  style={{ fontSize: '0.72rem' }}>{r.diet}</span>}
-                      {r.course    && <span className="badge"             style={{ fontSize: '0.72rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}>{r.course}</span>}
+                    {/* Badges Row */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {r.cuisine   && <span className="source-badge" style={{ fontSize: '0.75rem' }}>🌍 {r.cuisine}</span>}
+                      {r.diet      && <span className="source-badge" style={{ fontSize: '0.75rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>🥦 {r.diet}</span>}
                       {r.prep_time && r.prep_time !== '' && (
-                        <span className="badge" style={{ fontSize: '0.72rem', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>⏱ {r.prep_time}</span>
+                        <span className="source-badge" style={{ fontSize: '0.75rem', background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>⏱ {r.prep_time}</span>
                       )}
                     </div>
 
                     {/* Matched keywords */}
                     {r.matched_keywords?.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                         {r.matched_keywords.map(kw => (
-                          <span key={kw} style={{ fontSize: '0.72rem', background: 'rgba(5,150,105,0.12)', color: 'var(--primary)', padding: '0.1rem 0.45rem', borderRadius: '999px', border: '1px solid rgba(5,150,105,0.25)' }}>
+                          <span key={kw} style={{
+                            fontSize: '0.7rem', background: 'rgba(var(--primary-rgb), 0.08)',
+                            color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '50px',
+                            border: '1px solid rgba(var(--primary-rgb), 0.15)', fontWeight: 600
+                          }}>
                             ✓ {kw}
                           </span>
                         ))}
@@ -322,45 +348,66 @@ function Recommendations() {
                     )}
 
                     {/* Explanation */}
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic' }}>
-                      {r.match_explanation}
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
+                      "{r.match_explanation}"
                     </p>
 
-                    {/* Star rating */}
-                    <div style={{ display: 'flex', gap: '0.15rem' }}>
+                    {/* Star Rating Overlay */}
+                    <div style={{ display: 'flex', gap: '0.25rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--card-border)' }}>
                       {[1, 2, 3, 4, 5].map(star => (
                         <span key={star} onClick={() => handleRating(r._id, star, i)}
-                          style={{ cursor: r._id ? 'pointer' : 'default', fontSize: '1.1rem', color: star <= (r._userRating || 0) ? '#f59e0b' : 'var(--card-border)' }}>★</span>
+                          style={{
+                            cursor: r._id ? 'pointer' : 'default', fontSize: '1.25rem',
+                            color: star <= (r._userRating || 0) ? '#f59e0b' : 'rgba(0,0,0,0.1)',
+                            transition: 'all 0.2s ease',
+                            transform: star <= (r._userRating || 0) ? 'scale(1.1)' : 'scale(1)'
+                          }}>★</span>
                       ))}
                     </div>
 
                     {/* Action buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                      {/* Show ingredients toggle */}
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                       <button onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                        style={{ width: 'auto', padding: '0.3rem 0.75rem', fontSize: '0.8rem', borderRadius: '6px', background: isExpanded ? 'var(--primary)' : 'transparent', color: isExpanded ? '#fff' : 'var(--primary)', border: '1px solid var(--primary)' }}>
-                        {isExpanded ? '▲ Hide Ingredients' : '🥘 Ingredients'}
+                        className={isExpanded ? 'btn-primary' : 'btn-secondary'}
+                        style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '12px' }}>
+                        {isExpanded ? '▲ Hide Info' : '🥘 View Ingredients'}
                       </button>
 
-                      {/* Add to Meal Schedule toggle */}
                       {!form.done ? (
                         <button onClick={() => setSF(i, { open: !showSched, error: null })}
-                          style={{ width: 'auto', padding: '0.3rem 0.75rem', fontSize: '0.8rem', borderRadius: '6px', background: showSched ? '#3b82f6' : 'transparent', color: showSched ? '#fff' : '#3b82f6', border: '1px solid #3b82f6' }}>
-                          📅 Add to Meal Schedule
+                          className="btn-secondary"
+                          style={{
+                            width: 'auto', padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '12px',
+                            borderColor: showSched ? '#3b82f6' : 'var(--card-border)',
+                            color: showSched ? '#3b82f6' : 'var(--text-main)',
+                            background: showSched ? 'rgba(59,130,246,0.05)' : 'var(--white)'
+                          }}>
+                          📅 Schedule
                         </button>
                       ) : (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--primary)', padding: '0.3rem 0.6rem', background: 'rgba(5,150,105,0.08)', borderRadius: '6px', border: '1px solid rgba(5,150,105,0.2)' }}>
-                          ✅ Scheduled for {form.date} ({form.meal_type})
-                        </span>
+                        <div style={{
+                          fontSize: '0.8rem', color: 'var(--primary)', padding: '0.5rem 1rem',
+                          background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px',
+                          border: '1px solid rgba(16, 185, 129, 0.2)', fontWeight: 600
+                        }}>
+                          ✅ Scheduled: {form.date}
+                        </div>
                       )}
                     </div>
 
                     {/* Expanded ingredients */}
                     {isExpanded && r.ingredients?.length > 0 && (
-                      <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--card-border)' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      <div style={{
+                        padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '16px',
+                        marginTop: '0.5rem', animation: 'fadeIn 0.3s ease'
+                      }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>REQUIRED INGREDIENTS</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                           {r.ingredients.map((ing, j) => (
-                            <span key={j} style={{ fontSize: '0.75rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>
+                            <span key={j} style={{
+                              fontSize: '0.8rem', background: '#fff', border: '1px solid var(--card-border)',
+                              padding: '0.3rem 0.6rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            }}>
                               {ing}
                             </span>
                           ))}
@@ -370,55 +417,50 @@ function Recommendations() {
 
                     {/* ── Meal Schedule inline form ── */}
                     {showSched && !form.done && (
-                      <div style={{ marginTop: '0.5rem', padding: '0.9rem', borderRadius: '8px', background: 'rgba(59,130,246,0.04)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#3b82f6' }}>📅 Schedule this recipe</div>
+                      <div style={{
+                        marginTop: '1rem', padding: '1.25rem', borderRadius: '20px',
+                        background: 'rgba(59,130,246,0.04)', border: '1px solid rgba(59,130,246,0.1)',
+                        display: 'flex', flexDirection: 'column', gap: '1rem',
+                        animation: 'slideUp 0.3s ease'
+                      }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b82f6', letterSpacing: '0.05em' }}>SCHEDULE MEAL</div>
 
-                        {/* Date + Meal Type */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                           <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '0.8rem' }}>Date *</label>
+                            <label style={{ fontSize: '0.75rem' }}>Select Date</label>
                             <input type="date" min={today()} value={form.date || ''}
                               onChange={e => setSF(i, { date: e.target.value })}
-                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--card-border)', borderRadius: '6px', background: 'var(--card-bg)', color: 'var(--text)', width: '100%' }} />
+                              style={{ padding: '0.6rem', borderRadius: '12px' }} />
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '0.8rem' }}>Meal Type *</label>
+                            <label style={{ fontSize: '0.75rem' }}>Meal Type</label>
                             <select value={form.meal_type || ''} onChange={e => setSF(i, { meal_type: e.target.value })}
-                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--card-border)', borderRadius: '6px', background: 'var(--card-bg)', color: 'var(--text)', width: '100%' }}>
-                              <option value=''>Select type</option>
+                              style={{ padding: '0.6rem', borderRadius: '12px' }}>
+                              <option value=''>Type</option>
                               {MEAL_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                             </select>
                           </div>
                         </div>
 
-                        {/* Status */}
                         <div className="form-group" style={{ margin: 0 }}>
-                          <label style={{ fontSize: '0.8rem' }}>Status</label>
-                          <select value={form.status || 'planned'} onChange={e => setSF(i, { status: e.target.value })}
-                            style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--card-border)', borderRadius: '6px', background: 'var(--card-bg)', color: 'var(--text)', width: '100%' }}>
-                            {STATUS_OPTS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                          </select>
-                        </div>
-
-                        {/* Description */}
-                        <div className="form-group" style={{ margin: 0 }}>
-                          <label style={{ fontSize: '0.8rem' }}>Description <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                          <label style={{ fontSize: '0.75rem' }}>Notes</label>
                           <input type="text" value={form.description || ''}
                             onChange={e => setSF(i, { description: e.target.value })}
-                            placeholder="e.g. Meal prep for the week"
-                            maxLength={500}
-                            style={{ padding: '0.35rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--card-border)', borderRadius: '6px', background: 'var(--card-bg)', color: 'var(--text)', width: '100%' }} />
+                            placeholder="Add a note…"
+                            style={{ padding: '0.6rem', borderRadius: '12px' }} />
                         </div>
 
-                        {/* Error */}
                         {form.error && (
-                          <p style={{ fontSize: '0.78rem', color: 'var(--danger)', margin: 0 }}>{form.error}</p>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--danger)', margin: 0, fontWeight: 500 }}>{form.error}</p>
                         )}
 
-                        {/* Confirm button */}
                         <button onClick={() => handleAddToSchedule(r, i)} disabled={form.loading}
-                          style={{ width: 'auto', alignSelf: 'flex-start', padding: '0.4rem 1.1rem', fontSize: '0.82rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: form.loading ? 'not-allowed' : 'pointer', opacity: form.loading ? 0.7 : 1 }}>
-                          {form.loading ? '⏳ Adding…' : '✅ Confirm & Add'}
+                          className="btn-primary"
+                          style={{
+                            width: '100%', padding: '0.8rem', fontSize: '0.9rem',
+                            background: '#3b82f6', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
+                          }}>
+                          {form.loading ? '⏳ Scheduling…' : 'Confirm Selection'}
                         </button>
                       </div>
                     )}
