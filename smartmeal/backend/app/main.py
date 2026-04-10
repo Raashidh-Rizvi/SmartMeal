@@ -19,6 +19,9 @@ from app.routes.upload import router as upload_router
 from app.routes.meal_schedule_routes import router as meal_schedule_router
 from app.routes.leftovers import router as leftovers_router
 from app.routes.budget import router as budget_router
+from app.routes.leftover_ai_routes import router as leftover_ai_router
+from app.routes.notification_routes import router as notification_router
+from app.routes.recommendation_routes import router as recommendation_router
 import logging
 import os
 

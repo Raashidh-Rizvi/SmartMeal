@@ -12,6 +12,7 @@ recommendRecipes()     -> list[dict]
 """
 
 import re
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
