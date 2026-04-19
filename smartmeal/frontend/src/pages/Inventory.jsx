@@ -390,6 +390,7 @@ function Inventory() {
                   type="date" 
                   value={formData.expiryDate} 
                   onChange={e => setFormData({...formData, expiryDate: e.target.value})}
+                  min={new Date().toISOString().split('T')[0]}
                   className="auth-input"
                 />
               </div>
