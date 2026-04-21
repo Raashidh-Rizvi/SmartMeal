@@ -48,7 +48,8 @@ async def get_items(user_id: str, status_filter: Optional[str] = None, source_fi
                 "$or": [
                     {"source": {"$regex": "meal_plan", "$options": "i"}},
                     {"source": {"$regex": "meal plan", "$options": "i"}},
-                    {"sources": {"$in": ["meal_plan", "meal plan"]}}
+                    {"source": {"$regex": "meal-plan", "$options": "i"}},
+                    {"sources": {"$in": ["meal_plan", "meal plan", "meal-plan"]}}
                 ]
             }
         else:
@@ -145,7 +146,8 @@ async def get_stats(user_id: str = Depends(get_current_user_id)):
         "$or": [
             {"source": {"$regex": "meal_plan", "$options": "i"}},
             {"source": {"$regex": "meal plan", "$options": "i"}},
-            {"sources": {"$in": ["meal_plan", "meal plan"]}}
+            {"source": {"$regex": "meal-plan", "$options": "i"}},
+            {"sources": {"$in": ["meal_plan", "meal plan", "meal-plan"]}}
         ]
     }
     manual = await db.shopping_items.count_documents(manual_query)
