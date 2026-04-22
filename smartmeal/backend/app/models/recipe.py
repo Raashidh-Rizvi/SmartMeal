@@ -39,13 +39,7 @@ class Ingredient(BaseModel):
     def validate_unit(cls, v):
         if not v or not v.strip():
             raise ValueError("Unit cannot be empty")
-        valid_units = {"g", "kg", "ml", "l", "cup", "tbsp", "tsp", "oz", "lb", "pinch", "piece", "pieces"}
-        if v.lower() not in valid_units:
-            raise ValueError(
-                "Unit is invalid. Please use one of: "
-                + ", ".join(sorted(valid_units))
-            )
-        return v.lower()
+        return v.strip().lower()
 
 
 class RecipeBase(BaseModel):
@@ -63,19 +57,11 @@ class RecipeBase(BaseModel):
     def validate_title(cls, v):
         if not v or not v.strip():
             raise ValueError("Title is required and cannot be empty")
-        
         title = v.strip()
-        
-        # Check length first
         if len(title) < 3:
             raise ValueError("Title must be at least 3 characters long")
         if len(title) > 200:
             raise ValueError("Title cannot exceed 200 characters")
-        
-        # Check if contains only letters (and spaces)
-        if not all(c.isalpha() or c.isspace() for c in title):
-            raise ValueError("Title must contain only letters (a-z, A-Z) and spaces. Numbers and special characters are not allowed")
-        
         return title
 
     @field_validator('description')
@@ -112,43 +98,12 @@ class RecipeBase(BaseModel):
     @classmethod
     def validate_dietary_tags(cls, v):
         if isinstance(v, str):
-            # Only comma-separated values are allowed, not semicolon-separated.
-            if ';' in v:
-                raise ValueError("Dietary tags should be separated by commas only, not semicolons")
             if not v.strip():
                 return []
-            v = [tag.strip() for tag in v.split(',') if tag.strip()]
-
+            v = [tag.strip() for tag in v.replace(';', ',').split(',') if tag.strip()]
         if not isinstance(v, list):
-            raise ValueError("Dietary tags must be a list or comma-separated string")
-
-        if len(v) > 20:
-            raise ValueError("Maximum 20 dietary tags allowed")
-
-        valid_tags = {
-            "vegetarian", "vegan", "gluten-free", "dairy-free", 
-            "nut-free", "keto", "low-carb", "high-protein", "paleo",
-            "organic", "locally-sourced", "sugar-free", "halal", "kosher"
-        }
-
-        # If using list, each list entry must be a recognized tag; semicolons are invalid.
-        for tag_item in v:
-            if isinstance(tag_item, str) and ';' in tag_item:
-                raise ValueError("Dietary tags should be separated by commas only, not semicolons")
-
-        invalid_tags = []
-        for tag in v:
-            if not isinstance(tag, str) or tag.lower() not in valid_tags:
-                invalid_tags.append(tag)
-
-        if invalid_tags:
-            invalid_list = ', '.join(f"'{str(t)}'" for t in invalid_tags)
-            raise ValueError(
-                f"Oops! We don't recognize {invalid_list}. "
-                f"Please choose from our supported list: {', '.join(sorted(valid_tags))}."
-            )
-
-        return [t.lower() for t in v]
+            return []
+        return [str(t).lower().strip() for t in v if t][:20]
 
     @field_validator('estimated_cooking_time')
     @classmethod
