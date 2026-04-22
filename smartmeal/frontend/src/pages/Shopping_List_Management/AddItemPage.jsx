@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingAPI } from '../../api/axios';
 import Toast from '../../components/Toast';
+import { ArrowLeft, PlusCircle, Zap } from 'lucide-react';
 
 function AddItemPage() {
   const navigate = useNavigate();
   
   const [item_name, set_item_name] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [unit, setUnit] = useState('piece');
+  const [unit, setUnit] = useState('pcs');
+
+  const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
   const [source, setSource] = useState('Manual');
   const [user_id] = useState('user123');
   const [loading, setLoading] = useState(false);
@@ -23,7 +26,7 @@ function AddItemPage() {
     setLoading(true);
     try {
       await ShoppingAPI.addItem({
-        item_name: item_name.trim(),
+        name: item_name.trim(),
         quantity: parseFloat(quantity),
         unit,
         source,
@@ -52,8 +55,12 @@ function AddItemPage() {
       {/* Header */}
       <header className="page-header">
         <div className="header-content">
-          <button onClick={goBack} className="btn-back">← Back to List</button>
-          <h1>➕ Add New Item</h1>
+          <button onClick={goBack} className="btn-back" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ArrowLeft size={18} /> Back to List
+          </button>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <PlusCircle size={32} /> Add New Item
+          </h1>
           <p>Add items to your shopping list</p>
         </div>
       </header>
@@ -98,13 +105,8 @@ function AddItemPage() {
                       onChange={(e) => setUnit(e.target.value)}
                       disabled={loading}
                     >
-                      <option value="piece">Piece</option>
-                      <option value="kg">Kg</option>
-                      <option value="g">Grams</option>
-                      <option value="L">Liter</option>
-                      <option value="ml">ML</option>
-                      <option value="pack">Pack</option>
-                      <option value="dozen">Dozen</option>
+                      <option value="">Select unit</option>
+                      {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -143,8 +145,9 @@ function AddItemPage() {
 
           {/* Quick Actions */}
           <section className="card quick-actions-card">
-            <div className="card-header">
-              <h3>🚀 Quick Actions</h3>
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Zap size={20} color="var(--primary)" />
+              <h3 style={{ margin: 0 }}>Quick Actions</h3>
             </div>
             <div className="card-body">
               <div className="quick-actions">
@@ -156,7 +159,7 @@ function AddItemPage() {
                   }}
                   className="btn-quick"
                 >
-                  🥛 Add Milk
+                  Add Milk
                 </button>
                 <button
                   onClick={() => {
@@ -166,17 +169,17 @@ function AddItemPage() {
                   }}
                   className="btn-quick"
                 >
-                  🍚 Add Rice
+                  Add Rice
                 </button>
                 <button
                   onClick={() => {
                     set_item_name('Eggs');
                     setQuantity(12);
-                    setUnit('piece');
+                    setUnit('pcs');
                   }}
                   className="btn-quick"
                 >
-                  🥚 Add Eggs
+                  Add Eggs
                 </button>
               </div>
             </div>

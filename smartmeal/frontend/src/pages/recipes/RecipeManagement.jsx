@@ -11,15 +11,15 @@ import {
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
-import {
-    Pencil,
-    Trash2,
-    ArrowLeft,
-    Plus,
-    Search,
-    Clock,
-    Users,
-    ChefHat,
+import { 
+    Pencil, 
+    Trash2, 
+    ArrowLeft, 
+    Plus, 
+    Search, 
+    Clock, 
+    Users, 
+    ChefHat, 
     BookOpen,
     User,
     Check
@@ -84,7 +84,7 @@ function RecipeManagement() {
     // Check for URL parameters
     useEffect(() => {
         const params = new URLSearchParams(location.search);
-
+        
         // Tab/Filter parameters
         if (params.get('tab') === 'mine' || params.get('created_by_me') === '1') {
             setActiveTab('mine');
@@ -489,16 +489,16 @@ function RecipeManagement() {
 
                                         {/* Action Buttons */}
                                         <div className="recipe-card-actions-bottom" onClick={e => e.stopPropagation()}>
-                                            <button
-                                                className="action-edit"
+                                            <button 
+                                                className="action-edit" 
                                                 onClick={() => openEdit(recipe)}
                                                 title="Edit Recipe"
                                                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                                             >
                                                 <Pencil size={14} /> Edit
                                             </button>
-                                            <button
-                                                className="action-delete"
+                                            <button 
+                                                className="action-delete" 
                                                 onClick={(e) => handleDelete(recipe, e)}
                                                 title="Delete Recipe"
                                                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}

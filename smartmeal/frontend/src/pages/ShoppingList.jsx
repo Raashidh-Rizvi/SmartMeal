@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import ShoppingAPI from '../services/shoppingApi';
+import { getUserId } from '../utils/userUtils';
 import ShoppingForm from '../components/ShoppingForm';
 import StatsSection from '../components/StatsSection';
 import FilterSection from '../components/FilterSection';
@@ -8,11 +9,18 @@ import ShoppingTable from '../components/ShoppingTable';
 import ShoppingChart from '../components/ShoppingChart';
 import Toast from '../components/Toast';
 import EditItemForm from '../components/EditItemForm';
+import { 
+  ShoppingBasket, 
+  Plus, 
+  RefreshCw, 
+  ArrowLeft, 
+  Pencil, 
+  ShoppingCart 
+} from 'lucide-react';
 
 function ShoppingList() {
   const { user } = useContext(AuthContext);
-  // Backend returns id as _id (Pydantic alias). Firebase users have uid.
-  const userId = user?.uid || user?.id || user?._id || '';
+  const userId = getUserId(user);
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [items, setItems] = useState([]);
@@ -35,35 +43,114 @@ function ShoppingList() {
     if (reload) loadItems();
   };
   const showEditView = (itemId) => { setEditingItemId(itemId); setCurrentView('edit'); };
-
+  
   // ── Data ──────────────────────────────────────────────────────────────────
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!userId) return;
-    try { setStats(await ShoppingAPI.getStats(userId)); }
-    catch (e) { console.error('Stats error:', e); }
-  };
+    try { 
+      const statsData = await ShoppingAPI.getStats(userId);
+      console.log("📊 Stats loaded:", statsData);
+      setStats(statsData); 
+    }
+    catch (e) { 
+      console.error('❌ Stats error:', e); 
+    }
+  }, [userId]);
 
-  const loadItems = async () => {
-    if (!userId) return;
+  const loadItems = useCallback(async () => {
+    if (!userId) {
+      console.warn("❌ userId is not set, cannot load items");
+      return;
+    }
     setLoading(true);
     try {
-      setItems(await ShoppingAPI.getItems(userId, statusFilter));
+      console.log("🔄 Loading shopping items for user:", userId, "Filter:", statusFilter || "none");
+      const rawItems = await ShoppingAPI.getItems(userId, statusFilter);
+      console.log("✅ Raw items from API:", rawItems);
+      console.log(`📊 Total items returned: ${Array.isArray(rawItems) ? rawItems.length : 'NOT AN ARRAY'}`);
+      
+      if (!Array.isArray(rawItems)) {
+        console.error("❌ API response is not an array:", rawItems);
+        console.error("Response type:", typeof rawItems);
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+      
+      if (rawItems.length === 0) {
+        console.log("ℹ️  API returned 0 items. Shopping list is empty.");
+        setItems([]);
+        setLoading(false);
+        await loadStats();
+        return;
+      }
+      
+      // Transform backend response to match ShoppingTable expectations
+      const transformedItems = rawItems.map((item, idx) => {
+        console.log(`Transforming item ${idx + 1}/${rawItems.length}:`, item);
+        
+        // Handle different date formats from backend
+        let dateValue = item.created_at;
+        if (!dateValue && item.date) {
+          dateValue = item.date;
+        }
+        
+        const transformed = {
+          id: item._id || item.id,
+          _id: item._id || item.id,
+          item_name: item.name || item.item_name,
+          name: item.name || item.item_name,
+          quantity: item.quantity || 1,
+          unit: item.unit || "",
+          source: (item.source || '').toLowerCase().includes('meal') ? 'Meal Plan' : 'Manual',
+          category: item.category || "",
+          status: item.status === 'pending' ? 'Pending' : item.status === 'bought' ? 'Bought' : item.status,
+          created_at: dateValue,
+          notes: item.notes || "",
+        };
+        console.log(`✅ Item ${idx + 1} transformed:`, transformed);
+        return transformed;
+      });
+      
+      console.log("📊 Total transformed items:", transformedItems.length);
+      console.log("📝 All transformed items:", transformedItems);
+      setItems(transformedItems);
       await loadStats();
     } catch (e) {
-      console.error('Load error:', e);
-      showToast('Failed to connect to server', 'error');
+      console.error('❌ Load error:', e);
+      console.error("Error message:", e.message);
+      console.error("Full error:", e);
+      showToast('Failed to connect to server: ' + (e.message || 'Unknown error'), 'error');
+      setItems([]);
     }
     setLoading(false);
-  };
+  }, [userId, statusFilter, loadStats]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadItems(); }, [userId, statusFilter]);
+  // Initial load on component mount
+  useEffect(() => {
+    console.log("🛒 Component mounted or loadItems changed");
+    loadItems();
+  }, [loadItems]);
+
+  // ── Auto-refresh shopping list every 5 seconds ──────────────────────────
+  // This ensures items added from the Meals page appear automatically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log("🔄 Auto-refreshing shopping list...");
+      loadItems();
+    }, 5000); // Refresh every 5 seconds
+
+    return () => {
+      clearInterval(interval);
+      console.log("🛑 Stopped auto-refresh");
+    };
+  }, [loadItems]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const addItem = async (itemData) => {
     try {
       await ShoppingAPI.addItem({ ...itemData, user_id: userId });
-      showToast(`"${itemData.item_name}" added!`, 'success');
+      showToast(`"${itemData.name || itemData.item_name}" added!`, 'success');
       showListView();
       loadItems();
       return true;
@@ -119,17 +206,22 @@ function ShoppingList() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="shopping-page">
-      <div className="shopping-page-header">
-        <h1>🛒 Shopping List</h1>
+      <div className="shopping-page-header" style={{ marginBottom: '2rem' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <ShoppingBasket size={32} color="var(--primary)" /> Shopping List
+        </h1>
         <p className="text-muted">Your personal grocery planning assistant</p>
       </div>
 
       {/* LIST VIEW */}
       {currentView === 'list' && (
         <div>
-          <div className="shopping-add-btn-wrap">
-            <button onClick={showAddView} className="btn-primary shopping-add-btn">
-              ➕ Add New Item
+          <div className="shopping-add-btn-wrap" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+            <button onClick={showAddView} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Plus size={18} /> Add New Item
+            </button>
+            <button onClick={loadItems} className="btn-secondary" title="Refresh shopping list" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <RefreshCw size={18} className={loading ? 'spinner' : ''} /> Refresh
             </button>
           </div>
 
@@ -155,22 +247,26 @@ function ShoppingList() {
 
       {/* ADD VIEW */}
       {currentView === 'add' && (
-        <div className="shopping-single-view">
-          <button onClick={showListView} className="btn-secondary btn-small shopping-back-btn">
-            ← Back to List
+        <div className="shopping-single-view card" style={{ padding: '2rem' }}>
+          <button onClick={showListView} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', width: 'fit-content' }}>
+            <ArrowLeft size={16} /> Back to List
           </button>
-          <h2>➕ Add New Item</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <Plus size={24} color="var(--primary)" /> Add New Item
+          </h2>
           <ShoppingForm onAddItem={addItem} onCancel={showListView} />
         </div>
       )}
 
       {/* EDIT VIEW */}
       {currentView === 'edit' && (
-        <div className="shopping-single-view">
-          <button onClick={showListView} className="btn-secondary btn-small shopping-back-btn">
-            ← Back to List
+        <div className="shopping-single-view card" style={{ padding: '2rem' }}>
+          <button onClick={showListView} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', width: 'fit-content' }}>
+            <ArrowLeft size={16} /> Back to List
           </button>
-          <h2>✏️ Edit Item</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <Pencil size={24} color="var(--primary)" /> Edit Item
+          </h2>
           <EditItemForm
             itemId={editingItemId}
             onSave={() => { showToast('Item updated!', 'success'); showListView(true); }}

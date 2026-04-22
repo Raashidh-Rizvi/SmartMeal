@@ -30,6 +30,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     user_dict["_id"] = str(user_dict["_id"])
     return UserInDB(**user_dict)
 
+async def get_current_user_id(current_user: UserInDB = Depends(get_current_user)) -> str:
+    """Helper dependency to get just the user ID string."""
+    return str(current_user.id)
+
 async def require_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
     if current_user.role != "ADMIN":
         raise HTTPException(
