@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import {
@@ -11,15 +11,15 @@ import {
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
-import { 
-    Pencil, 
-    Trash2, 
-    ArrowLeft, 
-    Plus, 
-    Search, 
-    Clock, 
-    Users, 
-    ChefHat, 
+import {
+    Pencil,
+    Trash2,
+    ArrowLeft,
+    Plus,
+    Search,
+    Clock,
+    Users,
+    ChefHat,
     BookOpen,
     User,
     Check
@@ -40,6 +40,9 @@ const EMPTY_FORM = {
     estimated_cooking_time: '',
     image_url: '',
 };
+const INGREDIENT_FETCH_LIMIT = 500;
+
+const normalizeIngredientName = (name) => String(name || '').trim().toLowerCase();
 
 // ─── View Enum ────────────────────────────────────────────────────────────────
 const VIEW = { LIST: 'list', DETAIL: 'detail', FORM: 'form' };
@@ -69,7 +72,7 @@ function RecipeManagement() {
     const [formError, setFormError] = useState('');
     const [formLoading, setFormLoading] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
-    const [inventoryItems, setInventoryItems] = useState([]);
+    const [availableIngredients, setAvailableIngredients] = useState([]);
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -84,7 +87,7 @@ function RecipeManagement() {
     // Check for URL parameters
     useEffect(() => {
         const params = new URLSearchParams(location.search);
-        
+
         // Tab/Filter parameters
         if (params.get('tab') === 'mine' || params.get('created_by_me') === '1') {
             setActiveTab('mine');
@@ -110,13 +113,50 @@ function RecipeManagement() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Fetch inventory for ingredient dropdown ──────────────────────────────
-    useEffect(() => {
-        if (view === VIEW.FORM) {
-            api.get('/api/inventory', { params: { page: 1, limit: 100 } })
-                .then(res => setInventoryItems(res.data.items || []))
-                .catch(() => setInventoryItems([]));
+    const ingredientOptions = useMemo(() => {
+        const byName = new Map();
+        for (const item of availableIngredients) {
+            const name = String(item?.name || '').trim();
+            if (!name) continue;
+
+            const key = normalizeIngredientName(name);
+            if (!byName.has(key)) {
+                byName.set(key, {
+                    ...item,
+                    name,
+                    unit: String(item?.unit || '').trim(),
+                    category: String(item?.category || '').trim(),
+                });
+            }
         }
+
+        return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }, [availableIngredients]);
+
+    const findIngredientOption = useCallback((name) => {
+        const key = normalizeIngredientName(name);
+        return ingredientOptions.find(item => normalizeIngredientName(item.name) === key);
+    }, [ingredientOptions]);
+
+    // ── Fetch Ingredient Management items for recipe ingredient suggestions ──
+    useEffect(() => {
+        if (view !== VIEW.FORM) return;
+
+        let cancelled = false;
+
+        api.get('/api/admin/ingredients', { params: { page: 1, limit: INGREDIENT_FETCH_LIMIT } })
+            .then(res => {
+                if (!cancelled) {
+                    setAvailableIngredients(Array.isArray(res.data?.items) ? res.data.items : []);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setAvailableIngredients([]);
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, [view]);
 
     // ── Fetch recipes list ───────────────────────────────────────────────────
@@ -232,15 +272,15 @@ function RecipeManagement() {
             return { ...prev, ingredients };
         });
 
-    // When user picks an inventory item, lock unit to what's stored in inventory
+    // Suggestions come from Ingredient Management, but free-typed ingredients stay valid.
     const handleIngredientNameChange = (idx, name) => {
-        const match = inventoryItems.find(i => i.name === name);
+        const match = findIngredientOption(name);
         setForm(prev => {
             const ingredients = [...prev.ingredients];
             ingredients[idx] = {
                 ...ingredients[idx],
                 name,
-                unit: match?.unit || '',
+                unit: match?.unit || ingredients[idx].unit,
             };
             return { ...prev, ingredients };
         });
@@ -763,21 +803,27 @@ function RecipeManagement() {
                                     <Plus size={16} /> Add Ingredient
                                 </button>
                             </div>
+                            <datalist id="recipe-ingredient-options">
+                                {ingredientOptions.map(item => (
+                                    <option
+                                        key={item._id || item.name}
+                                        value={item.name}
+                                        label={[item.category, item.unit].filter(Boolean).join(' - ')}
+                                    />
+                                ))}
+                            </datalist>
                             {form.ingredients.map((ing, idx) => {
-                                const invMatch = inventoryItems.find(i => i.name === ing.name);
                                 return (
                                 <div key={idx} className="ingredient-row">
-                                    <select
+                                    <input
+                                        type="text"
+                                        list="recipe-ingredient-options"
                                         value={ing.name}
                                         onChange={e => handleIngredientNameChange(idx, e.target.value)}
                                         className="ing-name"
+                                        placeholder={ingredientOptions.length ? 'Choose or type ingredient' : 'Ingredient name'}
                                         required
-                                    >
-                                        <option value="">Select ingredient</option>
-                                        {inventoryItems.map(item => (
-                                            <option key={item._id} value={item.name}>{item.name}</option>
-                                        ))}
-                                    </select>
+                                    />
                                     <input
                                         type="number"
                                         placeholder="Qty"
@@ -789,11 +835,11 @@ function RecipeManagement() {
                                     />
                                     <input
                                         type="text"
-                                        value={invMatch?.unit || ing.unit || ''}
-                                        readOnly
+                                        value={ing.unit || ''}
+                                        onChange={e => setIngredient(idx, 'unit', e.target.value)}
                                         className="ing-unit"
-                                        style={{ background: 'var(--input-bg, #f3f4f6)', cursor: 'not-allowed', color: '#6b7280' }}
-                                        placeholder="unit"
+                                        placeholder="Unit"
+                                        required
                                     />
                                     {form.ingredients.length > 1 && (
                                         <button
