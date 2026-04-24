@@ -236,7 +236,7 @@ async def generate_budget_alerts(db, user_id: str):
 
 
 # ── GET notifications ──────────────────────────────────────────────────────────
-@router.get("/notifications")
+@router.get("")
 async def get_user_notifications(
     unread: Optional[bool] = Query(False),
     user_id: str = Depends(get_current_user_id)
@@ -283,7 +283,7 @@ async def get_user_notifications(
 
 
 # ── GET notification preferences ───────────────────────────────────────────────
-@router.get("/notifications/preferences")
+@router.get("/preferences")
 async def get_notification_preferences(
     user_id: str = Depends(get_current_user_id)
 ):
@@ -304,7 +304,7 @@ async def get_notification_preferences(
 
 
 # ── PUT notification preferences ───────────────────────────────────────────────
-@router.put("/notifications/preferences")
+@router.put("/preferences")
 async def update_notification_preferences(
     data: NotificationPrefsBody,
     user_id: str = Depends(get_current_user_id)
@@ -336,7 +336,7 @@ async def update_notification_preferences(
 
 
 # ── PATCH mark-all-read ────────────────────────────────────────────────────────
-@router.patch("/notifications/mark-all-read")
+@router.patch("/mark-all-read")
 async def mark_all_notifications_read(
     user_id: str = Depends(get_current_user_id)
 ):
@@ -360,7 +360,7 @@ async def mark_all_notifications_read(
 
 
 # ── PUT individual notification ────────────────────────────────────────────────
-@router.put("/notifications/{notification_id}")
+@router.put("/{notification_id}")
 async def update_notification(
     notification_id: str,
     data: NotificationUpdateBody,
@@ -403,7 +403,7 @@ async def update_notification(
 
 
 # ── DELETE individual notification ────────────────────────────────────────────
-@router.delete("/notifications/{notification_id}")
+@router.delete("/{notification_id}")
 async def delete_notification(
     notification_id: str,
     user_id: str = Depends(get_current_user_id)

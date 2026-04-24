@@ -23,7 +23,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
         raise credentials_exception
         
     db = get_db()
-    user_dict = await db["users"].find_one({"email": token_data.email})
+    user_dict = await db["users"].find_one({"email": {"$regex": f"^{token_data.email}$", "$options": "i"}})
     if user_dict is None:
         raise credentials_exception
         

@@ -298,57 +298,62 @@ button:active, .btn-primary:active {
 }
 
 .dropdown-item-pill {
-  width: calc(100% - 2rem);
-  margin: 0.5rem 1rem;
-  padding: 0.9rem 1.5rem;
-  background: white;
-  border-radius: 50px;
+  width: calc(100% - 2.5rem);
+  margin: 0.35rem 1.25rem;
+  padding: 0.85rem 1.25rem;
+  background: rgba(var(--primary-rgb), 0.03);
+  border-radius: 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
+  justify-content: flex-start;
+  gap: 1rem;
   color: var(--text-main);
   font-weight: 600;
   font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   text-decoration: none;
-  box-sizing: border-box; /* Crucial for keeping Links inside the container */
+  box-sizing: border-box;
 }
 
 .dark .dropdown-item-pill {
   background: rgba(255, 255, 255, 0.03);
-  color: white;
-  border-color: rgba(16, 185, 129, 0.3);
+  color: #ecfdf5;
 }
 
 .dropdown-item-pill:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
-  background: white;
+  transform: translateX(5px);
+  background: rgba(var(--primary-rgb), 0.08);
+  border-color: rgba(var(--primary-rgb), 0.2);
+  color: var(--primary);
 }
 
 .dark .dropdown-item-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .dropdown-header-premium {
-  padding: 1.5rem 1.5rem 1rem;
+  padding: 2rem 1.5rem 1.5rem;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.08) 0%, transparent 100%);
+  border-radius: 20px 20px 0 0;
+  margin-bottom: 0.5rem;
 }
 
 .dropdown-header-premium .user-name {
-  font-weight: 800;
-  font-size: 1.1rem;
+  font-weight: 900;
+  font-size: 1.25rem;
   color: var(--text-main);
   margin: 0;
+  letter-spacing: -0.03em;
 }
 
 .dropdown-header-premium .user-email {
   font-size: 0.85rem;
   color: var(--text-muted);
   margin: 0.25rem 0 0;
+  opacity: 0.8;
 }
 
 /* Notification Banner */
@@ -388,16 +393,25 @@ button:active, .btn-primary:active {
 /* Custom Dropdown Specific Styles (for Account Settings and Notifications) */
 .premium-popover {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  box-shadow: var(--shadow-premium);
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 25px 60px -12px rgba(6, 40, 30, 0.15), 0 0 0 1px rgba(16, 185, 129, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 1001;
+  overflow: hidden;
 }
 
 .dark .premium-popover {
-  background: #000c1a;
+  background: rgba(1, 42, 30, 0.95);
   border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .popover-header {
@@ -871,24 +885,16 @@ button:active, .btn-primary:active {
 
 .user-dropdown-menu {
   position: absolute;
-  top: calc(100% + 0.75rem);
+  top: calc(100% + 1rem);
   right: 0;
-  width: 260px;
-  background: #ffffff; /* Solid White background */
-  border: 1px solid var(--card-border);
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); /* More defined shadow */
-  padding: 1.25rem;
-  z-index: 1001;
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  padding-bottom: 1rem;
 }
 
 .dark .user-dropdown-menu {
-  background: #022c22; /* Solid green-dark background */
-  border-color: rgba(52, 211, 153, 0.2);
+  background: rgba(1, 42, 30, 0.98);
 }
 
 .dropdown-header {
@@ -2106,5 +2112,24 @@ tr:hover td { background: rgba(5, 150, 105, 0.04); }
 @keyframes modalSlideUp {
   from { opacity: 0; transform: translateY(30px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Subtle Hero Icon Animation ───────────────────────────────────────────── */
+@keyframes hero-sway {
+  0%, 100% { transform: rotate(var(--rotation, 0deg)) translateY(0); }
+  50% { transform: rotate(var(--rotation, 0deg)) translateY(-15px); }
+}
+
+.hero-sway {
+  animation: hero-sway 6s ease-in-out infinite;
+}
+
+.premium-link-btn:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.premium-link-btn:active {
+  transform: translateY(0);
 }
 

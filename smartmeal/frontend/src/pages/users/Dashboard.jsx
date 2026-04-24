@@ -512,11 +512,27 @@ function Dashboard() {
     <div style={s.container}>
       {/* ── Smart Hero Section ── */}
       <div style={s.heroSection}>
-        {/* Decorative Background Icons */}
-        <UtensilsCrossed size={240} style={{ ...s.heroBgIcon, top: '20px', left: '20px', transform: 'rotate(-15deg)' }} />
-        <ChefHat size={240} style={{ ...s.heroBgIcon, top: '30px', right: '120px', transform: 'rotate(10deg)' }} />
-        <Flame size={240} style={{ ...s.heroBgIcon, top: '40%', right: '15%', transform: 'rotate(20deg)' }} />
-        <Leaf size={240} style={{ ...s.heroBgIcon, bottom: '30%', left: '10%', transform: 'rotate(-10deg)' }} />
+        {/* Decorative Background Icons - Subtle Dynamics */}
+        <UtensilsCrossed 
+          size={240} 
+          className="hero-sway"
+          style={{ ...s.heroBgIcon, top: '20px', left: '20px', '--rotation': '-15deg' }} 
+        />
+        <ChefHat 
+          size={240} 
+          className="hero-sway"
+          style={{ ...s.heroBgIcon, top: '30px', right: '120px', '--rotation': '10deg', animationDelay: '1s' }} 
+        />
+        <Flame 
+          size={240} 
+          className="hero-sway"
+          style={{ ...s.heroBgIcon, top: '40%', right: '15%', '--rotation': '20deg', animationDelay: '2s' }} 
+        />
+        <Leaf 
+          size={240} 
+          className="hero-sway"
+          style={{ ...s.heroBgIcon, bottom: '30%', left: '10%', '--rotation': '-10deg', animationDelay: '3s' }} 
+        />
 
         <div style={s.heroBadge}>
           <Zap size={14} fill="currentColor" /> The #1 Kitchen Intelligence Platform

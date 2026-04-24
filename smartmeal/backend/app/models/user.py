@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from typing import Optional, List, Any
 from datetime import datetime
 
 class UserPreferences(BaseModel):
@@ -19,7 +19,8 @@ class UserCreate(UserBase):
     password: str
 
 class PasswordUpdate(BaseModel):
-    oldPassword: str
+    oldPassword: Optional[str] = None
+    otp: Optional[str] = None
     newPassword: str
 
 class UserInDB(UserBase):
@@ -29,6 +30,21 @@ class UserInDB(UserBase):
     password_hash: str
     createdAt: datetime
     updatedAt: datetime
+
+    @model_validator(mode='before')
+    @classmethod
+    def handle_legacy_password(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # Map legacy field name if new one is missing
+            if "hashed_password" in data and "password_hash" not in data:
+                data["password_hash"] = data.get("hashed_password")
+            
+            # Map legacy createdAt/updatedAt if new ones are missing
+            if "created_at" in data and "createdAt" not in data:
+                data["createdAt"] = data.get("created_at")
+            if "updated_at" in data and "updatedAt" not in data:
+                data["updatedAt"] = data.get("updated_at")
+        return data
 
 class UserResponse(UserBase):
     model_config = ConfigDict(populate_by_name=True)
@@ -50,3 +66,11 @@ class GoogleLoginRequest(BaseModel):
     name: str
     firebaseToken: str
     uid: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    newPassword: str

@@ -199,7 +199,7 @@ function Navbar() {
                   </button>
 
                   {showUserDropdown && (
-                    <div className="user-dropdown-menu premium-popover" style={{ width: '310px', padding: '0 0 1rem 0', marginTop: '1rem' }}>
+                    <div className="user-dropdown-menu premium-popover">
                       <div className="dropdown-header-premium">
                         <p className="user-name">{user.name}</p>
                         <p className="user-email">{user.email}</p>
