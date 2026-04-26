@@ -201,17 +201,17 @@ function Recommendations() {
   return (
     <div className="main-content">
       {/* Header */}
-      <div style={{ position: 'relative', overflow: 'hidden', padding: '2.5rem 1rem', marginBottom: '2.5rem', textAlign: 'center', borderRadius: '28px', minHeight: '170px' }}>
-        {/* Decorative Background Icons - Corner Accents */}
-        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
-        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
-        <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
-        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+      <div className="page-hero page-hero--sub">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '5%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '35%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '18%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '7%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
 
         <h1 className="premium-gradient-text" style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
           AI Recipe Recommendations
         </h1>
-        <p style={{ position: 'relative', zIndex: 1, color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
+        <p style={{ position: 'relative', zIndex: 1, fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
           Discover culinary masterpieces with your available ingredients. Our AI finds recipes that harmonize perfectly.
         </p>
       </div>

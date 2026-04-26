@@ -44,8 +44,8 @@ const s = {
     background: 'linear-gradient(135deg, #012a1e 0%, #011c16 100%)',
     boxShadow: 'inset 0 0 100px rgba(0, 0, 0, 0.3)',
     borderRadius: '0 0 100px 100px',
-    marginTop: '-3rem', // Counteracting main-content top padding
-    padding: '8rem 2rem 10rem',
+    marginTop: '-12rem',
+    padding: '17rem 2rem 10rem',
     marginBottom: '3.5rem',
     overflow: 'hidden',
     overflowX: 'clip',
@@ -129,6 +129,8 @@ const s = {
     boxShadow: 'var(--shadow-lg)',
     transition: 'all 0.3s ease',
   },
+  heroIcon1: { position: 'absolute', opacity: 0.1, color: '#10b981', top: '180px', left: '8%', transform: 'rotate(-15deg)', pointerEvents: 'none' },
+  heroIcon2: { position: 'absolute', opacity: 0.1, color: '#10b981', top: '220px', right: '10%', transform: 'rotate(10deg)', pointerEvents: 'none' },
   searchIcon: {
     position: 'absolute',
     left: '1.5rem',

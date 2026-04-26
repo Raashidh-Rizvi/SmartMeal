@@ -140,21 +140,21 @@ function Notifications() {
     <div className="container" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
 
       {/* ── Header ── */}
-      <header style={{ position: 'relative', overflow: 'hidden', padding: '3rem 1rem 2rem', marginBottom: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', minHeight: '160px' }}>
-        {/* Decorative Background Icons - Corner Accents */}
-        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
-        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
-        <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
-        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+      <header className="page-hero">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '35%', left: '8%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '30%', left: '42%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '22%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '10%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
 
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center' }}>
-            {prefs.notificationsEnabled ? <Bell size={48} color="var(--primary)" strokeWidth={1.75} /> : <BellOff size={48} color="#94a3b8" strokeWidth={1.75} />}
+            {prefs.notificationsEnabled ? <Bell size={48} color="#10b981" strokeWidth={1.75} /> : <BellOff size={48} color="#94a3b8" strokeWidth={1.75} />}
         </div>
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>
             My Notifications
           </h1>
-          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Stay updated on expiring items, budget alerts, and updates.</p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1rem' }}>Stay updated on expiring items, budget alerts, and updates.</p>
         </div>
       </header>
 

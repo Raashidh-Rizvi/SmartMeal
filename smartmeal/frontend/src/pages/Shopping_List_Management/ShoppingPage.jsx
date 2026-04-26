@@ -147,17 +147,17 @@ function ShoppingPage() {
   return (
     <div className="shopping-page">
       {/* Page Header */}
-      <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem', minHeight: '160px' }}>
-        {/* Decorative Background Icons - Corner Accents */}
-        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
-        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
-        <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
-        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+      <div className="page-hero page-hero--sub">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '10%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '40%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '20%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '10%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
 
-        <ShoppingCart size={48} color="var(--primary)" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <ShoppingCart size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>Shopping List</h1>
-          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Plan, track, and manage everything you need to buy</p>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Shopping List</h1>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1rem' }}>Plan, track, and manage everything you need to buy</p>
         </div>
       </div>
 

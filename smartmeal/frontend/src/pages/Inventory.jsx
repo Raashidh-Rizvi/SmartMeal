@@ -215,25 +215,24 @@ function Inventory() {
 
   return (
     <>
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
-      <div className="flex justify-between align-center mb-4" style={{ position: 'relative', overflow: 'hidden', padding: '2rem 1rem', borderRadius: '16px', minHeight: '100px' }}>
-        {/* Decorative Background Icons - Corner Accents */}
-        <UtensilsCrossed size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
-        <ChefHat size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
-        <Flame size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
-        <Leaf size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+    <div className="page-hero page-hero--sub">
+      {/* Decorative Background Icons - Scattered */}
+      <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '8%', '--rotation': '-18deg' }} />
+      <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '42%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+      <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '25%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+      <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '12%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 1 }}>
-          <ChefHat size={32} color="var(--primary)" />
-          <div>
-            <h2 style={{ margin: 0 }}>My Inventory</h2>
-            <p className="text-muted" style={{ margin: 0 }}>Manage your ingredients here. Add items you have in your kitchen.</p>
-          </div>
-        </div>
-        <button onClick={() => openFormModal()} className="btn btn-primary" style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative', zIndex: 1 }}>
-          <Plus size={18} /> Add Item
-        </button>
+      <ChefHat size={48} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+      <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+        <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>My Inventory</h1>
+        <p style={{ margin: '0.5rem 0 0', fontSize: '1.1rem' }}>Manage your ingredients here. Add items you have in your kitchen.</p>
       </div>
+      <button onClick={() => openFormModal()} className="btn btn-primary" style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative', zIndex: 1, padding: '0.75rem 1.5rem', borderRadius: '12px' }}>
+        <Plus size={18} /> Add Item
+      </button>
+    </div>
+
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: '600px', padding: '2rem' }}>
 
       {/* Expiry Alert Summary */}
       {(() => {
