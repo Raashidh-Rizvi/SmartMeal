@@ -8,7 +8,7 @@ import ShoppingTable from '../../components/ShoppingTable';
 import ShoppingChart from '../../components/ShoppingChart';
 import EditItemForm from '../../components/EditItemForm';
 import Toast from '../../components/Toast';
-import { Plus, PlusCircle, Share2, Edit3, ArrowLeft } from 'lucide-react';
+import { Plus, PlusCircle, Share2, Edit3, ArrowLeft, ShoppingCart } from 'lucide-react';
 
 function ShoppingPage() {
 
@@ -146,6 +146,15 @@ function ShoppingPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="shopping-page">
+      {/* Page Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem' }}>
+        <ShoppingCart size={48} color="var(--primary)" strokeWidth={1.75} />
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>Shopping List</h1>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Plan, track, and manage everything you need to buy</p>
+        </div>
+      </div>
+
       {/* ── Content ── */}
       <div className="shopping-content-area">
 
