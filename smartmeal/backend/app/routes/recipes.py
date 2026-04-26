@@ -142,7 +142,7 @@ async def list_recipes(
     category: Optional[str] = Query(None),
     created_by: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
 ) -> Any:
     """
     List recipes with optional filtering and search.
