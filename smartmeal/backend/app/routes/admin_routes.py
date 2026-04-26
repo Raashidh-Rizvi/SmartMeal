@@ -95,6 +95,8 @@ async def get_metrics():
     db = get_db()
     return {
         "totalUsers": await db.users.count_documents({}),
+        "totalRecipes": await db.recipes.count_documents({}),
+        "totalMeals": await db.meal_schedules.count_documents({}),
         "total_users": await db.users.count_documents({}),
         "total_recipes": await db.recipes.count_documents({}),
         "total_meals": await db.meal_schedules.count_documents({}),

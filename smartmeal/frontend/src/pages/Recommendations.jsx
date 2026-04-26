@@ -1,7 +1,8 @@
 import React, { useState, useRef, useContext } from 'react';
-import { searchRecommendations, rateRecipe, getRecipes, createRecipe } from '../api/recipes';
+import { searchRecommendations, rateRecipe, getRecipes, createRecipe, toggleFavoriteRecipe } from '../api/recipes';
 import { createMeal } from '../services/mealService';
 import { AuthContext } from '../context/AuthContext';
+import { Heart } from 'lucide-react';
 
 const DIET_OPTIONS = [
   { value: '', label: 'Any Diet' },
@@ -17,7 +18,7 @@ const scoreColor = (s) => s >= 0.5 ? 'var(--primary)' : s >= 0.25 ? '#f59e0b' : 
 const today = () => new Date().toISOString().slice(0, 10);
 
 function Recommendations() {
-  const { user } = useContext(AuthContext);
+  const { user, setUser } = useContext(AuthContext);
   const userId   = user?.id || user?._id || '1';
 
   // ── search state ──────────────────────────────────────────────────────────
@@ -103,39 +104,46 @@ function Recommendations() {
 
   // Find existing recipe in MongoDB or auto-create it from AI data
   const resolveRecipeId = async (r) => {
-    const searchRes = await getRecipes({ search: r.name, limit: 5 });
-    const matched = (searchRes.data || []).find(
-      rec => rec.title?.toLowerCase() === r.name?.toLowerCase()
-    ) || searchRes.data?.[0];
-    if (matched) return matched._id;
+    try {
+      const searchRes = await getRecipes({ search: r.name, limit: 5 });
+      const matched = (searchRes.data || []).find(
+        rec => rec.title?.toLowerCase() === r.name?.toLowerCase()
+      ) || searchRes.data?.[0];
+      if (matched) return matched._id;
 
-    // Auto-create from AI data
-    const ingredients = (r.ingredients || []).map(ing => {
-      const parts = String(ing).trim().split(' ');
-      const qty = parseFloat(parts[0]);
-      if (!isNaN(qty) && parts.length >= 3)
-        return { name: parts.slice(2).join(' '), quantity: qty, unit: parts[1] };
-      return { name: String(ing).trim(), quantity: 1, unit: 'serving' };
-    }).filter(i => i.name);
+      // Auto-create from AI data
+      const ingredients = (r.ingredients || []).map(ing => {
+        const parts = String(ing).trim().split(' ');
+        const qty = parseFloat(parts[0]);
+        if (!isNaN(qty) && parts.length >= 3)
+          return { name: parts.slice(2).join(' '), quantity: qty, unit: parts[1] };
+        return { name: String(ing).trim(), quantity: 1, unit: 'serving' };
+      }).filter(i => i.name);
 
-    const steps = r.instructions
-      ? String(r.instructions).split(/[.\n]/).map(s => s.trim()).filter(Boolean)
-      : [`Prepare ${r.name} using the listed ingredients.`];
+      const steps = r.instructions
+        ? String(r.instructions).split(/[.\n]/).map(s => s.trim()).filter(Boolean)
+        : [`Prepare ${r.name} using the listed ingredients.`];
 
-    const mealType = sf(null)?.meal_type || 'lunch';
-    const newRecipe = await createRecipe({
-      title: r.name,
-      description: `AI-recommended recipe. Cuisine: ${r.cuisine || 'N/A'}. Diet: ${r.diet || 'N/A'}.`,
-      category: mealType,
-      ingredients,
-      preparation_steps: steps,
-      dietary_tags: r.diet && r.diet !== 'N/A' ? [r.diet] : [],
-      estimated_cooking_time: (() => {
-        const m = String(r.prep_time || '').match(/(\d+)/);
-        return m ? parseInt(m[1]) : null;
-      })(),
-    });
-    return newRecipe.data._id || newRecipe.data.id;
+      const mealType = sf(null)?.meal_type || 'lunch';
+      const newRecipe = await createRecipe({
+        title: r.name,
+        description: `AI-recommended recipe. Cuisine: ${r.cuisine || 'N/A'}. Diet: ${r.diet || 'N/A'}.`,
+        category: mealType,
+        ingredients,
+        preparation_steps: steps,
+        dietary_tags: r.diet && r.diet !== 'N/A' ? [r.diet] : [],
+        estimated_cooking_time: (() => {
+          const m = String(r.prep_time || '').match(/(\d+)/);
+          return m ? parseInt(m[1]) : null;
+        })(),
+      });
+      return newRecipe.data._id || newRecipe.data.id;
+    } catch (err) {
+      if (err.response?.status === 401) {
+        throw new Error('Authentication failed. Please log in again.');
+      }
+      throw err;
+    }
   };
 
   const handleAddToSchedule = async (r, idx) => {
@@ -158,6 +166,34 @@ function Recommendations() {
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to add to meal schedule.';
       setSF(idx, { loading: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+    }
+  };
+
+  const isFavorited = (recipeId) => {
+    if (!user || !user.favoriteRecipes || !recipeId) return false;
+    return user.favoriteRecipes.includes(recipeId);
+  };
+
+  const handleToggleFavorite = async (r, idx) => {
+    if (!user) {
+      setErrorMsg('Please log in to save favorites.');
+      return;
+    }
+    setSF(idx, { loading: true, error: null });
+    try {
+      // First ensure the recipe exists in our DB to get a real ID
+      const recipeId = await resolveRecipeId(r);
+      const res = await toggleFavoriteRecipe(recipeId);
+      const newFavorites = res.data.favorites;
+      setUser(prev => ({ ...prev, favoriteRecipes: newFavorites }));
+      
+      // Update the local recipes state so the heart icon updates immediately
+      setRecipes(prev => prev.map((item, i) => i === idx ? { ...item, _id: recipeId } : item));
+      setSF(idx, { loading: false });
+    } catch (err) {
+      const errMsg = err.response?.data?.detail || err.message || 'Error toggling favorite';
+      console.error('Error toggling favorite:', err);
+      setSF(idx, { loading: false, error: errMsg });
     }
   };
 
@@ -304,22 +340,44 @@ function Recommendations() {
                     borderRadius: '28px', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                   }}>
 
-                    {/* Header: Name + Match Score Badge */}
+                    {/* Header: Name + Match Score Badge & Favorite */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                      <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)', lineHeight: 1.3 }}>{r.name}</div>
-                      <div style={{
-                        padding: '4px', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '50px',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', paddingRight: '0.75rem'
-                      }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)', lineHeight: 1.3 }}>{r.name}</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem' }}>
                         <div style={{
-                          width: '32px', height: '32px', borderRadius: '50%',
-                          background: 'var(--primary-gradient)', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', color: '#fff',
-                          fontSize: '0.7rem', fontWeight: 800
+                          padding: '4px', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '50px',
+                          display: 'flex', alignItems: 'center', gap: '0.5rem', paddingRight: '0.75rem'
                         }}>
-                          {score}%
+                          <div style={{
+                            width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+                            fontSize: '0.75rem', fontWeight: 900
+                          }}>
+                            {score}%
+                          </div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Match
+                          </div>
                         </div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>MATCH</span>
+
+                        {user && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <button 
+                              onClick={() => handleToggleFavorite(r, i)}
+                              style={{ 
+                                background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px',
+                                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600,
+                                color: isFavorited(r._id) ? '#ef4444' : 'var(--text-muted)',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <Heart size={18} strokeWidth={2.5} fill={isFavorited(r._id) ? 'currentColor' : 'none'} />
+                              {isFavorited(r._id) ? 'Favorited' : 'Add to Favorites'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 

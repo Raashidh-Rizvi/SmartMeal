@@ -281,3 +281,43 @@ async def delete_recipe(
 async def debug_test_data() -> Any:
     """Debug endpoint returning hardcoded data."""
     return [{"id": "1", "title": "Test 1"}, {"id": "2", "title": "Test 2"}]
+
+
+@router.post("/{recipe_id}/toggle-favorite", status_code=status.HTTP_200_OK)
+async def toggle_recipe_favorite(
+    recipe_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
+    """
+    Toggle a recipe as favorite for the current user.
+    """
+    try:
+        db = get_db()
+        favorites = await recipe_service.toggle_favorite_recipe(db, recipe_id, current_user.id)
+        return {"favorites": favorites}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling recipe favorite: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to toggle favorite"
+        )
+
+
+@router.get("/user/favorites", status_code=status.HTTP_200_OK)
+async def list_favorite_recipes(
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
+    """
+    Get all recipes favorited by the current user.
+    """
+    try:
+        db = get_db()
+        return await recipe_service.get_favorite_recipes(db, current_user.id)
+    except Exception as e:
+        logger.error(f"Error listing favorite recipes: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch favorite recipes"
+        )

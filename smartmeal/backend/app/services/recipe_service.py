@@ -351,3 +351,89 @@ async def delete_recipe(db, recipe_id: str, user_id: str) -> bool:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete recipe"
         )
+
+
+async def toggle_favorite_recipe(db, recipe_id: str, user_id: str) -> List[str]:
+    """
+    Add or remove a recipe from user's favorites.
+    """
+    try:
+        # Validate recipe exists
+        oid = _validate_object_id(recipe_id)
+        recipe = await db["recipes"].find_one({"_id": oid})
+        if not recipe:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Recipe not found"
+            )
+
+        # Get user
+        u_oid = ObjectId(user_id) if len(user_id) == 24 else user_id
+        user = await db["users"].find_one({"_id": u_oid})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        favorites = user.get("favoriteRecipes", [])
+        
+        if recipe_id in favorites:
+            favorites.remove(recipe_id)
+            action = "removed from"
+        else:
+            favorites.append(recipe_id)
+            action = "added to"
+
+        await db["users"].update_one(
+            {"_id": u_oid},
+            {"$set": {"favoriteRecipes": favorites, "updatedAt": datetime.now(timezone.utc)}}
+        )
+
+        logger.info(f"Recipe {recipe_id} {action} favorites for user {user_id}")
+        return favorites
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling favorite: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to toggle favorite status"
+        )
+
+
+async def get_favorite_recipes(db, user_id: str) -> List[dict]:
+    """
+    Get all recipes favorited by the user.
+    """
+    try:
+        u_oid = ObjectId(user_id) if len(user_id) == 24 else user_id
+        user = await db["users"].find_one({"_id": u_oid})
+        if not user:
+            return []
+
+        favorites = user.get("favoriteRecipes", [])
+        if not favorites:
+            return []
+
+        # Convert string IDs back to ObjectIds for the query
+        recipe_oids = []
+        for fid in favorites:
+            try:
+                recipe_oids.append(ObjectId(fid))
+            except:
+                continue
+
+        cursor = db["recipes"].find({"_id": {"$in": recipe_oids}}).sort("created_at", -1)
+        recipes = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            recipes.append(doc)
+            
+        return recipes
+    except Exception as e:
+        logger.error(f"Error fetching favorite recipes: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch favorite recipes"
+        )

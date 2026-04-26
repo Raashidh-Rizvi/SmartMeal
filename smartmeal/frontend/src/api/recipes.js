@@ -70,3 +70,16 @@ export const uploadRecipeImage = (file) => {
         headers: { 'Content-Type': 'multipart/form-data' },
     });
 };
+
+/**
+ * Toggle favorite status for a recipe
+ * @param {string} recipeId 
+ */
+export const toggleFavoriteRecipe = (recipeId) =>
+    api.post(`/api/recipes/${recipeId}/toggle-favorite`);
+
+/**
+ * Get all recipes favorited by the current user
+ */
+export const getFavoriteRecipes = () =>
+    api.get('/api/recipes/user/favorites');

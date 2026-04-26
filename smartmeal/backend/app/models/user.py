@@ -14,6 +14,7 @@ class UserBase(BaseModel):
     email: str
     role: str = "USER"
     preferences: UserPreferences = Field(default_factory=UserPreferences)
+    favoriteRecipes: List[str] = []
 
 class UserCreate(UserBase):
     password: str

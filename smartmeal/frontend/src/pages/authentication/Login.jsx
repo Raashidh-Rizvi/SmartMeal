@@ -70,7 +70,7 @@ function Login() {
                 type="email" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value.toLowerCase())} 
-                placeholder="raashidhrizvi03@gmail.com"
+                placeholder="johnanne@mail.com"
                 style={{ paddingLeft: '3.25rem' }}
                 required 
               />

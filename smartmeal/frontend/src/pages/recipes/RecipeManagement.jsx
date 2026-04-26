@@ -8,6 +8,8 @@ import {
     updateRecipe,
     deleteRecipe,
     uploadRecipeImage,
+    toggleFavoriteRecipe,
+    getFavoriteRecipes,
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
@@ -22,7 +24,8 @@ import {
     ChefHat,
     BookOpen,
     User,
-    Check
+    Check,
+    Heart
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -49,7 +52,7 @@ const VIEW = { LIST: 'list', DETAIL: 'detail', FORM: 'form' };
 
 // ─────────────────────────────────────────────────────────────────────────────
 function RecipeManagement() {
-    const { user } = useContext(AuthContext);
+    const { user, setUser } = useContext(AuthContext);
     const location = useLocation();
 
     // UI state
@@ -63,7 +66,7 @@ function RecipeManagement() {
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
-    const [activeTab, setActiveTab] = useState('all'); // 'all' or 'mine'
+    const [activeTab, setActiveTab] = useState('all'); // 'all', 'mine', or 'favorites'
     const [skip, setSkip] = useState(0);
     const LIMIT = 12;
 
@@ -91,6 +94,8 @@ function RecipeManagement() {
         // Tab/Filter parameters
         if (params.get('tab') === 'mine' || params.get('created_by_me') === '1') {
             setActiveTab('mine');
+        } else if (params.get('tab') === 'favorites') {
+            setActiveTab('favorites');
         }
 
         // Search parameter
@@ -164,12 +169,16 @@ function RecipeManagement() {
         setLoading(true);
         setError('');
         try {
-            const params = { skip, limit: LIMIT };
-            if (search) params.search = search;
-            if (categoryFilter) params.category = categoryFilter;
-            if (activeTab === 'mine' && user) params.created_by = user.id || user._id;
-
-            const res = await getRecipes(params);
+            let res;
+            if (activeTab === 'favorites') {
+                res = await getFavoriteRecipes();
+            } else {
+                const params = { skip, limit: LIMIT };
+                if (search) params.search = search;
+                if (categoryFilter) params.category = categoryFilter;
+                if (activeTab === 'mine' && user) params.created_by = user.id || user._id;
+                res = await getRecipes(params);
+            }
             setRecipes(res.data);
         } catch (err) {
             console.error('Fetch recipes error:', err);
@@ -225,6 +234,9 @@ function RecipeManagement() {
         setEditMode(true);
         setView(VIEW.FORM);
     };
+
+    // ── Favorites ────────────────────────────────────────────────────────────
+
 
     // ── Delete recipe ────────────────────────────────────────────────────────
     const handleDelete = async (recipe, e) => {
@@ -371,6 +383,28 @@ function RecipeManagement() {
     const isOwner = (recipe) =>
         user && recipe && (recipe.created_by === user._id || recipe.created_by === user.id);
 
+    const isFavorited = (recipeId) => {
+        if (!user || !user.favoriteRecipes) return false;
+        return user.favoriteRecipes.includes(recipeId);
+    };
+
+    const handleToggleFavorite = async (recipeId, e) => {
+        if (e) e.stopPropagation();
+        if (!user) return;
+        try {
+            const res = await toggleFavoriteRecipe(recipeId);
+            const newFavorites = res.data.favorites;
+            setUser(prev => ({ ...prev, favoriteRecipes: newFavorites }));
+            
+            // If we are on the favorites tab and just unfavorited, refresh the list
+            if (activeTab === 'favorites') {
+                fetchRecipes();
+            }
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
+        }
+    };
+
     // ── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="recipe-page">
@@ -401,6 +435,15 @@ function RecipeManagement() {
                             style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
                             <User size={18} /> My Recipes
+                        </button>
+                    )}
+                    {user && (
+                        <button
+                            className={`recipe-tab ${view === VIEW.LIST && activeTab === 'favorites' ? 'active' : ''}`}
+                            onClick={() => { setView(VIEW.LIST); setActiveTab('favorites'); setSkip(0); }}
+                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
+                        >
+                            <Heart size={18} strokeWidth={2.5} fill={activeTab === 'favorites' ? 'currentColor' : 'none'} /> Favorites
                         </button>
                     )}
                     {user && view === VIEW.LIST && (
@@ -484,15 +527,34 @@ function RecipeManagement() {
 
                                     {/* Recipe Image */}
                                     <div className="recipe-card-img-wrapper">
+                                        {user && (
+                                            <button 
+                                                className={`favorite-btn ${isFavorited(recipe._id) ? 'favorited' : ''}`}
+                                                onClick={(e) => handleToggleFavorite(recipe._id, e)}
+                                                title={isFavorited(recipe._id) ? "Remove from Favorites" : "Add to Favorites"}
+                                            >
+                                                <Heart 
+                                                    size={28} 
+                                                    strokeWidth={2} 
+                                                    stroke="currentColor"
+                                                    fill={isFavorited(recipe._id) ? "currentColor" : "none"} 
+                                                />
+                                            </button>
+                                        )}
                                         {recipe.image_url ? (
                                             <img
                                                 src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
                                                 alt={recipe.title}
                                                 className="recipe-card-img"
-                                                onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"><BookOpen size={48} color="#e2e8f0" /></div>'; }}
+                                                onError={e => { 
+                                                    // Don't replace innerHTML, just hide the broken image
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                                                }}
                                             />
-                                        ) : (
-                                            <div className="recipe-card-placeholder">
+                                        ) : null}
+                                        {(!recipe.image_url || recipe.image_url) && (
+                                            <div className="recipe-card-placeholder" style={{ display: recipe.image_url ? 'none' : 'flex' }}>
                                                 <BookOpen size={48} color="#e2e8f0" />
                                             </div>
                                         )}
