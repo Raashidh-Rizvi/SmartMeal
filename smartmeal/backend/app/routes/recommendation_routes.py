@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 from app.services.recommendation import recommendRecipes
 
-router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
+router = APIRouter(tags=["recommendations"])
 
 
 class SearchRequest(BaseModel):

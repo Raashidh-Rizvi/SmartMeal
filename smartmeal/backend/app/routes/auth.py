@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app.db.database import get_db
@@ -104,11 +105,18 @@ async def google_login(req: GoogleLoginRequest) -> Any:
             updates["name"] = req.name
             user_dict["name"] = req.name
         
-        if not user_dict.get("password_hash"):
+        # Check both field names to prevent overwriting existing passwords
+        existing_hash = user_dict.get("password_hash") or user_dict.get("hashed_password")
+        
+        if not existing_hash:
             # Provide a random password hash for socially-joined users who haven't set a password
             pwd_hash = get_password_hash(generate_random_password())
             updates["password_hash"] = pwd_hash
             user_dict["password_hash"] = pwd_hash
+        elif not user_dict.get("password_hash") and user_dict.get("hashed_password"):
+            # Migrate from legacy field name if only hashed_password exists
+            updates["password_hash"] = existing_hash
+            user_dict["password_hash"] = existing_hash
             
         if not user_dict.get("createdAt"):
             now = datetime.now(timezone.utc)
@@ -134,3 +142,82 @@ async def google_login(req: GoogleLoginRequest) -> Any:
         ),
         "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
     }
+
+from app.models.user import ForgotPasswordRequest, ResetPasswordRequest
+import random
+
+@router.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    db = get_db()
+    user = await db["users"].find_one({"email": {"$regex": f"^{req.email.strip()}$", "$options": "i"}})
+    if not user:
+        raise HTTPException(status_code=404, detail="Account not found. Please check your email.")
+    
+    otp = str(random.randint(100000, 999999))
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    await db["otps"].update_one(
+        {"email": req.email.strip().lower()},
+        {"$set": {"otp": otp, "expiry": expiry}},
+        upsert=True
+    )
+    
+    # Send real email via utility
+    from app.utils.email import send_otp_email
+    send_otp_email(req.email.strip(), otp)
+    
+    return {"message": "OTP has been sent to your email address."}
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    db = get_db()
+    email_normalized = req.email.strip().lower()
+    otp_record = await db["otps"].find_one({"email": email_normalized})
+    
+    if not otp_record or otp_record["otp"] != req.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP code. Please try again.")
+    
+    # Handle both aware and naive datetimes from MongoDB
+    expiry = otp_record["expiry"]
+    if expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=timezone.utc)
+        
+    if expiry < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new one.")
+    
+    # Update password
+    new_password_hash = get_password_hash(req.newPassword)
+    await db["users"].update_one(
+        {"email": {"$regex": f"^{email_normalized}$", "$options": "i"}},
+        {"$set": {
+            "password_hash": new_password_hash, 
+            "updatedAt": datetime.now(timezone.utc)
+        }}
+    )
+    
+    # Delete the used OTP
+    await db["otps"].delete_one({"email": email_normalized})
+    
+    return {"message": "Your password has been reset successfully."}
+
+class VerifyOTPRequest(BaseModel):
+    email: str
+    otp: str
+
+@router.post("/verify-otp")
+async def verify_otp(req: VerifyOTPRequest):
+    db = get_db()
+    email_normalized = req.email.strip().lower()
+    otp_record = await db["otps"].find_one({"email": email_normalized})
+    
+    if not otp_record or otp_record["otp"] != req.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+    
+    expiry = otp_record["expiry"]
+    if expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=timezone.utc)
+        
+    if expiry < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="OTP has expired")
+    
+    return {"message": "OTP verified successfully"}

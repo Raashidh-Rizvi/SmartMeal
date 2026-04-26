@@ -22,7 +22,7 @@ from app.routes.budget import router as budget_router
 from app.routes.leftover_ai_routes import router as leftover_ai_router
 from app.routes.notification_routes import router as notification_router
 from app.routes.recommendation_routes import router as recommendation_router
-import logging
+from app.routes.images import router as images_router
 import os
 
 logging.basicConfig(level=logging.INFO)
@@ -114,8 +114,9 @@ app.include_router(meal_schedule_router, prefix="/api/meal-schedules", tags=["me
 app.include_router(leftovers_router)
 app.include_router(budget_router)
 app.include_router(leftover_ai_router)
-app.include_router(notification_router, prefix="/api", tags=["notifications"])
-app.include_router(recommendation_router)
+app.include_router(notification_router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(recommendation_router, prefix="/api/recommendations", tags=["recommendations"])
+app.include_router(images_router, prefix="/api/images", tags=["images"])
 
 @app.get("/")
 async def root():

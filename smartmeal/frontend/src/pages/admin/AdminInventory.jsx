@@ -29,7 +29,6 @@ function AdminInventory() {
       if (filters.userEmail) params.append('userEmail', filters.userEmail);
       if (filters.expiredOnly) params.append('expiredOnly', 'true');
       if (filters.expiringBefore) {
-        // Needs proper ISO format for backend, assuming date picker gives YYYY-MM-DD
         const dateObj = new Date(filters.expiringBefore);
         if (!isNaN(dateObj)) {
           params.append('expiringBefore', dateObj.toISOString());
@@ -37,11 +36,10 @@ function AdminInventory() {
       }
       
       const res = await api.get(`/api/admin/inventory?${params.toString()}`);
-      setItems(res.data.items);
-      setTotalPages(Math.ceil(res.data.total / limit));
+      setItems(res.data.items || []);
+      setTotalPages(Math.ceil((res.data.total || 0) / limit));
     } catch (err) {
       console.error(err);
-      alert('Error fetching inventory');
     } finally {
       setLoading(false);
     }
@@ -75,23 +73,30 @@ function AdminInventory() {
 
   return (
     <div className="admin-page">
-      <header className="admin-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <ClipboardList size={32} color="var(--primary)" />
-        <h1 style={{ margin: 0 }}>Inventory Oversight</h1>
+      <header className="admin-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ClipboardList size={32} color="var(--primary)" />
+          <h1>Inventory Oversight</h1>
+        </div>
+        <p className="subtitle">Monitor and manage global food inventory across all users</p>
       </header>
 
       <div className="admin-filters">
-        <form onSubmit={handleFilterSubmit} className="search-form flex gap-3 flex-wrap">
-          <input 
-            type="email" 
-            placeholder="Filter by User Email" 
-            value={filters.userEmail}
-            onChange={(e) => setFilters({...filters, userEmail: e.target.value})}
-            className="admin-input"
-          />
+        <form onSubmit={handleFilterSubmit} style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="form-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
+            <label>Filter by User Email</label>
+            <input 
+              type="email" 
+              placeholder="user@example.com" 
+              value={filters.userEmail}
+              onChange={(e) => setFilters({...filters, userEmail: e.target.value})}
+              className="admin-input"
+              style={{ width: '100%' }}
+            />
+          </div>
           
-          <div className="flex align-center gap-2">
-            <label>Expiring Before:</label>
+          <div className="form-group" style={{ width: 'auto', marginBottom: 0 }}>
+            <label>Expiring Before</label>
             <input 
               type="date" 
               value={filters.expiringBefore}
@@ -100,34 +105,41 @@ function AdminInventory() {
             />
           </div>
 
-          <label className="flex align-center gap-2">
-            <input 
-              type="checkbox" 
-              checked={filters.expiredOnly}
-              onChange={(e) => setFilters({...filters, expiredOnly: e.target.checked})}
-            />
-            Expired Only
-          </label>
+          <div className="form-group" style={{ width: 'auto', marginBottom: 0, paddingBottom: '0.75rem' }}>
+            <label className="checkbox-container" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', textTransform: 'none', letterSpacing: 'normal' }}>
+              <input 
+                type="checkbox" 
+                checked={filters.expiredOnly}
+                onChange={(e) => setFilters({...filters, expiredOnly: e.target.checked})}
+                style={{ width: '18px', height: '18px' }}
+              />
+              <span>Expired Items Only</span>
+            </label>
+          </div>
 
-          <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Filter size={16} /> Apply Filters
-          </button>
-          <button type="button" onClick={handleClearFilters} className="btn btn-secondary">Clear</button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: 'auto' }}>
+              <Filter size={18} /> Apply
+            </button>
+            <button type="button" onClick={handleClearFilters} className="btn btn-secondary" style={{ width: 'auto' }}>
+              Clear
+            </button>
+          </div>
         </form>
       </div>
 
       {loading ? (
-        <p>Loading inventory...</p>
+        <div className="admin-loading"><div className="loader"></div><p>Loading global inventory...</p></div>
       ) : (
         <div className="admin-table-container">
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Item Name</th>
-                <th>User Email</th>
+                <th>Item Details</th>
+                <th>Owner (Email)</th>
                 <th>Category</th>
                 <th>Quantity</th>
-                <th>Expiry Date</th>
+                <th>Expiry Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -136,19 +148,27 @@ function AdminInventory() {
                 const isExpired = item.expiryDate && new Date(item.expiryDate) < new Date();
                 return (
                   <tr key={item._id} className={isExpired ? 'row-danger' : ''}>
-                    <td>{item.name}</td>
+                    <td>
+                      <div style={{ fontWeight: 700 }}>{item.name}</div>
+                    </td>
                     <td>{item.userEmail}</td>
-                    <td>{item.category || '-'}</td>
+                    <td><span className="badge badge-user">{item.category || 'General'}</span></td>
                     <td>{item.quantity}</td>
                     <td>
-                      {item.expiryDate 
-                        ? new Date(item.expiryDate).toLocaleDateString() 
-                        : 'No Expiry'}
-                      {isExpired && <span className="warning-icon ms-2" style={{ color: 'var(--danger)', display: 'inline-flex', alignItems: 'center' }}><AlertTriangle size={14} /></span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {item.expiryDate 
+                          ? new Date(item.expiryDate).toLocaleDateString() 
+                          : 'No Expiry'}
+                        {isExpired && (
+                          <span className="badge badge-inactive">
+                            <AlertTriangle size={12} /> Expired
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
-                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Trash2 size={14} /> Delete
+                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" title="Remove Item">
+                        <Trash2 size={18} />
                       </button>
                     </td>
                   </tr>
@@ -156,19 +176,21 @@ function AdminInventory() {
               })}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="text-center">No inventory items found</td>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    No inventory records found.
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
           
-          <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
-            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <ChevronLeft size={16} /> Prev
+          <div className="admin-pagination">
+            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary" style={{ width: 'auto' }}>
+              <ChevronLeft size={18} /> Prev
             </button>
-            <span style={{ fontWeight: 500 }}>Page {page} of {totalPages || 1}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              Next <ChevronRight size={16} />
+            <span style={{ fontWeight: 700, minWidth: '80px', textAlign: 'center' }}>{page} / {totalPages || 1}</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary" style={{ width: 'auto' }}>
+              Next <ChevronRight size={18} />
             </button>
           </div>
         </div>

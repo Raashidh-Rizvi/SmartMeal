@@ -8,6 +8,8 @@ import {
     updateRecipe,
     deleteRecipe,
     uploadRecipeImage,
+    toggleFavoriteRecipe,
+    getFavoriteRecipes,
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
@@ -22,7 +24,8 @@ import {
     ChefHat,
     BookOpen,
     User,
-    Check
+    Check,
+    Heart
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -41,6 +44,7 @@ const EMPTY_FORM = {
     image_url: '',
 };
 const INGREDIENT_FETCH_LIMIT = 500;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
 const normalizeIngredientName = (name) => String(name || '').trim().toLowerCase();
 
@@ -49,7 +53,7 @@ const VIEW = { LIST: 'list', DETAIL: 'detail', FORM: 'form' };
 
 // ─────────────────────────────────────────────────────────────────────────────
 function RecipeManagement() {
-    const { user } = useContext(AuthContext);
+    const { user, setUser } = useContext(AuthContext);
     const location = useLocation();
     const currentUserId = useMemo(() => {
         const rawId = user?._id ?? user?.id;
@@ -67,7 +71,7 @@ function RecipeManagement() {
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
-    const [activeTab, setActiveTab] = useState('all'); // 'all' or 'mine'
+    const [activeTab, setActiveTab] = useState('all'); // 'all', 'mine', or 'favorites'
     const [skip, setSkip] = useState(0);
     const LIMIT = 12;
 
@@ -95,6 +99,8 @@ function RecipeManagement() {
         // Tab/Filter parameters
         if (params.get('tab') === 'mine' || params.get('created_by_me') === '1') {
             setActiveTab('mine');
+        } else if (params.get('tab') === 'favorites') {
+            setActiveTab('favorites');
         }
 
         // Search parameter
@@ -168,13 +174,45 @@ function RecipeManagement() {
         setLoading(true);
         setError('');
         try {
+            const normalizedSearch = search.trim();
+
+            if (activeTab === 'favorites') {
+                if (!user) {
+                    setRecipes([]);
+                    return;
+                }
+
+                const res = await getFavoriteRecipes();
+                const favoriteRecipes = Array.isArray(res.data) ? res.data : [];
+                const normalizedFavoriteSearch = normalizedSearch.toLowerCase();
+
+                const filteredFavorites = favoriteRecipes.filter(recipe => {
+                    const matchesCategory = !categoryFilter || recipe.category === categoryFilter;
+                    if (!matchesCategory) return false;
+
+                    if (!normalizedFavoriteSearch) return true;
+
+                    const haystacks = [
+                        recipe.title,
+                        recipe.description,
+                        ...(Array.isArray(recipe.ingredients) ? recipe.ingredients.map(ingredient => ingredient?.name) : []),
+                    ];
+
+                    return haystacks.some(value =>
+                        String(value || '').toLowerCase().includes(normalizedFavoriteSearch)
+                    );
+                });
+
+                setRecipes(filteredFavorites);
+                return;
+            }
+
             if (activeTab === 'mine' && !currentUserId) {
                 setRecipes([]);
                 return;
             }
 
             const params = { skip, limit: LIMIT };
-            const normalizedSearch = search.trim();
             if (normalizedSearch) params.search = normalizedSearch;
             if (categoryFilter) params.category = categoryFilter;
             if (activeTab === 'mine') params.created_by = currentUserId;
@@ -187,7 +225,7 @@ function RecipeManagement() {
         } finally {
             setLoading(false);
         }
-    }, [search, categoryFilter, activeTab, skip, currentUserId]);
+    }, [search, categoryFilter, activeTab, skip, currentUserId, user]);
 
     useEffect(() => {
         if (view === VIEW.LIST) fetchRecipes();
@@ -216,6 +254,32 @@ function RecipeManagement() {
     const isOwner = useCallback((recipe) => (
         Boolean(recipe?.created_by && currentUserId && String(recipe.created_by) === currentUserId)
     ), [currentUserId]);
+
+    const isFavorited = (recipeId) => (
+        Array.isArray(user?.favoriteRecipes)
+            ? user.favoriteRecipes.some(id => String(id) === String(recipeId))
+            : false
+    );
+
+    const handleToggleFavorite = async (recipeId, e) => {
+        if (e) e.stopPropagation();
+        if (!user) return;
+
+        try {
+            const res = await toggleFavoriteRecipe(recipeId);
+            const newFavorites = Array.isArray(res.data?.favorites) ? res.data.favorites : [];
+
+            if (typeof setUser === 'function') {
+                setUser(prev => (prev ? { ...prev, favoriteRecipes: newFavorites } : prev));
+            }
+
+            if (activeTab === 'favorites') {
+                fetchRecipes();
+            }
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
+        }
+    };
 
     // ── Open edit form ───────────────────────────────────────────────────────
     const openEdit = (recipe) => {
@@ -421,6 +485,14 @@ function RecipeManagement() {
                             <User size={18} /> My Recipes
                         </button>
                     )}
+                    {user && (
+                        <button
+                            className={`recipe-tab ${view === VIEW.LIST && activeTab === 'favorites' ? 'active' : ''}`}
+                            onClick={() => { setView(VIEW.LIST); setActiveTab('favorites'); setSkip(0); }}
+                        >
+                            <Heart size={18} fill={activeTab === 'favorites' ? 'currentColor' : 'none'} /> Favorites
+                        </button>
+                    )}
                     {user && view === VIEW.LIST && (
                         <button
                             className="recipe-tab"
@@ -453,7 +525,7 @@ function RecipeManagement() {
                                 id="recipe-search"
                                 className="filter-search premium-input"
                                 type="text"
-                                placeholder={`Search ${activeTab === 'mine' ? 'your' : 'all'} recipes...`}
+                                placeholder={`Search ${activeTab === 'mine' ? 'your' : activeTab === 'favorites' ? 'favorite' : 'all'} recipes...`}
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
                             />
@@ -482,7 +554,9 @@ function RecipeManagement() {
                     ) : recipes.length === 0 ? (
                         <div className="empty-state">
                             <Search size={48} color="#cbd5e1" className="empty-state-icon" />
-                            <p className="empty-state-title">No recipes found.</p>
+                            <p className="empty-state-title">
+                                {activeTab === 'favorites' ? 'No favorite recipes found.' : 'No recipes found.'}
+                            </p>
                             {user && (
                                 <button className="btn-primary empty-state-action" onClick={openCreate}>Create your first recipe</button>
                             )}
@@ -500,6 +574,17 @@ function RecipeManagement() {
                                         id={`recipe-card-${recipe._id}`}
                                     >
                                         <div className="recipe-card-img-wrapper">
+                                            {user && (
+                                                <button
+                                                    className={`favorite-btn ${isFavorited(recipe._id) ? 'favorited' : ''}`}
+                                                    onClick={(e) => handleToggleFavorite(recipe._id, e)}
+                                                    title={isFavorited(recipe._id) ? 'Remove from Favorites' : 'Add to Favorites'}
+                                                    aria-label={isFavorited(recipe._id) ? `Remove ${recipe.title} from favorites` : `Add ${recipe.title} to favorites`}
+                                                >
+                                                    <Heart size={18} fill={isFavorited(recipe._id) ? 'currentColor' : 'none'} />
+                                                </button>
+                                            )}
+
                                             {ownsRecipe && (
                                                 <div
                                                     className="recipe-card-overlay-actions"
@@ -526,16 +611,22 @@ function RecipeManagement() {
 
                                             {recipe.image_url ? (
                                                 <img
-                                                    src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
+                                                    src={recipe.image_url.startsWith('/') ? `${API_BASE_URL}${recipe.image_url}` : recipe.image_url}
                                                     alt={recipe.title}
                                                     className="recipe-card-img"
-                                                    onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"><BookOpen size={48} color="#e2e8f0" /></div>'; }}
+                                                    onError={e => {
+                                                        e.target.style.display = 'none';
+                                                        const placeholder = e.target.nextElementSibling;
+                                                        if (placeholder) placeholder.style.display = 'flex';
+                                                    }}
                                                 />
-                                            ) : (
-                                                <div className="recipe-card-placeholder">
-                                                    <BookOpen size={48} color="#e2e8f0" />
-                                                </div>
-                                            )}
+                                            ) : null}
+                                            <div
+                                                className="recipe-card-placeholder"
+                                                style={{ display: recipe.image_url ? 'none' : 'flex' }}
+                                            >
+                                                <BookOpen size={48} color="#e2e8f0" />
+                                            </div>
                                         </div>
 
                                         <div className="recipe-card-body">
@@ -601,7 +692,7 @@ function RecipeManagement() {
 
                     {selectedRecipe.image_url && (
                         <img
-                            src={selectedRecipe.image_url.startsWith('/') ? `http://localhost:8001${selectedRecipe.image_url}` : selectedRecipe.image_url}
+                            src={selectedRecipe.image_url.startsWith('/') ? `${API_BASE_URL}${selectedRecipe.image_url}` : selectedRecipe.image_url}
                             alt={selectedRecipe.title}
                             className="recipe-hero-img"
                             onError={e => { e.target.style.display = 'none'; }}
@@ -792,7 +883,7 @@ function RecipeManagement() {
                             {form.image_url && !imageUploading && (
                                 <div className="img-preview-wrapper">
                                     <img
-                                        src={`http://localhost:8001${form.image_url}`}
+                                        src={form.image_url.startsWith('/') ? `${API_BASE_URL}${form.image_url}` : form.image_url}
                                         alt="Preview"
                                         className="img-preview"
                                         onError={e => { e.target.style.display = 'none'; }}

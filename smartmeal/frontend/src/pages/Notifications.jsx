@@ -16,7 +16,10 @@ import {
   Settings,
   Mail,
   Smartphone,
-  CheckCheck
+  CheckCheck,
+  ChefHat,
+  Flame,
+  Leaf
 } from 'lucide-react';
 
 const TYPE_META = {
@@ -137,12 +140,22 @@ function Notifications() {
     <div className="container" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
 
       {/* ── Header ── */}
-      <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-          {prefs.notificationsEnabled ? <Bell size={32} color="var(--primary)" /> : <BellOff size={32} color="#94a3b8" />}
-          My Notifications
-        </h1>
-        <p className="text-muted">Stay updated on expiring items, budget alerts, and updates.</p>
+      <header style={{ position: 'relative', overflow: 'hidden', padding: '3rem 1rem 2rem', marginBottom: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', minHeight: '160px' }}>
+        {/* Decorative Background Icons - Corner Accents */}
+        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
+        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
+        <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
+        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center' }}>
+            {prefs.notificationsEnabled ? <Bell size={48} color="var(--primary)" strokeWidth={1.75} /> : <BellOff size={48} color="#94a3b8" strokeWidth={1.75} />}
+        </div>
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>
+            My Notifications
+          </h1>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Stay updated on expiring items, budget alerts, and updates.</p>
+        </div>
       </header>
 
       {/* ── Notification Preferences Card (TC_NM_07) ── */}

@@ -1,8 +1,9 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, ArrowRight } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../api/axios';
+import PasswordInput from '../../components/PasswordInput';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -62,31 +63,30 @@ function Login() {
           <div className="form-group">
             <label>Email Address</label>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>📧</span>
+              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-main)' }}>
+                <Mail size={18} />
+              </span>
               <input 
                 type="email" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value.toLowerCase())} 
-                placeholder="raashidhrizvi03@gmail.com"
+                placeholder="johnanne@mail.com"
                 style={{ paddingLeft: '3.25rem' }}
                 required 
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔒</span>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="••••••••"
-                style={{ paddingLeft: '3.25rem' }}
-                required 
-              />
-            </div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <PasswordInput
+              id="password"
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              prefixIcon={Lock}
+            />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -97,8 +97,8 @@ function Login() {
             <Link to="/forgot-password" style={{ fontSize: '0.9rem', fontWeight: '600' }}>Forgot Password?</Link>
           </div>
 
-          <button type="submit" className="btn-primary" style={{ height: '3.5rem', fontSize: '1.1rem' }}>
-            Login <span style={{ marginLeft: '0.5rem' }}>→</span>
+          <button type="submit" className="btn-primary" style={{ height: '3.5rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            Login <ArrowRight size={20} />
           </button>
         </form>
 

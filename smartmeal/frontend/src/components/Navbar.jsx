@@ -20,7 +20,8 @@ import {
   Moon, 
   LogOut, 
   Bell,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Heart
 } from 'lucide-react';
 
 function Navbar() {
@@ -77,6 +78,12 @@ function Navbar() {
   useEffect(() => {
     const controlNavbar = () => {
       if (typeof window !== 'undefined') {
+        // Always keep navbar visible in admin mode
+        if (location.pathname.includes('/admin')) {
+          setIsVisible(true);
+          return;
+        }
+        
         const currentScrollY = window.scrollY;
         
         if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
@@ -103,7 +110,7 @@ function Navbar() {
       window.removeEventListener('scroll', controlNavbar);
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -156,6 +163,9 @@ function Navbar() {
                   <Link to="/leftovers" className={`navbar-link${location.pathname === '/leftovers' ? ' active' : ''}`} onClick={closeMenu}>
                     <span className="nav-icon"><ChefHat size={18} /></span> Leftovers
                   </Link>
+                  <Link to="/recipes?tab=favorites" className={`navbar-link${location.pathname.includes('/recipes') && new URLSearchParams(location.search).get('tab') === 'favorites' ? ' active' : ''}`} onClick={closeMenu}>
+                    <span className="nav-icon"><Heart size={18} /></span> Favorites
+                  </Link>
                 </div>
               </>
             )}
@@ -199,7 +209,7 @@ function Navbar() {
                   </button>
 
                   {showUserDropdown && (
-                    <div className="user-dropdown-menu premium-popover" style={{ width: '310px', padding: '0 0 1rem 0', marginTop: '1rem' }}>
+                    <div className="user-dropdown-menu premium-popover">
                       <div className="dropdown-header-premium">
                         <p className="user-name">{user.name}</p>
                         <p className="user-email">{user.email}</p>
@@ -268,6 +278,9 @@ function Navbar() {
               </Link>
               <Link to="/leftovers" className={`navbar-link${location.pathname === '/leftovers' ? ' active' : ''}`} onClick={closeMenu}>
                 <span className="nav-icon"><ChefHat size={18} /></span> Leftovers
+              </Link>
+              <Link to="/recipes?tab=favorites" className={`navbar-link${location.pathname.includes('/recipes') && new URLSearchParams(location.search).get('tab') === 'favorites' ? ' active' : ''}`} onClick={closeMenu}>
+                <span className="nav-icon"><Heart size={18} /></span> Favorites
               </Link>
             </div>
           </div>

@@ -2,7 +2,20 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
-import { Check, PartyPopper } from 'lucide-react';
+import { 
+  Check, 
+  PartyPopper, 
+  User, 
+  Heart, 
+  Users, 
+  ShieldCheck, 
+  Mail, 
+  Settings, 
+  Save,
+  Lock,
+  Trash2,
+  ChefHat
+} from 'lucide-react';
 
 function Profile() {
   const { user, setUser } = useContext(AuthContext);
@@ -14,7 +27,6 @@ function Profile() {
     dietType: '',
     allergies: '',
     cuisinePreferences: '',
-    budgetLevel: '',
     householdSize: 1
   });
   const [loading, setLoading] = useState(false);
@@ -27,7 +39,6 @@ function Profile() {
         dietType: user.preferences?.dietType || '',
         allergies: user.preferences?.allergies?.join(', ') || '',
         cuisinePreferences: user.preferences?.cuisinePreferences?.join(', ') || '',
-        budgetLevel: user.preferences?.budgetLevel || '',
         householdSize: user.preferences?.householdSize || 1
       });
     }
@@ -51,7 +62,6 @@ function Profile() {
           dietType: formData.dietType,
           allergies: formData.allergies.split(',').map(i => i.trim()).filter(i => i),
           cuisinePreferences: formData.cuisinePreferences.split(',').map(i => i.trim()).filter(i => i),
-          budgetLevel: formData.budgetLevel,
           householdSize: parseInt(formData.householdSize, 10) || 1
         }
       };
@@ -74,129 +84,238 @@ function Profile() {
   if (!user) return <div className="loading">Loading profile...</div>;
 
   return (
-    <div className="profile-container card">
-
-      {/* Welcome / Onboarding Banner for new users */}
+    <div className="profile-page-wrapper" style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem' }}>
+      
+      {/* Welcome / Onboarding Banner */}
       {isNewUser && (
-        <div className="onboarding-banner">
-          <div className="onboarding-banner__icon">
-            <PartyPopper size={32} />
+        <div className="onboarding-banner" style={{ 
+          background: 'linear-gradient(135deg, var(--primary) 0%, #064e3b 100%)', 
+          color: 'white', 
+          padding: '2rem', 
+          borderRadius: '24px', 
+          marginBottom: '2rem',
+          display: 'flex',
+          gap: '1.5rem',
+          alignItems: 'center',
+          boxShadow: 'var(--shadow-premium)'
+        }}>
+          <div className="onboarding-banner__icon" style={{ background: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '18px' }}>
+            <PartyPopper size={40} />
           </div>
           <div className="onboarding-banner__body">
-            <h3>Welcome to Smart Recipe, {user.name}!</h3>
-            <p>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>Welcome to Smart Recipe, {user.name}!</h3>
+            <p style={{ margin: '0.5rem 0 0', opacity: 0.9, lineHeight: '1.5' }}>
               To get personalised recipe recommendations, please fill in your dietary preferences below.
-              This only takes a minute and helps us suggest meals you'll love.
+              This helps us suggest meals you'll love.
             </p>
           </div>
         </div>
       )}
 
-      <h2>{isNewUser ? 'Set Up Your Dietary Preferences' : 'My Profile'}</h2>
+      {/* Page Title */}
+      <div style={{ marginBottom: '2.5rem', textAlign: isNewUser ? 'center' : 'left' }}>
+        <h1 style={{ 
+          fontSize: '2.5rem', 
+          fontWeight: '900', 
+          background: 'linear-gradient(135deg, var(--primary) 0%, #064e3b 100%)', 
+          WebkitBackgroundClip: 'text', 
+          WebkitTextFillColor: 'transparent', 
+          margin: 0,
+          letterSpacing: '-0.02em'
+        }}>
+          {isNewUser ? 'Complete Your Profile' : 'Profile Settings'}
+        </h1>
+        <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 0', fontSize: '1.1rem' }}>
+          {isNewUser ? 'Just a few details to personalize your experience' : 'Manage your personal information and culinary preferences'}
+        </p>
+      </div>
 
       {message.text && (
-        <div className={`alert alert-${message.type}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {message.type === 'success' && <Check size={18} />}
-          {message.text}
+        <div className={`alert alert-${message.type}`} style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.75rem', 
+          padding: '1.25rem', 
+          borderRadius: '16px', 
+          marginBottom: '2rem',
+          boxShadow: 'var(--shadow-sm)',
+          animation: 'slideDown 0.3s ease'
+        }}>
+          {message.type === 'success' ? <ShieldCheck size={20} /> : <Settings size={20} />}
+          <span style={{ fontWeight: '600' }}>{message.text}</span>
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="profile-form">
-        <div className="form-group">
-          <label>Name</label>
-          <input 
-            type="text" 
-            name="name" 
-            value={formData.name} 
-            onChange={handleChange} 
-            required 
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Email (cannot be changed here)</label>
-          <input 
-            type="email" 
-            value={user.email} 
-            disabled 
-            readOnly 
-          />
-        </div>
-
-        <h3>Dietary Preferences</h3>
+      <form onSubmit={handleSubmit} className="profile-form" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
-        <div className="form-group">
-          <label>Diet Type</label>
-          <select name="dietType" value={formData.dietType} onChange={handleChange}>
-            <option value="">None</option>
-            <option value="vegetarian">Vegetarian</option>
-            <option value="vegan">Vegan</option>
-            <option value="pescatarian">Pescatarian</option>
-            <option value="keto">Keto</option>
-            <option value="paleo">Paleo</option>
-          </select>
+        {/* Section: Account Information */}
+        <div className="profile-section card" style={{ padding: '2.5rem', borderRadius: '28px', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-premium)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem' }}>
+            <User size={24} color="var(--primary)" />
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>Account Information</h2>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Full Name</label>
+              <div style={{ position: 'relative' }}>
+                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                <input 
+                  type="text" 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleChange} 
+                  required 
+                  style={{ paddingLeft: '3rem', borderRadius: '14px' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Email Address</label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                <input 
+                  type="email" 
+                  value={user.email} 
+                  disabled 
+                  readOnly 
+                  style={{ paddingLeft: '3rem', borderRadius: '14px', background: 'var(--bg-muted)', opacity: 0.7 }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="form-group">
-          <label>Allergies (comma-separated)</label>
-          <input 
-            type="text" 
-            name="allergies" 
-            value={formData.allergies} 
-            onChange={handleChange} 
-            placeholder="e.g. peanuts, dairy, gluten"
-          />
+        {/* Section: Dietary Preferences */}
+        <div className="profile-section card" style={{ padding: '2.5rem', borderRadius: '28px', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-premium)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem' }}>
+            <Heart size={24} color="#ef4444" />
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>Dietary Preferences</h2>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="form-group">
+              <label>Diet Type</label>
+              <select name="dietType" value={formData.dietType} onChange={handleChange} style={{ borderRadius: '14px' }}>
+                <option value="">No specific diet</option>
+                <option value="vegetarian">Vegetarian</option>
+                <option value="vegan">Vegan</option>
+                <option value="pescatarian">Pescatarian</option>
+                <option value="keto">Keto</option>
+                <option value="paleo">Paleo</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Household Size</label>
+              <div style={{ position: 'relative' }}>
+                <Users size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+                <input 
+                  type="number" 
+                  name="householdSize" 
+                  value={formData.householdSize} 
+                  onChange={handleChange} 
+                  min="1"
+                  max="20"
+                  style={{ paddingLeft: '3rem', borderRadius: '14px' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label>Allergies & Intolerances</label>
+              <div style={{ position: 'relative' }}>
+                <ShieldCheck size={18} style={{ position: 'absolute', left: '1rem', top: '1.1rem', opacity: 0.4 }} />
+                <input 
+                  type="text" 
+                  name="allergies" 
+                  value={formData.allergies} 
+                  onChange={handleChange} 
+                  placeholder="e.g. peanuts, dairy, gluten"
+                  style={{ paddingLeft: '3rem', borderRadius: '14px' }}
+                />
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Separate multiple allergies with commas</p>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label>Cuisine Preferences</label>
+              <div style={{ position: 'relative' }}>
+                <ChefHat size={18} style={{ position: 'absolute', left: '1rem', top: '1.1rem', opacity: 0.4 }} />
+                <input 
+                  type="text" 
+                  name="cuisinePreferences" 
+                  value={formData.cuisinePreferences} 
+                  onChange={handleChange} 
+                  placeholder="e.g. Italian, Mexican, Asian"
+                  style={{ paddingLeft: '3rem', borderRadius: '14px' }}
+                />
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Your favorite cuisines help us suggest better recipes</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="form-group">
-          <label>Cuisine Preferences (comma-separated)</label>
-          <input 
-            type="text" 
-            name="cuisinePreferences" 
-            value={formData.cuisinePreferences} 
-            onChange={handleChange} 
-            placeholder="e.g. Italian, Mexican, Asian"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Budget Level</label>
-          <select name="budgetLevel" value={formData.budgetLevel} onChange={handleChange}>
-            <option value="">Select...</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Household Size</label>
-          <input 
-            type="number" 
-            name="householdSize" 
-            value={formData.householdSize} 
-            onChange={handleChange} 
-            min="1"
-            max="20"
-          />
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" disabled={loading} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
-            {loading ? 'Saving...' : (
+        {/* Form Actions */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="btn-primary" 
+            style={{ 
+              height: '4rem', 
+              padding: '0 4rem', 
+              fontSize: '1.25rem', 
+              fontWeight: '800',
+              borderRadius: '20px',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '1rem', 
+              boxShadow: 'var(--shadow-lg)',
+              transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            }}
+          >
+            {loading ? 'Processing...' : (
               <>
-                <Check size={20} />
-                {isNewUser ? 'Save & Get Started' : 'Save Changes'}
+                {isNewUser ? <Check size={24} /> : <Save size={24} />}
+                {isNewUser ? 'Complete Setup' : 'Save Changes'}
               </>
             )}
           </button>
         </div>
       </form>
 
+      {/* Security & Danger Zone */}
       {!isNewUser && (
-        <div className="profile-links">
-           <Link to="/change-password">Change Password</Link>
-           <Link to="/delete-account" className="text-danger">Delete Account</Link>
+        <div style={{ marginTop: '4rem', padding: '2rem', borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'center', gap: '2rem' }}>
+          <Link to="/change-password" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            textDecoration: 'none', 
+            color: 'var(--text-main)', 
+            fontWeight: '600',
+            padding: '0.75rem 1.5rem',
+            background: 'var(--bg-muted)',
+            borderRadius: '12px',
+            transition: 'background 0.2s ease'
+          }}>
+            <Lock size={18} /> Change Password
+          </Link>
+          <Link to="/delete-account" className="text-danger" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            textDecoration: 'none', 
+            fontWeight: '600',
+            padding: '0.75rem 1.5rem',
+            background: 'rgba(239, 68, 68, 0.05)',
+            borderRadius: '12px',
+            transition: 'background 0.2s ease'
+          }}>
+            <Trash2 size={18} /> Delete Account
+          </Link>
         </div>
       )}
     </div>

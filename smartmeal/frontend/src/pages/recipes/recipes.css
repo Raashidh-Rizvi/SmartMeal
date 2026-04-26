@@ -229,6 +229,11 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 0.4s ease;
+}
+
+.recipe-card:hover .recipe-card-img {
+    transform: scale(1.06);
 }
 
 .recipe-card-placeholder {
@@ -238,13 +243,49 @@
     color: rgba(var(--primary-rgb), 0.65);
 }
 
-.recipe-card-overlay-actions {
+.favorite-btn {
     position: absolute;
     top: 0.9rem;
     right: 0.9rem;
+    z-index: 3;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255, 255, 255, 0.42) !important;
+    background: rgba(15, 23, 42, 0.58) !important;
+    color: #fff !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.24) !important;
+}
+
+.favorite-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(15, 23, 42, 0.72) !important;
+}
+
+.favorite-btn.favorited {
+    background: rgba(239, 68, 68, 0.92) !important;
+    border-color: rgba(248, 113, 113, 0.7) !important;
+}
+
+.favorite-btn.favorited:hover {
+    background: rgba(220, 38, 38, 0.96) !important;
+}
+
+.recipe-card-overlay-actions {
+    position: absolute;
+    top: 0.9rem;
+    left: 0.9rem;
     display: inline-flex;
     gap: 0.55rem;
-    z-index: 2;
+    z-index: 3;
 }
 
 .recipe-card-icon-action {
@@ -893,6 +934,11 @@
     }
 
     .recipe-card-overlay-actions {
+        top: 0.75rem;
+        left: 0.75rem;
+    }
+
+    .favorite-btn {
         top: 0.75rem;
         right: 0.75rem;
     }

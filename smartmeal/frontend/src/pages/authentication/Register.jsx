@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UtensilsCrossed } from 'lucide-react';
+import { UtensilsCrossed, User, Mail, ArrowRight, Lock } from 'lucide-react';
 import api from '../../api/axios';
 import { AuthContext } from '../../context/AuthContext';
 import { validatePassword } from '../../utils/passwordValidation';
@@ -88,7 +88,9 @@ function Register() {
           <div className="form-group">
             <label>Full Name</label>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>👤</span>
+              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-main)' }}>
+                <User size={18} />
+              </span>
               <input
                 type="text"
                 value={name}
@@ -108,7 +110,9 @@ function Register() {
           <div className="form-group">
             <label>Email Address</label>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>📧</span>
+              <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-main)' }}>
+                <Mail size={18} />
+              </span>
               <input
                 type="email"
                 value={email}
@@ -136,6 +140,7 @@ function Register() {
             placeholder="Min. 12 chars, mixed types"
             error={errors.password}
             showStrength
+            prefixIcon={Lock}
           />
 
           {/* Confirm Password */}
@@ -151,10 +156,11 @@ function Register() {
             error={errors.confirmPassword}
             showMatch
             matchValue={password}
+            prefixIcon={Lock}
           />
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ height: '3.5rem', fontSize: '1.1rem', marginTop: '1rem' }}>
-            {loading ? 'Creating account…' : 'Create Account'} <span style={{ marginLeft: '0.5rem' }}>→</span>
+          <button type="submit" className="btn-primary" disabled={loading} style={{ height: '3.5rem', fontSize: '1.1rem', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            {loading ? 'Creating account…' : 'Create Account'} <ArrowRight size={20} />
           </button>
         </form>
 

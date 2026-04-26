@@ -30,7 +30,7 @@ async def list_users(
     total = await db.users.count_documents(query)
     for u in users:
         u["_id"] = str(u["_id"])
-        u.pop("hashed_password", None)
+        u.pop("password_hash", None)
         u["createdAt"] = u.get("createdAt", u.get("created_at"))
         u["is_active"] = u.get("is_active", True)
     return {"items": users, "total": total, "page": page, "limit": limit}
@@ -46,7 +46,7 @@ async def get_user(user_id: str):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user["_id"] = str(user["_id"])
-    user.pop("hashed_password", None)
+    user.pop("password_hash", None)
     user["createdAt"] = user.get("createdAt", user.get("created_at"))
     user["is_active"] = user.get("is_active", True)
     return user
@@ -60,7 +60,7 @@ async def update_user(user_id: str, data: dict):
         raise HTTPException(status_code=400, detail="Invalid user ID format")
     db = get_db()
     data.pop("_id", None)
-    data.pop("hashed_password", None)
+    data.pop("password_hash", None)
     if "is_active" in data:
         data["is_active"] = bool(data["is_active"])
     
@@ -95,6 +95,8 @@ async def get_metrics():
     db = get_db()
     return {
         "totalUsers": await db.users.count_documents({}),
+        "totalRecipes": await db.recipes.count_documents({}),
+        "totalMeals": await db.meal_schedules.count_documents({}),
         "total_users": await db.users.count_documents({}),
         "total_recipes": await db.recipes.count_documents({}),
         "total_meals": await db.meal_schedules.count_documents({}),

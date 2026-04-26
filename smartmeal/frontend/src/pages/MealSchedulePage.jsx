@@ -32,7 +32,10 @@ import {
   CalendarDays,
   CalendarRange,
   PlusCircle,
-  RefreshCw
+  RefreshCw,
+  UtensilsCrossed,
+  Flame,
+  Leaf
 } from "lucide-react";
 import "../styles/MealSchedule.css";
 
@@ -921,14 +924,20 @@ export default function MealSchedulePage() {
             )}
 
             {/* Header */}
-            <div className="ms-header">
-                <div className="ms-header-title">
+            <div className="ms-header" style={{ position: 'relative', overflow: 'hidden' }}>
+                {/* Decorative Background Icons - Scattered Randomly */}
+                <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '12%', left: '4%', '--rotation': '-18deg' }} />
+                <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '8%', left: '38%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+                <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '10%', left: '22%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+                <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '15%', right: '6%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+
+                <div className="ms-header-title" style={{ position: 'relative', zIndex: 2 }}>
                     <h1 style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                         <Utensils size={32} color="var(--primary)" /> Meal Schedule
                     </h1>
                     <p>Plan and manage your daily meals</p>
                 </div>
-                <div className="ms-header-filters">
+                <div className="ms-header-filters" style={{ position: 'relative', zIndex: 2 }}>
                     <input className="ms-input" placeholder="🔍 Search by recipe..."
                         value={search} onChange={e => setSearch(e.target.value)} />
                     <select className="ms-input" value={filterType} onChange={e => setFilterType(e.target.value)}>

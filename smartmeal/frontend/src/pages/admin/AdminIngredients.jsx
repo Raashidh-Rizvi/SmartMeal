@@ -147,28 +147,49 @@ function AdminIngredients() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Ingredient Name</th>
+                <th>Ingredient Identity</th>
                 <th>Category</th>
-                <th>Unit</th>
-                <th>Calories</th>
-                <th>Actions</th>
+                <th>Standard Unit</th>
+                <th>Nutrition (Cal)</th>
+                <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map(item => (
                 <tr key={item._id}>
-                  <td>{item.name}</td>
-                  <td>{item.category || '-'}</td>
-                  <td>{item.unit}</td>
-                  <td>{item.calories}</td>
                   <td>
-                    <button onClick={() => openFormModal(item)} className="btn-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Pencil size={14} /> Edit
-                    </button>
-                    {' | '}
-                    <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Trash2 size={14} /> Delete
-                    </button>
+                    <div className="user-identity">
+                      <div className="user-avatar" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' }}>
+                        {item.name.charAt(0)}
+                      </div>
+                      <div className="user-info-stack">
+                        <div className="user-name">{item.name}</div>
+                        <div className="user-email">ID: {item._id.slice(-6)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge" style={{ background: 'rgba(54, 162, 235, 0.08)', color: '#36A2EB' }}>
+                      {item.category || 'General'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.unit}</div>
+                  </td>
+                  <td>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      {item.calories} kcal
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button onClick={() => openFormModal(item)} className="btn-icon" title="Edit Ingredient">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" title="Remove Item">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

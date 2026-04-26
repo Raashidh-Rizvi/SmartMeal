@@ -24,6 +24,7 @@ from app.services.preprocessing import (
     clean_text,
     normalize_ingredients,
 )
+from app.services.image_mapper import get_cuisine_image
 
 _PROCESSED_PATH = (
     Path(__file__).resolve().parent.parent
@@ -53,6 +54,10 @@ def prepareData() -> pd.DataFrame:
         save_processed_data()
 
     df = load_processed_data()
+    
+    # Store the 1-based original index to match with image file prefixes (e.g. '1.Thayir...')
+    if "original_index" not in df.columns:
+        df["original_index"] = df.index + 1
 
     # Safety: rebuild combined_features if column is absent
     if "combined_features" not in df.columns:
@@ -210,7 +215,6 @@ def recommendRecipes(
     if top.empty:
         return _error("No matching recipes found. Try different keywords.")
 
-    # ── Format output ─────────────────────────────────────────────────────────
     results = []
     for _, row in top.iterrows():
         matched_kw = _find_matched_keywords(query_tokens, str(row.get("combined_features", "")))
@@ -224,6 +228,7 @@ def recommendRecipes(
             "similarity_score":  round(float(row["similarity_score"]), 4),
             "matched_keywords":  matched_kw,
             "match_explanation": _build_explanation(row.get("name", ""), matched_kw),
+            "image_url":         get_cuisine_image(row.get("name", "")),
         })
 
     return results

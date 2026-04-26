@@ -9,22 +9,44 @@ function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // If redirected from Forgot Password, pre-fill email
     if (location.state?.email) {
       setEmail(location.state.email);
     }
   }, [location.state]);
 
+  const handleVerifyOtp = async () => {
+    if (!otp) { setError('Please enter the OTP code'); return; }
+    setVerifying(true);
+    setError('');
+    try {
+      await api.post('/api/auth/verify-otp', { email, otp });
+      setIsVerified(true);
+      setMessage('OTP verified successfully! Now set your new password.');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Invalid or expired OTP code.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
+
+    if (!isVerified) {
+      setError('Please verify your OTP code first');
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match');
@@ -46,12 +68,11 @@ function ResetPassword() {
         newPassword 
       });
       setMessage(response.data.message);
-      // Wait then navigate to login
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid OTP or expired. Please request a new one.');
+      setError(err.response?.data?.detail || 'Reset failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -61,9 +82,9 @@ function ResetPassword() {
     <div className="auth-container">
       <div className="auth-card glassmorphic">
         <h2>Reset Password</h2>
-        <p className="auth-subtitle">Enter the OTP sent to your email and choose a new password.</p>
+        <p className="auth-subtitle">Verify your identity and choose a new password.</p>
         
-        {message && <div className="alert alert-success">{message} Redirecting to login...</div>}
+        {message && <div className="alert alert-success">{message}</div>}
         {error && <div className="alert alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
@@ -75,83 +96,106 @@ function ResetPassword() {
               onChange={(e) => setEmail(e.target.value.toLowerCase())} 
               placeholder="name@example.com"
               required 
-              disabled={loading || !!location.state?.email}
+              disabled={loading || !!location.state?.email || isVerified}
             />
           </div>
 
           <div className="form-group">
             <label>OTP Code</label>
-            <input 
-              type="text" 
-              value={otp} 
-              onChange={(e) => setOtp(e.target.value)} 
-              placeholder="Enter 6-digit OTP"
-              maxLength="6"
-              required 
-              disabled={loading}
-              className="otp-input"
-            />
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <input 
+                type="text" 
+                value={otp} 
+                onChange={(e) => setOtp(e.target.value)} 
+                placeholder="6-digit OTP"
+                maxLength="6"
+                required 
+                disabled={loading || isVerified}
+                className="otp-input"
+                style={{ flex: 1, letterSpacing: '0.2rem' }}
+              />
+              {!isVerified && (
+                <button 
+                  type="button" 
+                  onClick={handleVerifyOtp}
+                  disabled={verifying}
+                  className="btn-primary"
+                  style={{ width: 'auto', padding: '0 1.25rem', whiteSpace: 'nowrap' }}
+                >
+                  {verifying ? '...' : 'Verify'}
+                </button>
+              )}
+            </div>
+            {isVerified && (
+              <p style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: '700', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                ✓ OTP Verified
+              </p>
+            )}
           </div>
 
-          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-            <label>New Password</label>
-            <input 
-              type="password" 
-              value={newPassword} 
-              onChange={(e) => setNewPassword(e.target.value)} 
-              placeholder="Min. 12 characters, mixed types"
-              required 
-              disabled={loading}
-            />
-            <div className="password-strength-container" style={{ marginTop: '0.5rem' }}>
-              <div 
-                className="password-strength-bar" 
-                style={{ 
-                  height: '4px', 
-                  backgroundColor: '#e5e7eb', 
-                  borderRadius: '2px',
-                  overflow: 'hidden'
-                }}
-              >
-                <div 
-                  style={{ 
-                    width: `${getPasswordStrength(newPassword)}%`, 
-                    height: '100%', 
-                    backgroundColor: getPasswordStrength(newPassword) < 60 ? '#ef4444' : getPasswordStrength(newPassword) < 100 ? '#f59e0b' : '#10b981',
-                    transition: 'width 0.3s ease'
-                  }}
+          {isVerified && (
+            <>
+              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                <label>New Password</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  placeholder="Min. 12 characters, mixed types"
+                  required 
+                  disabled={loading}
+                />
+                <div className="password-strength-container" style={{ marginTop: '0.5rem' }}>
+                  <div 
+                    className="password-strength-bar" 
+                    style={{ 
+                      height: '4px', 
+                      backgroundColor: '#e5e7eb', 
+                      borderRadius: '2px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div 
+                      style={{ 
+                        width: `${getPasswordStrength(newPassword)}%`, 
+                        height: '100%', 
+                        backgroundColor: getPasswordStrength(newPassword) < 60 ? '#ef4444' : getPasswordStrength(newPassword) < 100 ? '#f59e0b' : '#10b981',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                    Strength: {getPasswordStrength(newPassword) < 60 ? 'Weak' : getPasswordStrength(newPassword) < 100 ? 'Medium' : 'Strong'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Confirm Password</label>
+                <input 
+                  type="password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  placeholder="Repeat password"
+                  required 
+                  disabled={loading}
                 />
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                Strength: {getPasswordStrength(newPassword) < 60 ? 'Weak' : getPasswordStrength(newPassword) < 100 ? 'Medium' : 'Strong'}
-              </span>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Confirm Password</label>
-            <input 
-              type="password" 
-              value={confirmPassword} 
-              onChange={(e) => setConfirmPassword(e.target.value)} 
-              placeholder="Repeat password"
-              required 
-              disabled={loading}
-            />
-          </div>
-          
-          <button 
-            type="submit" 
-            className="btn-primary" 
-            disabled={loading}
-          >
-            {loading ? 'Resetting Password...' : 'Reset Password'}
-          </button>
+              
+              <button 
+                type="submit" 
+                className="btn-primary" 
+                disabled={loading}
+              >
+                {loading ? 'Resetting Password...' : 'Reset Password'}
+              </button>
+            </>
+          )}
         </form>
 
         <div className="auth-footer">
           <p>
-            Didn't receive an OTP? <Link to="/forgot-password">Request again</Link>
+            Remembered your password? <Link to="/login">Login here</Link>
           </p>
         </div>
       </div>

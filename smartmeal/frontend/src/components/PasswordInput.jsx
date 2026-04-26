@@ -1,23 +1,8 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { getPasswordStrength } from '../utils/passwordValidation';
 
-/* ─── Eye Icons ─────────────────────────────────────────────────────────── */
-const EyeOpen = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
-);
-
-const EyeClosed = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-    <line x1="1" y1="1" x2="23" y2="23"/>
-  </svg>
-);
+// Lucide icons Eye and EyeOff are used instead of custom SVGs
 
 /* ─── Strength Config ─────────────────────────────────────────────────────── */
 const STRENGTH_LEVELS = [
@@ -68,6 +53,7 @@ export default function PasswordInput({
   showMatch = false,
   matchValue = '',
   required = true,
+  prefixIcon: PrefixIcon = null,
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -83,6 +69,11 @@ export default function PasswordInput({
 
       {/* Input wrapper */}
       <div className="pw-input-wrap">
+        {PrefixIcon && (
+          <span style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-main)', zIndex: 10 }}>
+            <PrefixIcon size={18} />
+          </span>
+        )}
         <input
           id={id}
           type={visible ? 'text' : 'password'}
@@ -92,6 +83,7 @@ export default function PasswordInput({
           required={required}
           autoComplete="new-password"
           className={`pw-input${error ? ' pw-input--error' : ''}`}
+          style={{ paddingLeft: PrefixIcon ? '3.25rem' : '1rem' }}
         />
         <button
           type="button"
@@ -100,7 +92,7 @@ export default function PasswordInput({
           aria-label={visible ? 'Hide password' : 'Show password'}
           tabIndex={-1}
         >
-          {visible ? <EyeClosed /> : <EyeOpen />}
+          {visible ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
 
@@ -136,7 +128,7 @@ export default function PasswordInput({
             const pass = r.test(value);
             return (
               <li key={r.label} className={`pw-rule ${pass ? 'pw-rule--pass' : 'pw-rule--fail'}`}>
-                <span className="pw-rule-icon">{pass ? '✓' : '✗'}</span>
+                <span className="pw-rule-icon">{pass ? <Check size={14} /> : <X size={14} />}</span>
                 {r.label}
               </li>
             );
@@ -146,8 +138,8 @@ export default function PasswordInput({
 
       {/* Match indicator */}
       {showMatch && value && (
-        <span className={`pw-match ${matchOk ? 'pw-match--ok' : 'pw-match--bad'}`}>
-          {matchOk ? '✓ Passwords match' : '✗ Passwords do not match'}
+        <span className={`pw-match ${matchOk ? 'pw-match--ok' : 'pw-match--bad'}`} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          {matchOk ? <><Check size={14} /> Passwords match</> : <><X size={14} /> Passwords do not match</>}
         </span>
       )}
     </div>
