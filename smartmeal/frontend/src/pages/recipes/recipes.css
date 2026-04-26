@@ -48,6 +48,50 @@
     transform: scale(1.1);
 }
 
+.favorite-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    padding: 0;
+}
+
+.favorite-btn:hover {
+    transform: scale(1.15);
+    background: rgba(0, 0, 0, 0.85);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.favorite-btn.favorited {
+    background: #ef4444;
+    border-color: #dc2626;
+    color: white;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+}
+
+.favorite-btn.favorited:hover {
+    background: #dc2626;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+    transform: scale(1.2);
+}
+
+.dark .favorite-btn.favorited {
+    background: #ef4444;
+}
+
 .recipe-card-actions-bottom {
     display: flex;
     gap: 0.75rem;

@@ -34,10 +34,11 @@ async def seed_data():
         "_id": target_user_id,
         "name": "Raashidh Rizvi",
         "email": "raashidh24@gmail.com",
-        "hashed_password": hashed_password,
+        "password_hash": hashed_password,
         "role": "USER",
         "is_active": True,
-        "created_at": now
+        "createdAt": now,
+        "updatedAt": now
     })
     
     # 2. Create the Guest user
@@ -45,9 +46,11 @@ async def seed_data():
         "_id": guest_user_id,
         "name": "Guest User",
         "email": "guest@example.com",
+        "password_hash": hashed_password, # Adding a password for consistency
         "role": "USER",
         "is_active": True,
-        "created_at": now
+        "createdAt": now,
+        "updatedAt": now
     })
         
     all_user_ids = [target_user_id, guest_user_id]

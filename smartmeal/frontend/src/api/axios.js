@@ -7,16 +7,32 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Add interceptor to include token in all requests
+// Add request interceptor to include token in all requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('No token found in localStorage for request to:', config.url);
   }
   return config;
 }, (error) => {
   return Promise.reject(error);
 });
+
+// Add response interceptor to handle 401 errors (token expired/invalid)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.error('Authentication failed (401). Clearing token and redirecting to login.');
+      localStorage.removeItem('token');
+      // Redirect to login page
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Helper to convert camelCase to snake_case for backend
 function toSnakeCase(str) {
@@ -34,6 +50,16 @@ function convertToSnakeCase(obj) {
     result[snakeKey] = convertToSnakeCase(obj[key]);
   }
   return result;
+}
+
+/** OAuth2 password flow: backend expects application/x-www-form-urlencoded with username + password. */
+export function postOAuthLogin(apiInstance, email, password) {
+  const params = new URLSearchParams();
+  params.append('username', email.trim());
+  params.append('password', password);
+  return apiInstance.post('/api/auth/login', params, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
 }
 
 export const ShoppingAPI = {

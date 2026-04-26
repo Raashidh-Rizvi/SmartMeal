@@ -4,6 +4,25 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import NotificationsModal from './NotificationsModal';
+import { 
+  Lightbulb, 
+  BookOpen, 
+  Wallet, 
+  ShieldCheck, 
+  Calendar, 
+  Package, 
+  ShoppingCart, 
+  ChefHat, 
+  LogIn, 
+  UserPlus, 
+  User, 
+  Sun, 
+  Moon, 
+  LogOut, 
+  Bell,
+  UtensilsCrossed,
+  Heart
+} from 'lucide-react';
 
 function Navbar() {
   const { user, logout } = useContext(AuthContext);
@@ -14,7 +33,12 @@ function Navbar() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [latestNotification, setLatestNotification] = useState('');
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
   const userDropdownRef = useRef(null);
+  const prevCountRef = useRef(0);
   const isAdmin = user?.role?.toString()?.toUpperCase() === 'ADMIN';
 
   useEffect(() => {
@@ -30,7 +54,16 @@ function Navbar() {
         });
         if (response.ok) {
           const data = await response.json();
-          setUnreadNotifications(data.length || 0);
+          const currentCount = data.length || 0;
+          
+          if (currentCount > prevCountRef.current && user) {
+            setLatestNotification(data[0]?.message || 'New notification received!');
+            setShowBanner(true);
+            setTimeout(() => setShowBanner(false), 3000);
+          }
+          
+          setUnreadNotifications(currentCount);
+          prevCountRef.current = currentCount;
         }
       } catch {
         setUnreadNotifications(0);
@@ -38,21 +71,46 @@ function Navbar() {
     };
 
     loadUnreadCount();
-    // Re-check every 5 minutes while app is open
     const interval = setInterval(loadUnreadCount, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [user]);
 
-  // Click outside dropdowns logic
   useEffect(() => {
+    const controlNavbar = () => {
+      if (typeof window !== 'undefined') {
+        // Always keep navbar visible in admin mode
+        if (location.pathname.includes('/admin')) {
+          setIsVisible(true);
+          return;
+        }
+        
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+          // scrolling down
+          setIsVisible(false);
+        } else {
+          // scrolling up
+          setIsVisible(true);
+        }
+        
+        lastScrollY.current = currentScrollY;
+      }
+    };
+
+    window.addEventListener('scroll', controlNavbar);
+
     const handleClickOutside = (event) => {
       if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
         setShowUserDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return () => {
+      window.removeEventListener('scroll', controlNavbar);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -64,11 +122,11 @@ function Navbar() {
 
   return (
     <>
-      <nav className="navbar">
-        {/* Top Row: Brand, Primary Links & User Actions */}
+      <nav className={`navbar ${!isVisible ? 'navbar--hidden' : ''}`}>
         <div className="navbar-row navbar-top-row">
           <div className="navbar-brand">
-            <Link to={user ? "/dashboard" : "/login"} onClick={closeMenu}>
+            <Link to={user ? "/dashboard" : "/login"} onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <UtensilsCrossed size={24} color="var(--primary)" />
               <span className="brand-text">Smart Meal</span>
             </Link>
           </div>
@@ -77,34 +135,36 @@ function Navbar() {
             {user && (
               <>
                 <Link to="/recommendations" className={`navbar-link${location.pathname === '/recommendations' ? ' active' : ''}`} onClick={closeMenu} title="Recipe Recommendations Based on Your Stock">
-                  <span className="nav-icon">💡</span> Recommendations
+                  <span className="nav-icon"><Lightbulb size={18} /></span> Recommendations
                 </Link>
                 <Link to="/recipes" className={`navbar-link${location.pathname === '/recipes' ? ' active' : ''}`} onClick={closeMenu} title="Browse All Recipes">
-                  <span className="nav-icon">📖</span> Recipes
+                  <span className="nav-icon"><BookOpen size={18} /></span> Recipes
                 </Link>
                 <Link to="/budget" className={`navbar-link${location.pathname === '/budget' ? ' active' : ''}`} onClick={closeMenu} title="Monitor Your Grocery Spending">
-                  <span className="nav-icon">💰</span> Budget
+                  <span className="nav-icon"><Wallet size={18} /></span> Budget
                 </Link>
                 {isAdmin && (
                   <Link to="/admin" className={`navbar-link${location.pathname === '/admin' ? ' active' : ''}`} onClick={closeMenu} title="Admin Dashboard">
-                    <span className="nav-icon">🛡️</span> Admin
+                    <span className="nav-icon"><ShieldCheck size={18} /></span> Admin
                   </Link>
                 )}
                 
-                {/* Mobile-only visible planning links */}
                 <div className="mobile-planning-links">
                   <div className="dropdown-divider"></div>
                   <Link to="/meals" className={`navbar-link${location.pathname === '/meals' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">📅</span> Meal Schedule
+                    <span className="nav-icon"><Calendar size={18} /></span> Meal Schedule
                   </Link>
                   <Link to="/inventory" className={`navbar-link${location.pathname === '/inventory' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">📦</span> Ingredients
+                    <span className="nav-icon"><Package size={18} /></span> Ingredients
                   </Link>
                   <Link to="/shoppinglist" className={`navbar-link${location.pathname === '/shoppinglist' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">🛒</span> Shopping List
+                    <span className="nav-icon"><ShoppingCart size={18} /></span> Shopping List
                   </Link>
                   <Link to="/leftovers" className={`navbar-link${location.pathname === '/leftovers' ? ' active' : ''}`} onClick={closeMenu}>
-                    <span className="nav-icon">🍱</span> Leftovers
+                    <span className="nav-icon"><ChefHat size={18} /></span> Leftovers
+                  </Link>
+                  <Link to="/recipes?tab=favorites" className={`navbar-link${location.pathname.includes('/recipes') && new URLSearchParams(location.search).get('tab') === 'favorites' ? ' active' : ''}`} onClick={closeMenu}>
+                    <span className="nav-icon"><Heart size={18} /></span> Favorites
                   </Link>
                 </div>
               </>
@@ -113,69 +173,68 @@ function Navbar() {
             {!user && (
               <>
                 <Link to="/login" className={`navbar-link${location.pathname === '/login' ? ' active' : ''}`} onClick={closeMenu}>
-                  <span className="nav-icon">🔑</span> Login
+                  <span className="nav-icon"><LogIn size={18} /></span> Login
                 </Link>
                 <Link to="/register" className="navbar-link" onClick={closeMenu}>
-                  <span className="nav-icon">📝</span> Register
+                  <span className="nav-icon"><UserPlus size={18} /></span> Register
                 </Link>
               </>
             )}
           </div>
 
-          {/* User Actions */}
           <div className="navbar-actions">
             {user ? (
               <div className="navbar-utility-btns">
                 <button
                   type="button"
-                  className="notification-btn"
+                  className="nav-trigger-bell"
                   title="View notifications"
                   onClick={() => setShowNotificationsModal(true)}
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide-bell">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                  </svg>
-                  {unreadNotifications > 0 && <span className="notification-badge">{unreadNotifications}</span>}
+                  <Bell size={24} />
+                  {unreadNotifications > 0 && (
+                    <span className="notification-badge" style={{ top: '2px', right: '2px', minWidth: '18px', height: '18px', padding: '0 4px', fontSize: '10px' }}>
+                      {unreadNotifications}
+                    </span>
+                  )}
                 </button>
                 
                 <div className="user-dropdown-container" ref={userDropdownRef}>
                   <button 
-                    className="user-profile-trigger icon-only" 
+                    className="nav-trigger-avatar-circle" 
                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    aria-label="User Account Menu"
                     title={user.name}
                   >
-                    <div className="user-avatar">{user.name?.charAt(0).toUpperCase() || 'U'}</div>
+                    {user.name?.charAt(0).toUpperCase()}
                   </button>
 
                   {showUserDropdown && (
-                    <div className="user-dropdown-menu">
-                      <div className="dropdown-header">
-                        <p className="dropdown-user-name">{user.name}</p>
-                        <p className="dropdown-user-email">{user.email}</p>
+                    <div className="user-dropdown-menu premium-popover">
+                      <div className="dropdown-header-premium">
+                        <p className="user-name">{user.name}</p>
+                        <p className="user-email">{user.email}</p>
                       </div>
-                      <div className="dropdown-divider"></div>
+                      <div className="dropdown-divider" style={{ margin: '0 1.5rem 1rem', opacity: 0.1 }}></div>
                       
-                      <Link to="/profile" className="dropdown-item" onClick={() => setShowUserDropdown(false)}>
-                        <span className="dropdown-icon">👤</span> Profile
+                      <Link to="/profile" className="dropdown-item-pill" onClick={() => setShowUserDropdown(false)}>
+                        <User size={20} style={{ opacity: 0.7 }} /> Profile
                       </Link>
                       
-                      <button className="dropdown-item appearance-toggle" onClick={() => { toggleTheme(); setShowUserDropdown(false); }}>
-                        <span className="dropdown-icon">{isDark ? '☀️' : '🌙'}</span> 
-                        <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                      <button className="dropdown-item-pill" onClick={() => { toggleTheme(); setShowUserDropdown(false); }}>
+                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                        <span>Dark Mode</span>
                       </button>
                       
                       {isAdmin && (
-                        <Link to="/admin" className={`dropdown-item${location.pathname === '/admin' ? ' active' : ''}`} onClick={() => setShowUserDropdown(false)}>
-                          <span className="dropdown-icon">🛡️</span> Admin Panel
+                        <Link to="/admin" className="dropdown-item-pill" onClick={() => setShowUserDropdown(false)}>
+                          <ShieldCheck size={20} style={{ opacity: 0.7 }} /> Admin Panel
                         </Link>
                       )}
                       
-                      <div className="dropdown-divider"></div>
+                      <div className="dropdown-divider" style={{ margin: '1rem 1.5rem', opacity: 0.1 }}></div>
                       
-                      <button className="dropdown-item logout-item" onClick={handleLogout}>
-                        <span className="dropdown-icon">🚪</span> Logout
+                      <button className="dropdown-item-pill" onClick={handleLogout}>
+                        <LogOut size={20} style={{ opacity: 0.7 }} /> Logout
                       </button>
                     </div>
                   )}
@@ -187,11 +246,10 @@ function Navbar() {
                 onClick={toggleTheme}
                 title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
-                {isDark ? '☀️' : '🌙'}
+                {isDark ? <Sun size={20} /> : <Moon size={20} />}
               </button>
             )}
 
-            {/* Hamburger Toggle (Mobile) */}
             <button
               className="navbar-toggle"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -206,39 +264,47 @@ function Navbar() {
           </div>
         </div>
 
-        {/* Bottom Row: Planning Links (Only for authed users) */}
         {user && (
           <div className="navbar-row navbar-bottom-row">
             <div className="navbar-planning-links">
               <Link to="/meals" className={`navbar-link${location.pathname === '/meals' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">📅</span> Meal Schedule
+                <span className="nav-icon"><Calendar size={18} /></span> Meal Schedule
               </Link>
               <Link to="/inventory" className={`navbar-link${location.pathname === '/inventory' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">📦</span> Ingredients
+                <span className="nav-icon"><Package size={18} /></span> Ingredients
               </Link>
               <Link to="/shoppinglist" className={`navbar-link${location.pathname === '/shoppinglist' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">🛒</span> Shopping List
+                <span className="nav-icon"><ShoppingCart size={18} /></span> Shopping List
               </Link>
               <Link to="/leftovers" className={`navbar-link${location.pathname === '/leftovers' ? ' active' : ''}`} onClick={closeMenu}>
-                <span className="nav-icon">🍱</span> Leftovers
+                <span className="nav-icon"><ChefHat size={18} /></span> Leftovers
+              </Link>
+              <Link to="/recipes?tab=favorites" className={`navbar-link${location.pathname.includes('/recipes') && new URLSearchParams(location.search).get('tab') === 'favorites' ? ' active' : ''}`} onClick={closeMenu}>
+                <span className="nav-icon"><Heart size={18} /></span> Favorites
               </Link>
             </div>
           </div>
         )}
       </nav>
 
-      {/* Overlay rendered at body level via portal for mobile menu */}
       {menuOpen && ReactDOM.createPortal(
         <div className="navbar-overlay" onClick={closeMenu} />,
         document.body
       )}
 
-      {/* Notifications Modal */}
       <NotificationsModal 
         isOpen={showNotificationsModal} 
         onClose={() => setShowNotificationsModal(false)} 
         onUnreadCountChange={setUnreadNotifications}
       />
+
+      {/* Notification Banner */}
+      {showBanner && (
+        <div className="notification-banner">
+          <Bell size={20} color="var(--primary)" />
+          <span>{latestNotification}</span>
+        </div>
+      )}
     </>
   );
 }

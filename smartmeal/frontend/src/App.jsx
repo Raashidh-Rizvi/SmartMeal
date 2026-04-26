@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Toast from './components/Toast';
 
 // Pages
 import Login from './pages/authentication/Login';
@@ -32,6 +33,7 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminUserEdit from './pages/admin/AdminUserEdit';
 import AdminInventory from './pages/admin/AdminInventory';
 import AdminIngredients from './pages/admin/AdminIngredients';
+
 import AdminNotifications from './pages/admin/AdminNotifications';
 
 // Recipe Components
@@ -48,6 +50,7 @@ function App() {
       <Router>
         <AuthProvider>
           <div className="app-container">
+            <Toast />
             <Navbar />
             <div className="content-layout">
               <main className="main-content">
@@ -85,6 +88,7 @@ function App() {
                       <Route path="users/:id" element={<AdminUserEdit />} />
                       <Route path="inventory" element={<AdminInventory />} />
                       <Route path="ingredients" element={<AdminIngredients />} />
+
                       <Route path="notifications" element={<AdminNotifications />} />
                     </Route>
                   </Route>

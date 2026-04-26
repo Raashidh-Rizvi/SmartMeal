@@ -1,127 +1,98 @@
-from fastapi import APIRouter, HTTPException, Header
-from pydantic import BaseModel
-from typing import Optional, Any
 from datetime import datetime, timezone
+from typing import Any
+from fastapi import APIRouter, Depends, HTTPException, status
+from app.db.database import get_db
+from app.core.security import verify_password, get_password_hash
+from app.models.user import UserResponse, UserInDB, UserBase, PasswordUpdate
+from app.api.deps import get_current_user
 from bson import ObjectId
-import bcrypt
-from jose import jwt, JWTError
-from bson.errors import InvalidId
-from ..db.database import get_db
-from ..core.config import settings
 
 router = APIRouter()
 
-
-def verify_password(password: str, hashed: str) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode(), hashed.encode())
-    except Exception:
-        return False
-
-
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-
-def get_user_id_from_token(authorization: Optional[str]) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    token = authorization.split(" ", 1)[1]
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id = payload["sub"]
-        # Basic validation that it could be an ObjectId
-        if not isinstance(user_id, str):
-             raise HTTPException(status_code=401, detail="Invalid token payload")
-        return user_id
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-def to_object_id(id_str: str) -> ObjectId:
-    try:
-        return ObjectId(id_str)
-    except InvalidId:
-        raise HTTPException(status_code=400, detail="Invalid user ID format")
-
-
-def serialize_user(user: dict) -> dict:
+@router.put("/me", response_model=dict)
+async def update_user_me(
+    user_update: UserBase,
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
+    db = get_db()
+    
+    # Check if email is being updated and if it's already taken
+    if user_update.email != current_user.email:
+        user_exists = await db["users"].find_one({"email": {"$regex": f"^{user_update.email}$", "$options": "i"}})
+        if user_exists:
+            raise HTTPException(
+                status_code=400,
+                detail="The user with this email already exists in the system.",
+            )
+            
+    update_data = user_update.model_dump()
+    update_data["updatedAt"] = datetime.now(timezone.utc)
+    
+    await db["users"].update_one(
+        {"_id": ObjectId(current_user.id)},
+        {"$set": update_data}
+    )
+    
+    updated_user = await db["users"].find_one({"_id": ObjectId(current_user.id)})
+    updated_user["_id"] = str(updated_user["_id"])
     return {
-        "_id": str(user["_id"]),
-        "name": user.get("name", ""),
-        "email": user["email"],
-        "role": user.get("role", "USER"),
-        "is_active": user.get("is_active", True),
-        "preferences": user.get("preferences", {}),
+        "message": "updated",
+        "user": UserResponse(**updated_user).model_dump(by_alias=True)
     }
 
-
-class ProfileUpdate(BaseModel):
-    name: Optional[str] = None
-    email: Optional[str] = None
-    preferences: Optional[Any] = None
-
-
-class PasswordChange(BaseModel):
-    # Support both naming conventions
-    current_password: Optional[str] = None
-    new_password: Optional[str] = None
-    oldPassword: Optional[str] = None
-    newPassword: Optional[str] = None
-
-
-@router.get("/me")
-async def get_profile(authorization: Optional[str] = Header(None)):
-    user_id = get_user_id_from_token(authorization)
+@router.put("/me/password", response_model=dict)
+async def update_password_me(
+    password_data: PasswordUpdate,
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
     db = get_db()
-    user = await db.users.find_one({"_id": to_object_id(user_id)})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"user": serialize_user(user)}
-
-
-@router.put("/me")
-async def update_profile(req: ProfileUpdate, authorization: Optional[str] = Header(None)):
-    user_id = get_user_id_from_token(authorization)
-    db = get_db()
-    update = {}
-    if req.name is not None:
-        update["name"] = req.name
-    if req.preferences is not None:
-        update["preferences"] = req.preferences
-    update["updated_at"] = datetime.now(timezone.utc)
-    oid = to_object_id(user_id)
-    await db.users.update_one({"_id": oid}, {"$set": update})
-    user = await db.users.find_one({"_id": oid})
-    return {"user": serialize_user(user)}
-
-
-@router.put("/me/password")
-async def change_password(req: PasswordChange, authorization: Optional[str] = Header(None)):
-    user_id = get_user_id_from_token(authorization)
-    old_pw = req.current_password or req.oldPassword
-    new_pw = req.new_password or req.newPassword
-    if not old_pw or not new_pw:
-        raise HTTPException(status_code=400, detail="Both old and new passwords are required")
-    db = get_db()
-    oid = to_object_id(user_id)
-    user = await db.users.find_one({"_id": oid})
-    if not user or not verify_password(old_pw, user.get("hashed_password", "")):
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
-    await db.users.update_one(
-        {"_id": oid},
-        {"$set": {"hashed_password": hash_password(new_pw)}}
+    
+    if password_data.otp:
+        # OTP verification logic
+        otp_record = await db["otps"].find_one({"email": current_user.email.lower()})
+        if not otp_record or otp_record["otp"] != password_data.otp:
+            raise HTTPException(status_code=400, detail="Invalid OTP code")
+        
+        expiry = otp_record["expiry"]
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+            
+        if expiry < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="OTP has expired")
+            
+        # Delete used OTP
+        await db["otps"].delete_one({"email": current_user.email.lower()})
+    elif password_data.oldPassword:
+        # Standard password verification
+        if not verify_password(password_data.oldPassword, current_user.password_hash):
+            raise HTTPException(status_code=400, detail="Incorrect current password")
+    else:
+        raise HTTPException(status_code=400, detail="Either current password or OTP is required")
+        
+    new_password_hash = get_password_hash(password_data.newPassword)
+    
+    # Robust ID handling
+    user_id_val = str(current_user.id)
+    query_id = ObjectId(user_id_val) if len(user_id_val) == 24 else user_id_val
+    
+    await db["users"].update_one(
+        {"_id": query_id},
+        {"$set": {
+            "password_hash": new_password_hash,
+            "updatedAt": datetime.now(timezone.utc)
+        }}
     )
-    return {"message": "Password updated successfully"}
+    
+    return {"message": "password_updated"}
 
-
-@router.post("/change-password")
-async def change_password_post(req: PasswordChange, authorization: Optional[str] = Header(None)):
-    return await change_password(req, authorization)
-
-
-@router.delete("/me")
-async def delete_account(authorization: Optional[str] = Header(None)):
-    user_id = get_user_id_from_token(authorization)
+@router.delete("/me", response_model=dict)
+async def delete_user_me(
+    current_user: UserInDB = Depends(get_current_user),
+) -> Any:
     db = get_db()
-    await db.users.delete_one({"_id": to_object_id(user_id)})
-    return {"message": "Account deleted"}
+    
+    user_id_val = str(current_user.id)
+    query_id = ObjectId(user_id_val) if len(user_id_val) == 24 else user_id_val
+    await db["users"].delete_one({"_id": query_id})
+    
+    return {"message": "deleted"}

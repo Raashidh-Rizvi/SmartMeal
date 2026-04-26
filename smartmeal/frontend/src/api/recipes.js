@@ -52,6 +52,14 @@ export const rateRecipe = (recipeId, rating) =>
     api.post(`/api/recipes/${recipeId}/rate`, { rating });
 
 /**
+ * AI recipe search — TF-IDF + cosine similarity
+ * @param {string} query  - free text, e.g. "chicken rice spicy"
+ * @param {Object} opts   - { top_n, diet, cooking_time_max }
+ */
+export const searchRecommendations = (query, opts = {}) =>
+    api.post('/api/recommendations/search', { query, top_n: opts.top_n ?? 5, ...opts });
+
+/**
  * Upload an image file and receive back a hosted URL.
  * @param {File} file - The image File object from an <input type="file">
  */
@@ -62,3 +70,16 @@ export const uploadRecipeImage = (file) => {
         headers: { 'Content-Type': 'multipart/form-data' },
     });
 };
+
+/**
+ * Toggle favorite status for a recipe
+ * @param {string} recipeId 
+ */
+export const toggleFavoriteRecipe = (recipeId) =>
+    api.post(`/api/recipes/${recipeId}/toggle-favorite`);
+
+/**
+ * Get all recipes favorited by the current user
+ */
+export const getFavoriteRecipes = () =>
+    api.get('/api/recipes/user/favorites');

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { budgetService } from '../services/budgetService';
+import { Wallet, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
 
 function BudgetDashboard() {
   const [summary, setSummary] = useState(null);
@@ -20,6 +22,7 @@ function BudgetDashboard() {
     setTimeout(() => setToast(null), 3000);
   };
 
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -39,7 +42,7 @@ function BudgetDashboard() {
     if (!summary) return;
     if (summary.is_over_budget) showToast('error', `Budget exceeded by $${Math.abs(summary.remaining).toFixed(2)}!`);
     else if (summary.warning_threshold_reached) showToast('warning', `${summary.percentage_used.toFixed(1)}% of budget used`);
-  }, [summary?.is_over_budget, summary?.warning_threshold_reached]);
+  }, [summary?.is_over_budget, summary?.warning_threshold_reached, summary]);
 
   const handleBudgetSubmit = async (e) => {
     e.preventDefault();
@@ -97,6 +100,21 @@ function BudgetDashboard() {
 
   return (
     <div>
+      {/* Page Header */}
+      <div className="page-hero">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '35%', left: '5%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '30%', left: '35%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '18%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '7%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+
+        <Wallet size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Budget Tracker</h1>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1rem' }}>Monitor your spending and stay on top of your food budget</p>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="stats-section" style={{ marginBottom: '1.5rem' }}>
         {[
@@ -155,7 +173,7 @@ function BudgetDashboard() {
               {summary?.budget ? `${summary.budget.period} budget starting ${new Date(summary.budget.start_date).toLocaleDateString()}` : 'No budget set yet.'}
             </p>
           </div>
-          <button onClick={() => setShowBudgetModal(true)} style={{ width: 'auto', padding: '0.6rem 1.25rem' }}>
+          <button onClick={() => { setShowBudgetModal(true); }} style={{ width: 'auto', padding: '0.6rem 1.25rem' }}>
             {summary?.budget ? '✏️ Edit Budget' : '+ Set Budget'}
           </button>
         </div>
@@ -211,43 +229,46 @@ function BudgetDashboard() {
       </div>
 
       {/* Budget Modal */}
-      {showBudgetModal && (
+      {showBudgetModal && createPortal(
         <div className="modal-backdrop" onClick={() => setShowBudgetModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginBottom: '1.5rem' }}>💰 Set Budget</h2>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>💰 Set Budget</h2>
             <form onSubmit={handleBudgetSubmit}>
-              <div className="form-group">
-                <label>Amount ($)</label>
-                <input type="number" step="0.01" value={budgetForm.amount} onChange={e => setBudgetForm({ ...budgetForm, amount: e.target.value })} placeholder="e.g., 500" required />
-              </div>
-              <div className="form-group">
-                <label>Period</label>
-                <select value={budgetForm.period} onChange={e => setBudgetForm({ ...budgetForm, period: e.target.value })}>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Start Date</label>
-                <input type="datetime-local" value={budgetForm.start_date} onChange={e => setBudgetForm({ ...budgetForm, start_date: e.target.value })} required />
+              <div className="form-grid">
+                <div className="form-group form-group-full">
+                  <label>Amount ($)</label>
+                  <input type="number" step="0.01" value={budgetForm.amount} onChange={e => setBudgetForm({ ...budgetForm, amount: e.target.value })} placeholder="e.g., 500" required />
+                </div>
+                <div className="form-group">
+                  <label>Period</label>
+                  <select value={budgetForm.period} onChange={e => setBudgetForm({ ...budgetForm, period: e.target.value })}>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Start Date</label>
+                  <input type="datetime-local" value={budgetForm.start_date} onChange={e => setBudgetForm({ ...budgetForm, start_date: e.target.value })} required />
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                <button type="submit">Save Budget</button>
-                <button type="button" className="btn-secondary" onClick={() => setShowBudgetModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">Save Budget</button>
+                <button type="button" className="btn btn-secondary flex-1" onClick={() => setShowBudgetModal(false)}>Cancel</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Expense Modal */}
-      {showExpenseModal && (
+      {showExpenseModal && createPortal(
         <div className="modal-backdrop" onClick={() => { setShowExpenseModal(false); setEditingExpense(null); }}>
-          <div className="modal-content" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ marginBottom: '1.5rem' }}>{editingExpense ? '✏️ Edit Expense' : '💸 Add Expense'}</h2>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>{editingExpense ? '✏️ Edit Expense' : '💸 Add Expense'}</h2>
             <form onSubmit={handleExpenseSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <div className="form-grid">
+                <div className="form-group form-group-full">
                   <label>Item Name</label>
                   <input type="text" value={expenseForm.item_name} onChange={e => setExpenseForm({ ...expenseForm, item_name: e.target.value })} placeholder="e.g., Groceries" required />
                 </div>
@@ -259,22 +280,23 @@ function BudgetDashboard() {
                   <label>Category</label>
                   <input type="text" value={expenseForm.category} onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })} placeholder="e.g., Vegetables" required />
                 </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <div className="form-group form-group-full">
                   <label>Date</label>
                   <input type="datetime-local" value={expenseForm.date} onChange={e => setExpenseForm({ ...expenseForm, date: e.target.value })} required />
                 </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <div className="form-group form-group-full">
                   <label>Notes (optional)</label>
                   <input type="text" value={expenseForm.notes} onChange={e => setExpenseForm({ ...expenseForm, notes: e.target.value })} placeholder="Optional notes" />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                <button type="submit">{editingExpense ? 'Update' : 'Add Expense'}</button>
-                <button type="button" className="btn-secondary" onClick={() => { setShowExpenseModal(false); setEditingExpense(null); }}>Cancel</button>
+                <button type="submit" className="btn btn-primary flex-1">{editingExpense ? 'Update' : 'Add Expense'}</button>
+                <button type="button" className="btn btn-secondary flex-1" onClick={() => { setShowExpenseModal(false); setEditingExpense(null); }}>Cancel</button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Toast */}

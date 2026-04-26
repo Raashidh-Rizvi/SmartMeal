@@ -651,3 +651,18 @@
 }
 
 .ms-ing-have { font-size: .75rem; color: #6b7280; font-style: italic; }
+
+/* ── Recipe Details Modal meta ───────────────────────────────────────────── */
+.ms-rdm-meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+.ms-rdm-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .75rem; border-radius: 20px; font-size: .82rem; font-weight: 600; }
+.ms-rdm-chip-cat    { background: #d1fae5; color: #065f46; }
+.ms-rdm-chip-time   { background: #dbeafe; color: #1e40af; }
+.ms-rdm-chip-cal    { background: #fef3c7; color: #92400e; }
+.ms-rdm-chip-rating { background: #fef9c3; color: #713f12; }
+.ms-rdm-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .75rem; }
+.ms-rdm-tag { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; padding: .2rem .6rem; border-radius: 20px; font-size: .78rem; font-weight: 500; }
+.dark .ms-rdm-chip-cat    { background: #052e16; color: #86efac; }
+.dark .ms-rdm-chip-time   { background: #1e3a5f; color: #93c5fd; }
+.dark .ms-rdm-chip-cal    { background: #1c1208; color: #fcd34d; }
+.dark .ms-rdm-chip-rating { background: #1c1a08; color: #fde68a; }
+.dark .ms-rdm-tag { background: #1f2937; color: #d1d5db; border-color: #374151; }

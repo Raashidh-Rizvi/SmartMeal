@@ -1,8 +1,5 @@
-/**
- * FilterSection Component
- * Provides status filter dropdown and action buttons (Clear Bought Items)
- */
 import React from 'react';
+import { Search, FolderOpen, Trash2 } from 'lucide-react';
 
 function FilterSection({ statusFilter, sourceFilter, onStatusChange, onSourceChange, onClearBought }) {
   // Ensure filters are always visible with inline styles
@@ -28,7 +25,10 @@ function FilterSection({ statusFilter, sourceFilter, onStatusChange, onSourceCha
     fontWeight: '700',
     fontSize: '0.95rem',
     color: '#1f2937',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.4rem'
   };
   const selectStyle = {
     padding: '0.6rem 1rem',
@@ -49,13 +49,18 @@ function FilterSection({ statusFilter, sourceFilter, onStatusChange, onSourceCha
     cursor: 'pointer',
     fontWeight: '600',
     fontSize: '0.9rem',
-    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
   };
   
   return (
     <section className="filter-section" style={sectionStyle}>
       <div className="filter-group" style={groupStyle}>
-        <label style={labelStyle}>🔍 Status:</label>
+        <label style={labelStyle}>
+          <Search size={18} color="#16a34a" /> Status:
+        </label>
         <select 
           value={statusFilter} 
           onChange={(e) => onStatusChange(e.target.value)} 
@@ -67,7 +72,9 @@ function FilterSection({ statusFilter, sourceFilter, onStatusChange, onSourceCha
         </select>
       </div>
       <div className="filter-group" style={groupStyle}>
-        <label style={labelStyle}>📂 Source:</label>
+        <label style={labelStyle}>
+          <FolderOpen size={18} color="#16a34a" /> Source:
+        </label>
         <select 
           value={sourceFilter} 
           onChange={(e) => onSourceChange(e.target.value)} 
@@ -80,7 +87,7 @@ function FilterSection({ statusFilter, sourceFilter, onStatusChange, onSourceCha
       </div>
       <div className="action-buttons" style={groupStyle}>
         <button onClick={onClearBought} style={buttonStyle}>
-          🗑️ Clear Bought
+          <Trash2 size={18} /> Clear Bought
         </button>
       </div>
     </section>

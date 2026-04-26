@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { UtensilsCrossed } from 'lucide-react';
 
 function Footer() {
   const currentYear = new Date().getFullYear();
@@ -8,16 +9,19 @@ function Footer() {
     <footer className="footer">
       <div className="footer-content">
         <div className="footer-brand">
-          <h3>🍽️ Smart Meal</h3>
+          <div className="footer-logo">
+            <UtensilsCrossed size={28} color="var(--primary)" />
+            <h3>Smart Meal</h3>
+          </div>
           <p>Your intelligent recipe and meal planning assistant.</p>
         </div>
         
         <div className="footer-links">
           <div className="footer-section">
             <h4>Features</h4>
-            <Link to="/inventory">Inventory</Link>
-            <Link to="/recommendations">Recommendations</Link>
-            <Link to="/mealplan">Meal Plan</Link>
+            <Link to="/inventory">Ingredients</Link>
+            <Link to="/recommendations">Explore</Link>
+            <Link to="/mealplan">Schedules</Link>
             <Link to="/shoppinglist">Shopping List</Link>
           </div>
           

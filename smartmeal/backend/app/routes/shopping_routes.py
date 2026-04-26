@@ -35,16 +35,92 @@ class ShoppingItemUpdate(BaseModel):
 @router.get("/shopping/all")
 async def get_items(user_id: str, status_filter: Optional[str] = None, source_filter: Optional[str] = None):
     db = get_db()
+    # Fix: Use a consistent base query that always includes user_id
     query = {"$or": [{"user_id": user_id}, {"user_id": "1"}]} if user_id != "1" else {"user_id": "1"}
+    
     if status_filter:
         query["status"] = {"$regex": f"^{status_filter}$", "$options": "i"}
+    
     if source_filter:
-        query["source"] = {"$regex": f"^{source_filter}", "$options": "i"}
-    print(f"🔍 Shopping API Query: {query}")
+        # Normalize: meal-plan (frontend) -> match both "meal_plan" and "meal plan"
+        if source_filter == "meal-plan":
+            source_query = {
+                "$or": [
+                    {"source": {"$regex": "meal_plan", "$options": "i"}},
+                    {"source": {"$regex": "meal plan", "$options": "i"}},
+                    {"source": {"$regex": "meal-plan", "$options": "i"}},
+                    {"sources": {"$in": ["meal_plan", "meal plan", "meal-plan"]}}
+                ]
+            }
+        else:
+            normalized = source_filter
+            source_query = {
+                "$or": [
+                    {"source": {"$regex": normalized, "$options": "i"}},
+                    {"sources": normalized}
+                ]
+            }
+        # Combine with base query using $and
+        query = {"$and": [query, source_query]}
+
+    print(f"DEBUG: Shopping API Query: {query}")
     cursor = db.shopping_items.find(query).sort("created_at", -1)
     items = await cursor.to_list(length=None)
+    
     for item in items:
         item["_id"] = str(item["_id"])
+
+    # If no source filter, aggregate common items for "All Sources" view
+    if not source_filter and items:
+        aggregated = {}
+        for item in items:
+            # Group by lower_name, unit, and status to sum quantities
+            name_key = item.get("lower_name") or (item.get("name") or "").lower().strip()
+            unit_key = (item.get("unit") or "").lower().strip()
+            status_key = (item.get("status") or "pending").lower().strip()
+            
+            key = (name_key, unit_key, status_key)
+            
+            if key not in aggregated:
+                # Store a copy to avoid mutating the original
+                agg_item = dict(item)
+                agg_item["ids"] = [str(item["_id"])]
+                src = item.get("source", "manual").lower()
+                agg_item["display_sources"] = {src}
+                # Fix: Some items might have a 'sources' array already
+                if "sources" in item and isinstance(item["sources"], list):
+                    for s in item["sources"]:
+                        agg_item["display_sources"].add(s.lower())
+                aggregated[key] = agg_item
+            else:
+                aggregated[key]["quantity"] += item.get("quantity", 0)
+                aggregated[key]["ids"].append(str(item["_id"]))
+                src = item.get("source", "manual").lower()
+                aggregated[key]["display_sources"].add(src)
+                if "sources" in item and isinstance(item["sources"], list):
+                    for s in item["sources"]:
+                        aggregated[key]["display_sources"].add(s.lower())
+        
+        result = []
+        for agg in aggregated.values():
+            # Format source string: "meal plan / manual"
+            sources = sorted(list(agg["display_sources"]))
+            formatted_sources = []
+            for s in sources:
+                if "meal" in s and "plan" in s:
+                    formatted_sources.append("meal plan")
+                else:
+                    formatted_sources.append(s)
+            
+            agg["source"] = " / ".join(formatted_sources) if formatted_sources else "manual"
+            # Join IDs for actions
+            agg["_id"] = ",".join(agg["ids"])
+            result.append(agg)
+        
+        # Sort aggregated result by created_at descending (taking most recent)
+        result.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        return result
+        
     return items
 
 
@@ -55,16 +131,27 @@ async def get_stats(user_id: str = Depends(get_current_user_id)):
     bought = await db.shopping_items.count_documents({"user_id": user_id, "status": {"$regex": "^bought$", "$options": "i"}})
     pending = await db.shopping_items.count_documents({"user_id": user_id, "status": {"$regex": "^pending$", "$options": "i"}})
     
-    manual = await db.shopping_items.count_documents({
+    # Check both source field and sources array for accurate counts
+    manual_query = {
         "user_id": user_id, 
         "status": {"$regex": "^pending$", "$options": "i"},
-        "$or": [{"source": "manual"}, {"source": "Manual"}, {"source": {"$regex": "^manual", "$options": "i"}}]
-    })
-    meal_plan = await db.shopping_items.count_documents({
+        "$or": [
+            {"source": {"$regex": "manual", "$options": "i"}},
+            {"sources": {"$in": ["manual", "Manual"]}}
+        ]
+    }
+    meal_plan_query = {
         "user_id": user_id, 
         "status": {"$regex": "^pending$", "$options": "i"},
-        "source": {"$not": {"$regex": "^manual", "$options": "i"}}
-    })
+        "$or": [
+            {"source": {"$regex": "meal_plan", "$options": "i"}},
+            {"source": {"$regex": "meal plan", "$options": "i"}},
+            {"source": {"$regex": "meal-plan", "$options": "i"}},
+            {"sources": {"$in": ["meal_plan", "meal plan", "meal-plan"]}}
+        ]
+    }
+    manual = await db.shopping_items.count_documents(manual_query)
+    meal_plan = await db.shopping_items.count_documents(meal_plan_query)
     
     return {
         "total": total, 
@@ -86,17 +173,19 @@ async def add_item(
     doc["lower_name"] = doc["name"].lower().strip()
     doc["source"] = doc.get("source", "manual").lower()
     
-    # Check for duplicate case-insensitive
+    # Check for duplicate by name AND source AND status
+    # This keeps manual and meal plan items separate for filtering
     existing = await db.shopping_items.find_one({
         "user_id": doc["user_id"],
         "lower_name": doc["lower_name"],
-        "status": "pending",
-        "source": doc["source"]
+        "source": doc["source"],
+        "status": "pending"
     })
     
     if existing:
         # Merge - update quantity
         new_qty = existing["quantity"] + doc["quantity"]
+        
         result = await db.shopping_items.update_one(
             {"_id": ObjectId(existing["_id"])},
             {"$set": {
@@ -107,13 +196,13 @@ async def add_item(
         existing["quantity"] = new_qty
         existing["updated_at"] = now.isoformat()
         existing["_id"] = str(existing["_id"])
-        print(f"🔄 Merged duplicate item, new qty: {new_qty}")
+        print(f"INFO: Merged duplicate item (same source), new qty: {new_qty}")
         return existing
     
     # New item
     doc["created_at"] = now
     doc["updated_at"] = now
-    print(f"➕ Adding new shopping item: {doc}")
+    print(f"INFO: Adding new shopping item: {doc}")
     result = await db.shopping_items.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
     return doc
@@ -128,11 +217,30 @@ async def update_item(
     db = get_db()
     update = item.model_dump(exclude_unset=True)
     update["updated_at"] = datetime.now(timezone.utc)
-    user_filter = {"_id": ObjectId(item_id), "$or": [{"user_id": user_id}, {"user_id": "1"}]}
-    result = await db.shopping_items.update_one(user_filter, {"$set": update})
+    
+    ids = item_id.split(",")
+    object_ids = []
+    for i in ids:
+        try: object_ids.append(ObjectId(i))
+        except: pass
+
+    if not object_ids:
+        raise HTTPException(status_code=400, detail="Invalid item ID")
+
+    # If updating an aggregated item, we update the first one and potentially handle others
+    # For simplicity, we update ALL of them with the same values except quantity
+    # If quantity is provided, we only update it for the first one and maybe reset others if they were merged?
+    # Actually, the user likely wants to update the whole thing.
+    
+    result = await db.shopping_items.update_many(
+        {"_id": {"$in": object_ids}, "$or": [{"user_id": user_id}, {"user_id": "1"}]},
+        {"$set": update}
+    )
+    
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Item not found or unauthorized")
-    doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
+    
+    doc = await db.shopping_items.find_one({"_id": object_ids[0]})
     doc["_id"] = str(doc["_id"])
     return doc
 
@@ -144,47 +252,63 @@ async def mark_bought(
 ):
     db = get_db()
     now = datetime.now(timezone.utc)
-    user_filter = {"_id": ObjectId(item_id), "$or": [{"user_id": user_id}, {"user_id": "1"}]}
-    result = await db.shopping_items.update_one(
+    
+    ids = item_id.split(",")
+    object_ids = []
+    for i in ids:
+        try: object_ids.append(ObjectId(i))
+        except: pass
+        
+    if not object_ids:
+        raise HTTPException(status_code=400, detail="Invalid item ID")
+
+    user_filter = {"_id": {"$in": object_ids}, "$or": [{"user_id": user_id}, {"user_id": "1"}]}
+    
+    # Capture all items before marking as bought to update inventory correctly
+    cursor = db.shopping_items.find(user_filter)
+    items_to_add = await cursor.to_list(length=None)
+    
+    if not items_to_add:
+        raise HTTPException(status_code=404, detail="Item not found or unauthorized")
+
+    result = await db.shopping_items.update_many(
         user_filter,
         {"$set": {"status": "bought", "updated_at": now}}
     )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Item not found or unauthorized")
+    
+    # For inventory update, we process EACH item
+    for doc in items_to_add:
+        name     = doc.get("name", "")
+        quantity = float(doc.get("quantity") or 1)
+        unit     = doc.get("unit", "")
 
-    doc = await db.shopping_items.find_one({"_id": ObjectId(item_id)})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    name     = doc.get("name", "")
-    quantity = float(doc.get("quantity") or 1)
-    unit     = doc.get("unit", "")
-
-    existing = await db.inventory_items.find_one(
-        {"name": {"$regex": f"^{name}$", "$options": "i"},
-         "$or": [{"userId": user_id}, {"userId": "1"}]}
-    )
-    if existing:
-        new_qty = round(float(existing.get("quantity", 0)) + quantity, 4)
-        await db.inventory_items.update_one(
-            {"_id": existing["_id"]},
-            {"$set": {"quantity": new_qty, "updatedAt": now}}
+        existing = await db.inventory_items.find_one(
+            {"name": {"$regex": f"^{name}$", "$options": "i"},
+             "$or": [{"userId": user_id}, {"userId": "1"}]}
         )
-    else:
-        await db.inventory_items.insert_one({
-            "name":      name,
-            "quantity":  quantity,
-            "unit":      unit,
-            "userId":    user_id,
-            "category":  doc.get("category", ""),
-            "notes":     "Added from shopping list",
-            "createdAt": now,
-            "updatedAt": now,
-        })
+        if existing:
+            new_qty = round(float(existing.get("quantity", 0)) + quantity, 4)
+            await db.inventory_items.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"quantity": new_qty, "updatedAt": now}}
+            )
+        else:
+            await db.inventory_items.insert_one({
+                "name":      name,
+                "quantity":  quantity,
+                "unit":      unit,
+                "userId":    user_id,
+                "category":  doc.get("category", ""),
+                "notes":     "Added from shopping list",
+                "createdAt": now,
+                "updatedAt": now,
+            })
 
-    doc["_id"] = str(doc["_id"])
-    doc["status"] = "bought"
-
+    # Return the first one as a sample
+    sample_doc = items_to_add[0]
+    sample_doc["_id"] = str(sample_doc["_id"])
+    sample_doc["status"] = "bought"
+    
     # Refresh meal snapshots: only re-evaluate meals with missing ingredients
     meals_cursor = db.meal_schedules.find({
         "$or": [{"user_id": user_id}, {"user_id": "1"}],
@@ -263,7 +387,7 @@ async def mark_bought(
                 }}
             )
 
-    return doc
+    return sample_doc
 
 
 @router.delete("/shopping/delete/{item_id}")
@@ -272,8 +396,17 @@ async def delete_item(
     user_id: str = Depends(get_current_user_id)
 ):
     db = get_db()
-    result = await db.shopping_items.delete_one(
-        {"_id": ObjectId(item_id), "$or": [{"user_id": user_id}, {"user_id": "1"}]}
+    ids = item_id.split(",")
+    object_ids = []
+    for i in ids:
+        try: object_ids.append(ObjectId(i))
+        except: pass
+        
+    if not object_ids:
+        raise HTTPException(status_code=400, detail="Invalid item ID")
+
+    result = await db.shopping_items.delete_many(
+        {"_id": {"$in": object_ids}, "$or": [{"user_id": user_id}, {"user_id": "1"}]}
     )
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Item not found or unauthorized")

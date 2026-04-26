@@ -27,7 +27,7 @@ Swagger docs → `http://127.0.0.1:8001/docs`
 ### 2. Frontend
 
 ```powershell
-cd frontend
+cd smartmeal/frontend
 npm install
 npm run dev
 ```

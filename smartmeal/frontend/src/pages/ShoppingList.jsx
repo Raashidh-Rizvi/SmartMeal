@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import ShoppingAPI from '../services/shoppingApi';
 import { getUserId } from '../utils/userUtils';
@@ -9,6 +9,18 @@ import ShoppingTable from '../components/ShoppingTable';
 import ShoppingChart from '../components/ShoppingChart';
 import Toast from '../components/Toast';
 import EditItemForm from '../components/EditItemForm';
+import { 
+  ShoppingBasket, 
+  Plus, 
+  RefreshCw, 
+  ArrowLeft, 
+  Pencil, 
+  ShoppingCart,
+  UtensilsCrossed,
+  ChefHat,
+  Flame,
+  Leaf
+} from 'lucide-react';
 
 function ShoppingList() {
   const { user } = useContext(AuthContext);
@@ -25,7 +37,6 @@ function ShoppingList() {
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
-  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const showToast = (message, type = 'success') => setToast({ message, type });
@@ -36,9 +47,9 @@ function ShoppingList() {
     if (reload) loadItems();
   };
   const showEditView = (itemId) => { setEditingItemId(itemId); setCurrentView('edit'); };
-
+  
   // ── Data ──────────────────────────────────────────────────────────────────
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!userId) return;
     try { 
       const statsData = await ShoppingAPI.getStats(userId);
@@ -48,9 +59,9 @@ function ShoppingList() {
     catch (e) { 
       console.error('❌ Stats error:', e); 
     }
-  };
+  }, [userId]);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     if (!userId) {
       console.warn("❌ userId is not set, cannot load items");
       return;
@@ -117,19 +128,13 @@ function ShoppingList() {
       setItems([]);
     }
     setLoading(false);
-  };
-
-  // Load items on mount and when filters change
-  useEffect(() => { 
-    console.log("📋 useEffect triggered for filter change, statusFilter:", statusFilter);
-    loadItems(); 
-  }, [statusFilter]);
+  }, [userId, statusFilter, loadStats]);
 
   // Initial load on component mount
   useEffect(() => {
-    console.log("🛒 Component mounted, userId:", userId);
+    console.log("🛒 Component mounted or loadItems changed");
     loadItems();
-  }, [userId]);
+  }, [loadItems]);
 
   // ── Auto-refresh shopping list every 5 seconds ──────────────────────────
   // This ensures items added from the Meals page appear automatically
@@ -143,7 +148,7 @@ function ShoppingList() {
       clearInterval(interval);
       console.log("🛑 Stopped auto-refresh");
     };
-  }, [statusFilter]);
+  }, [loadItems]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const addItem = async (itemData) => {
@@ -205,20 +210,29 @@ function ShoppingList() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="shopping-page">
-      <div className="shopping-page-header">
-        <h1>🛒 Shopping List</h1>
-        <p className="text-muted">Your personal grocery planning assistant</p>
+      <div className="page-hero">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '8%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '10%', left: '42%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '25%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '12%', right: '12%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+
+        <ShoppingBasket size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Shopping List</h1>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1rem' }}>Your personal grocery planning assistant</p>
+        </div>
       </div>
 
       {/* LIST VIEW */}
       {currentView === 'list' && (
         <div>
-          <div className="shopping-add-btn-wrap">
-            <button onClick={showAddView} className="btn-primary shopping-add-btn">
-              ➕ Add New Item
+          <div className="shopping-add-btn-wrap" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+            <button onClick={showAddView} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Plus size={18} /> Add New Item
             </button>
-            <button onClick={loadItems} className="btn-secondary shopping-add-btn" title="Refresh shopping list">
-              🔄 Refresh
+            <button onClick={loadItems} className="btn-secondary" title="Refresh shopping list" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <RefreshCw size={18} className={loading ? 'spinner' : ''} /> Refresh
             </button>
           </div>
 
@@ -244,22 +258,26 @@ function ShoppingList() {
 
       {/* ADD VIEW */}
       {currentView === 'add' && (
-        <div className="shopping-single-view">
-          <button onClick={showListView} className="btn-secondary btn-small shopping-back-btn">
-            ← Back to List
+        <div className="shopping-single-view card" style={{ padding: '2rem' }}>
+          <button onClick={showListView} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', width: 'fit-content' }}>
+            <ArrowLeft size={16} /> Back to List
           </button>
-          <h2>➕ Add New Item</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <Plus size={24} color="var(--primary)" /> Add New Item
+          </h2>
           <ShoppingForm onAddItem={addItem} onCancel={showListView} />
         </div>
       )}
 
       {/* EDIT VIEW */}
       {currentView === 'edit' && (
-        <div className="shopping-single-view">
-          <button onClick={showListView} className="btn-secondary btn-small shopping-back-btn">
-            ← Back to List
+        <div className="shopping-single-view card" style={{ padding: '2rem' }}>
+          <button onClick={showListView} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', width: 'fit-content' }}>
+            <ArrowLeft size={16} /> Back to List
           </button>
-          <h2>✏️ Edit Item</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <Pencil size={24} color="var(--primary)" /> Edit Item
+          </h2>
           <EditItemForm
             itemId={editingItemId}
             onSave={() => { showToast('Item updated!', 'success'); showListView(true); }}

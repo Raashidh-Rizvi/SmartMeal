@@ -8,6 +8,7 @@ import ShoppingTable from '../../components/ShoppingTable';
 import ShoppingChart from '../../components/ShoppingChart';
 import EditItemForm from '../../components/EditItemForm';
 import Toast from '../../components/Toast';
+import { Plus, PlusCircle, Share2, Edit3, ArrowLeft, ShoppingCart, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
 
 function ShoppingPage() {
 
@@ -92,7 +93,7 @@ function ShoppingPage() {
     }
   };
 
-  const updateItem = async (itemId, updateData) => {
+  const updateItem = async (itemId) => {
     // Navigate to edit view instead of inline editing
     showEditView(itemId);
     return true;
@@ -145,6 +146,21 @@ function ShoppingPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="shopping-page">
+      {/* Page Header */}
+      <div className="page-hero page-hero--sub">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '10%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '40%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '20%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '10%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+
+        <ShoppingCart size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Shopping List</h1>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1rem' }}>Plan, track, and manage everything you need to buy</p>
+        </div>
+      </div>
+
       {/* ── Content ── */}
       <div className="shopping-content-area">
 
@@ -154,8 +170,8 @@ function ShoppingPage() {
             {/* Add Item Button */}
             <section className="card add-item-button-card">
               <div className="card-body">
-                <button onClick={showAddView} className="btn-primary btn-large btn-add-item">
-                  ➕ Add New Item
+                <button onClick={showAddView} className="btn-primary btn-large btn-add-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', margin: '0 auto' }}>
+                  <Plus size={20} /> Add New Item
                 </button>
                 <p className="button-description">Click to add items to your shopping list</p>
               </div>
@@ -183,8 +199,9 @@ function ShoppingPage() {
                 a.click();
               }}
               className="btn-secondary ml-2"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'auto', padding: '0.6rem 1.2rem', marginBottom: '1.5rem' }}
             >
-              📥 Share List
+              <Share2 size={18} /> Share List
             </button>
 
             {/* Shopping List Table */}
@@ -205,8 +222,12 @@ function ShoppingPage() {
         {currentView === 'add' && (
           <div className="single-view-container">
             <div className="view-header">
-              <button onClick={showListView} className="btn-back">← Back to List</button>
-              <h2>➕ Add New Item</h2>
+              <button onClick={showListView} className="btn-back" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowLeft size={18} /> Back to List
+              </button>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <PlusCircle size={28} color="var(--primary)" /> Add New Item
+              </h2>
             </div>
             <ShoppingForm onAddItem={addItem} onCancel={showListView} />
           </div>
@@ -216,8 +237,12 @@ function ShoppingPage() {
         {currentView === 'edit' && (
           <div className="single-view-container">
             <div className="view-header">
-              <button onClick={showListView} className="btn-back">← Back to List</button>
-              <h2>✏️ Edit Item</h2>
+              <button onClick={showListView} className="btn-back" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowLeft size={18} /> Back to List
+              </button>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Edit3 size={28} color="var(--primary)" /> Edit Item
+              </h2>
             </div>
             <EditItemForm 
               itemId={editingItemId} 
