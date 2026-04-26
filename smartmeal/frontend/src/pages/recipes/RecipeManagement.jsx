@@ -25,7 +25,10 @@ import {
     BookOpen,
     User,
     Check,
-    Heart
+    Heart,
+    UtensilsCrossed,
+    Flame,
+    Leaf
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -410,9 +413,15 @@ function RecipeManagement() {
         <div className="recipe-page">
 
             {/* Header */}
-            <div className="recipe-page-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem' }}>
-                <BookOpen size={48} color="var(--primary)" />
-                <div className="recipe-page-header-text" style={{ textAlign: 'center' }}>
+            <div className="recipe-page-header" style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem', minHeight: '175px' }}>
+                {/* Decorative Background Icons - Corner Accents */}
+                <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
+                <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
+                <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
+                <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+
+                <BookOpen size={48} color="var(--primary)" style={{ position: 'relative', zIndex: 1 }} />
+                <div className="recipe-page-header-text" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
                     <h1 className="recipe-page-title" style={{ margin: 0 }}>Recipe Repository</h1>
                     <p className="recipe-page-subtitle" style={{ margin: '0.5rem 0 0 0' }}>Browse, search, and manage your recipes</p>
                 </div>

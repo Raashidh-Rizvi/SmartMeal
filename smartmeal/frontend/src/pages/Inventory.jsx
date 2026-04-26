@@ -14,9 +14,11 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Search,
   Package,
-  Info
+  Info,
+  UtensilsCrossed,
+  Flame,
+  Leaf
 } from 'lucide-react';
 
 const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
@@ -214,15 +216,21 @@ function Inventory() {
   return (
     <>
     <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
-      <div className="flex justify-between align-center mb-4">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="flex justify-between align-center mb-4" style={{ position: 'relative', overflow: 'hidden', padding: '2rem 1rem', borderRadius: '16px', minHeight: '100px' }}>
+        {/* Decorative Background Icons - Corner Accents */}
+        <UtensilsCrossed size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
+        <ChefHat size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
+        <Flame size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
+        <Leaf size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 1 }}>
           <ChefHat size={32} color="var(--primary)" />
           <div>
             <h2 style={{ margin: 0 }}>My Inventory</h2>
             <p className="text-muted" style={{ margin: 0 }}>Manage your ingredients here. Add items you have in your kitchen.</p>
           </div>
         </div>
-        <button onClick={() => openFormModal()} className="btn btn-primary" style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <button onClick={() => openFormModal()} className="btn btn-primary" style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative', zIndex: 1 }}>
           <Plus size={18} /> Add Item
         </button>
       </div>

@@ -8,7 +8,7 @@ import ShoppingTable from '../../components/ShoppingTable';
 import ShoppingChart from '../../components/ShoppingChart';
 import EditItemForm from '../../components/EditItemForm';
 import Toast from '../../components/Toast';
-import { Plus, PlusCircle, Share2, Edit3, ArrowLeft, ShoppingCart } from 'lucide-react';
+import { Plus, PlusCircle, Share2, Edit3, ArrowLeft, ShoppingCart, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
 
 function ShoppingPage() {
 
@@ -147,9 +147,15 @@ function ShoppingPage() {
   return (
     <div className="shopping-page">
       {/* Page Header */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem' }}>
-        <ShoppingCart size={48} color="var(--primary)" strokeWidth={1.75} />
-        <div style={{ textAlign: 'center' }}>
+      <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem', minHeight: '160px' }}>
+        {/* Decorative Background Icons - Corner Accents */}
+        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
+        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
+        <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
+        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+
+        <ShoppingCart size={48} color="var(--primary)" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>Shopping List</h1>
           <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Plan, track, and manage everything you need to buy</p>
         </div>

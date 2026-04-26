@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { budgetService } from '../services/budgetService';
-import { Wallet } from 'lucide-react';
+import { Wallet, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
 
 function BudgetDashboard() {
   const [summary, setSummary] = useState(null);
@@ -101,9 +101,15 @@ function BudgetDashboard() {
   return (
     <div>
       {/* Page Header */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem' }}>
-        <Wallet size={48} color="var(--primary)" strokeWidth={1.75} />
-        <div style={{ textAlign: 'center' }}>
+      <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem', minHeight: '160px' }}>
+        {/* Decorative Background Icons - Corner Accents */}
+        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
+        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
+        <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
+        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+
+        <Wallet size={48} color="var(--primary)" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>Budget Tracker</h1>
           <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Monitor your spending and stay on top of your food budget</p>
         </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useContext } from 'react';
 import { searchRecommendations, rateRecipe, getRecipes, createRecipe, toggleFavoriteRecipe } from '../api/recipes';
 import { createMeal } from '../services/mealService';
 import { AuthContext } from '../context/AuthContext';
-import { Heart } from 'lucide-react';
+import { Heart, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
 
 const DIET_OPTIONS = [
   { value: '', label: 'Any Diet' },
@@ -201,11 +201,17 @@ function Recommendations() {
   return (
     <div className="main-content">
       {/* Header */}
-      <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
-        <h1 className="premium-gradient-text" style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
+      <div style={{ position: 'relative', overflow: 'hidden', padding: '2.5rem 1rem', marginBottom: '2.5rem', textAlign: 'center', borderRadius: '28px', minHeight: '170px' }}>
+        {/* Decorative Background Icons - Corner Accents */}
+        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', left: '8px', '--rotation': '-15deg' }} />
+        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '8px', right: '8px', '--rotation': '10deg', animationDelay: '1s' }} />
+        <Flame size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', right: '8px', '--rotation': '20deg', animationDelay: '2s' }} />
+        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '8px', left: '8px', '--rotation': '-10deg', animationDelay: '3s' }} />
+
+        <h1 className="premium-gradient-text" style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
           AI Recipe Recommendations
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
+        <p style={{ position: 'relative', zIndex: 1, color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
           Discover culinary masterpieces with your available ingredients. Our AI finds recipes that harmonize perfectly.
         </p>
       </div>

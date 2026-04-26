@@ -35,7 +35,7 @@ const s = {
   },
   /* Hero Section */
   heroSection: {
-    width: '100vw',
+    width: 'calc(100vw - 0px)',
     position: 'relative',
     left: '50%',
     right: '50%',
@@ -48,11 +48,13 @@ const s = {
     padding: '8rem 2rem 10rem',
     marginBottom: '3.5rem',
     overflow: 'hidden',
+    overflowX: 'clip',
     textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     gap: '2.5rem', // QuicMov-style spacing
+    boxSizing: 'border-box',
   },
   ctaButton: {
     display: 'flex',
