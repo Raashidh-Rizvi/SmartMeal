@@ -51,6 +51,10 @@ const VIEW = { LIST: 'list', DETAIL: 'detail', FORM: 'form' };
 function RecipeManagement() {
     const { user } = useContext(AuthContext);
     const location = useLocation();
+    const currentUserId = useMemo(() => {
+        const rawId = user?._id ?? user?.id;
+        return rawId ? String(rawId) : '';
+    }, [user]);
 
     // UI state
     const [view, setView] = useState(VIEW.LIST);
@@ -164,20 +168,26 @@ function RecipeManagement() {
         setLoading(true);
         setError('');
         try {
+            if (activeTab === 'mine' && !currentUserId) {
+                setRecipes([]);
+                return;
+            }
+
             const params = { skip, limit: LIMIT };
-            if (search) params.search = search;
+            const normalizedSearch = search.trim();
+            if (normalizedSearch) params.search = normalizedSearch;
             if (categoryFilter) params.category = categoryFilter;
-            if (activeTab === 'mine' && user) params.created_by = user.id || user._id;
+            if (activeTab === 'mine') params.created_by = currentUserId;
 
             const res = await getRecipes(params);
-            setRecipes(res.data);
+            setRecipes(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error('Fetch recipes error:', err);
             setError('Failed to load recipes. Please try again.');
         } finally {
             setLoading(false);
         }
-    }, [search, categoryFilter, activeTab, skip, user]);
+    }, [search, categoryFilter, activeTab, skip, currentUserId]);
 
     useEffect(() => {
         if (view === VIEW.LIST) fetchRecipes();
@@ -203,8 +213,17 @@ function RecipeManagement() {
         setView(VIEW.FORM);
     };
 
+    const isOwner = useCallback((recipe) => (
+        Boolean(recipe?.created_by && currentUserId && String(recipe.created_by) === currentUserId)
+    ), [currentUserId]);
+
     // ── Open edit form ───────────────────────────────────────────────────────
     const openEdit = (recipe) => {
+        if (!isOwner(recipe)) {
+            setError('You can only edit recipes you created.');
+            return;
+        }
+
         setForm({
             title: recipe.title,
             description: recipe.description || '',
@@ -229,6 +248,10 @@ function RecipeManagement() {
     // ── Delete recipe ────────────────────────────────────────────────────────
     const handleDelete = async (recipe, e) => {
         if (e) e.stopPropagation(); // prevent opening details when clicked from list view
+        if (!isOwner(recipe)) {
+            setError('You can only delete recipes you created.');
+            return;
+        }
         if (!window.confirm(`Delete "${recipe.title}"? This cannot be undone.`)) return;
         try {
             await deleteRecipe(recipe._id);
@@ -368,29 +391,25 @@ function RecipeManagement() {
         }
     };
 
-    const isOwner = (recipe) =>
-        user && recipe && (recipe.created_by === user._id || recipe.created_by === user.id);
-
     // ── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="recipe-page">
 
             {/* Header */}
-            <div className="recipe-page-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem' }}>
-                <BookOpen size={48} color="var(--primary)" />
-                <div className="recipe-page-header-text" style={{ textAlign: 'center' }}>
-                    <h1 className="recipe-page-title" style={{ margin: 0 }}>Recipe Repository</h1>
-                    <p className="recipe-page-subtitle" style={{ margin: '0.5rem 0 0 0' }}>Browse, search, and manage your recipes</p>
+            <div className="recipe-page-header">
+                <BookOpen size={48} color="var(--primary)" className="recipe-page-icon" />
+                <div className="recipe-page-header-text">
+                    <h1 className="recipe-page-title">Recipe Repository</h1>
+                    <p className="recipe-page-subtitle">Browse, search, and manage your recipes</p>
                 </div>
             </div>
 
             {/* Top Navigation */}
             <div className="recipe-tabs-container premium-nav-bar">
-                <div className="recipe-tabs align-side-by-side" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', padding: '0.5rem', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                <div className="recipe-tabs align-side-by-side">
                     <button
                         className={`recipe-tab ${view === VIEW.LIST && activeTab === 'all' ? 'active' : ''}`}
                         onClick={() => { setView(VIEW.LIST); setActiveTab('all'); setSkip(0); }}
-                        style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                     >
                         <Search size={18} /> View Recipes
                     </button>
@@ -398,7 +417,6 @@ function RecipeManagement() {
                         <button
                             className={`recipe-tab ${view === VIEW.LIST && activeTab === 'mine' ? 'active' : ''}`}
                             onClick={() => { setView(VIEW.LIST); setActiveTab('mine'); setSkip(0); }}
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
                             <User size={18} /> My Recipes
                         </button>
@@ -408,7 +426,6 @@ function RecipeManagement() {
                             className="recipe-tab"
                             onClick={openCreate}
                             id="add-recipe-btn"
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
                             <Plus size={18} /> Add Recipe
                         </button>
@@ -417,7 +434,6 @@ function RecipeManagement() {
                         <button
                             className="recipe-tab"
                             onClick={() => setView(editMode && view === VIEW.FORM ? VIEW.DETAIL : VIEW.LIST)}
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
                             <ArrowLeft size={18} /> Back
                         </button>
@@ -464,91 +480,95 @@ function RecipeManagement() {
                             <p>Loading recipes...</p>
                         </div>
                     ) : recipes.length === 0 ? (
-                        <div className="empty-state" style={{ padding: '4rem 1rem' }}>
-                            <Search size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
-                            <p style={{ fontSize: '1.2rem', color: '#64748b' }}>No recipes found.</p>
+                        <div className="empty-state">
+                            <Search size={48} color="#cbd5e1" className="empty-state-icon" />
+                            <p className="empty-state-title">No recipes found.</p>
                             {user && (
-                                <button className="btn-primary" onClick={openCreate} style={{ marginTop: '1rem' }}>Create your first recipe</button>
+                                <button className="btn-primary empty-state-action" onClick={openCreate}>Create your first recipe</button>
                             )}
                         </div>
                     ) : (
                         <div className="recipe-grid">
-                            {recipes.map(recipe => (
-                                <div
-                                    key={recipe._id}
-                                    className="recipe-card"
-                                    onClick={() => openDetail(recipe._id)}
-                                    id={`recipe-card-${recipe._id}`}
-                                >
-                                    {/* Action Buttons Moved to Bottom */}
+                            {recipes.map(recipe => {
+                                const ownsRecipe = isOwner(recipe);
 
-                                    {/* Recipe Image */}
-                                    <div className="recipe-card-img-wrapper">
-                                        {recipe.image_url ? (
-                                            <img
-                                                src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
-                                                alt={recipe.title}
-                                                className="recipe-card-img"
-                                                onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"><BookOpen size={48} color="#e2e8f0" /></div>'; }}
-                                            />
-                                        ) : (
-                                            <div className="recipe-card-placeholder">
-                                                <BookOpen size={48} color="#e2e8f0" />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Card Content */}
-                                    <div className="recipe-card-body">
-                                        <div className="recipe-card-category">
-                                            <span className={`badge badge-${recipe.category}`}>
-                                                {recipe.category}
-                                            </span>
-                                        </div>
-
-                                        <h3 className="recipe-card-title">{recipe.title}</h3>
-                                        
-                                        {recipe.description && (
-                                            <p className="recipe-card-desc">
-                                                {recipe.description}
-                                            </p>
-                                        )}
-
-                                        <div className="recipe-card-meta">
-                                            {recipe.estimated_cooking_time && (
-                                                <div className="meta-item">
-                                                    <Clock size={14} />
-                                                    <span>{recipe.estimated_cooking_time} min</span>
+                                return (
+                                    <div
+                                        key={recipe._id}
+                                        className="recipe-card"
+                                        onClick={() => openDetail(recipe._id)}
+                                        id={`recipe-card-${recipe._id}`}
+                                    >
+                                        <div className="recipe-card-img-wrapper">
+                                            {ownsRecipe && (
+                                                <div
+                                                    className="recipe-card-overlay-actions"
+                                                    onClick={e => e.stopPropagation()}
+                                                >
+                                                    <button
+                                                        className="recipe-card-icon-action action-edit-icon"
+                                                        onClick={() => openEdit(recipe)}
+                                                        title="Edit Recipe"
+                                                        aria-label={`Edit ${recipe.title}`}
+                                                    >
+                                                        <Pencil size={15} />
+                                                    </button>
+                                                    <button
+                                                        className="recipe-card-icon-action action-delete-icon"
+                                                        onClick={(e) => handleDelete(recipe, e)}
+                                                        title="Delete Recipe"
+                                                        aria-label={`Delete ${recipe.title}`}
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
                                                 </div>
                                             )}
-                                            <div className="meta-item">
-                                                <Users size={14} />
-                                                <span>{recipe.ingredients.length} Ingred.</span>
-                                            </div>
+
+                                            {recipe.image_url ? (
+                                                <img
+                                                    src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
+                                                    alt={recipe.title}
+                                                    className="recipe-card-img"
+                                                    onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"><BookOpen size={48} color="#e2e8f0" /></div>'; }}
+                                                />
+                                            ) : (
+                                                <div className="recipe-card-placeholder">
+                                                    <BookOpen size={48} color="#e2e8f0" />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Action Buttons */}
-                                        <div className="recipe-card-actions-bottom" onClick={e => e.stopPropagation()}>
-                                            <button 
-                                                className="action-edit" 
-                                                onClick={() => openEdit(recipe)}
-                                                title="Edit Recipe"
-                                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                                            >
-                                                <Pencil size={14} /> Edit
-                                            </button>
-                                            <button 
-                                                className="action-delete" 
-                                                onClick={(e) => handleDelete(recipe, e)}
-                                                title="Delete Recipe"
-                                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                                            >
-                                                <Trash2 size={14} /> Delete
-                                            </button>
+                                        <div className="recipe-card-body">
+                                            <div className="recipe-card-category">
+                                                <span className={`badge badge-${recipe.category}`}>
+                                                    {recipe.category}
+                                                </span>
+                                            </div>
+
+                                            <h3 className="recipe-card-title">{recipe.title}</h3>
+
+                                            {recipe.description && (
+                                                <p className="recipe-card-desc">
+                                                    {recipe.description}
+                                                </p>
+                                            )}
+
+                                            <div className="recipe-card-meta">
+                                                {recipe.estimated_cooking_time && (
+                                                    <div className="meta-item">
+                                                        <Clock size={14} />
+                                                        <span>{recipe.estimated_cooking_time} min</span>
+                                                    </div>
+                                                )}
+                                                <div className="meta-item">
+                                                    <Users size={14} />
+                                                    <span>{recipe.ingredients.length} Ingred.</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 
@@ -559,7 +579,6 @@ function RecipeManagement() {
                                 className="btn-page"
                                 onClick={() => setSkip(Math.max(0, skip - LIMIT))}
                                 disabled={skip === 0}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                             >
                                 <ArrowLeft size={16} /> Previous
                             </button>
@@ -568,7 +587,6 @@ function RecipeManagement() {
                                 className="btn-page"
                                 onClick={() => setSkip(skip + LIMIT)}
                                 disabled={recipes.length < LIMIT}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                             >
                                 Next <ArrowLeft size={16} style={{ transform: 'rotate(180deg)' }} />
                             </button>
@@ -599,18 +617,18 @@ function RecipeManagement() {
                             {selectedRecipe.description && (
                                 <p className="recipe-detail-desc">{selectedRecipe.description}</p>
                             )}
-                            <div className="recipe-meta" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                            <div className="recipe-meta">
                                 {selectedRecipe.estimated_cooking_time && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div className="recipe-meta-item">
                                         <Clock size={18} color="var(--primary)" />
                                         <span>{selectedRecipe.estimated_cooking_time} min cook time</span>
                                     </div>
                                 )}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div className="recipe-meta-item">
                                     <Users size={18} color="var(--primary)" />
                                     <span>{selectedRecipe.ingredients.length} ingredients</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div className="recipe-meta-item">
                                     <ChefHat size={18} color="var(--primary)" />
                                     <span>{selectedRecipe.preparation_steps.length} steps</span>
                                 </div>
@@ -623,9 +641,9 @@ function RecipeManagement() {
 
                     {/* Dietary Tags */}
                     {selectedRecipe.dietary_tags?.length > 0 && (
-                        <div className="tag-chips" style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div className="tag-chips">
                             {selectedRecipe.dietary_tags.map(tag => (
-                                <span key={tag} className="tag-chip" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <span key={tag} className="tag-chip">
                                     <Check size={12} /> {tag}
                                 </span>
                             ))}
@@ -634,7 +652,7 @@ function RecipeManagement() {
 
                     {/* Ingredients */}
                     <section className="recipe-section">
-                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <h2 className="recipe-section-title">
                             <Users size={24} color="var(--primary)" /> Ingredients
                         </h2>
                         <table className="ingredient-table">
@@ -659,7 +677,7 @@ function RecipeManagement() {
 
                     {/* Preparation Steps */}
                     <section className="recipe-section">
-                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <h2 className="recipe-section-title">
                             <ChefHat size={24} color="var(--primary)" /> Preparation Steps
                         </h2>
                         <ol className="steps-list">
@@ -670,31 +688,31 @@ function RecipeManagement() {
                     </section>
 
                     {/* Action Buttons (Moved to Bottom) */}
-                    <div className="recipe-detail-actions-footer">
-                        <button
-                            className="action-edit detail-action-btn"
-                            onClick={() => openEdit(selectedRecipe)}
-                            id="edit-recipe-btn"
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
-                        >
-                            <Pencil size={18} /> Edit
-                        </button>
-                        <button
-                            className="action-delete detail-action-btn"
-                            onClick={() => handleDelete(selectedRecipe)}
-                            id="delete-recipe-btn"
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
-                        >
-                            <Trash2 size={18} /> Delete
-                        </button>
-                    </div>
+                    {isOwner(selectedRecipe) && (
+                        <div className="recipe-detail-actions-footer">
+                            <button
+                                className="action-edit detail-action-btn"
+                                onClick={() => openEdit(selectedRecipe)}
+                                id="edit-recipe-btn"
+                            >
+                                <Pencil size={18} /> Edit
+                            </button>
+                            <button
+                                className="action-delete detail-action-btn"
+                                onClick={() => handleDelete(selectedRecipe)}
+                                id="delete-recipe-btn"
+                            >
+                                <Trash2 size={18} /> Delete
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
             {/* ── FORM VIEW ── */}
             {view === VIEW.FORM && (
                 <div className="recipe-form-wrapper">
-                    <h1 className="recipe-page-title" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
+                    <h1 className="recipe-page-title recipe-form-title">
                         {editMode ? <Pencil size={32} /> : <Plus size={32} />}
                         {editMode ? 'Edit Recipe' : 'Add New Recipe'}
                     </h1>
@@ -703,8 +721,8 @@ function RecipeManagement() {
                         {formError && <div className="error">{formError}</div>}
 
                         {/* Row 1: Title and Category */}
-                        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                            <div className="form-group" style={{ flex: '2 1 300px' }}>
+                        <div className="recipe-form-row">
+                            <div className="form-group recipe-form-group recipe-form-group--wide">
                                 <label htmlFor="recipe-title">Title</label>
                                 <input
                                     id="recipe-title"
@@ -715,7 +733,7 @@ function RecipeManagement() {
                                     required
                                 />
                             </div>
-                            <div className="form-group" style={{ flex: '1 1 150px' }}>
+                            <div className="form-group recipe-form-group recipe-form-group--narrow">
                                 <label htmlFor="recipe-category">Category</label>
                                 <select
                                     id="recipe-category"
@@ -745,7 +763,7 @@ function RecipeManagement() {
                         </div>
 
                         {/* Cook Time */}
-                        <div className="form-group" style={{ maxWidth: '250px' }}>
+                        <div className="form-group recipe-form-group recipe-time-group">
                             <label htmlFor="recipe-time">Cook Time (min)</label>
                             <input
                                 id="recipe-time"
@@ -797,9 +815,9 @@ function RecipeManagement() {
 
                         {/* Ingredients */}
                         <div className="form-section">
-                            <div className="form-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <h3 style={{ margin: 0 }}>Ingredients</h3>
-                                <button type="button" className="btn-add-row" onClick={addIngredient} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <div className="form-section-header">
+                                <h3>Ingredients</h3>
+                                <button type="button" className="btn-add-row" onClick={addIngredient}>
                                     <Plus size={16} /> Add Ingredient
                                 </button>
                             </div>
@@ -858,9 +876,9 @@ function RecipeManagement() {
 
                         {/* Preparation Steps */}
                         <div className="form-section">
-                            <div className="form-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <h3 style={{ margin: 0 }}>Preparation Steps</h3>
-                                <button type="button" className="btn-add-row" onClick={addStep} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <div className="form-section-header">
+                                <h3>Preparation Steps</h3>
+                                <button type="button" className="btn-add-row" onClick={addStep}>
                                     <Plus size={16} /> Add Step
                                 </button>
                             </div>
