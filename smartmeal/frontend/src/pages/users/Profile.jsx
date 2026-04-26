@@ -14,7 +14,10 @@ import {
   Save,
   Lock,
   Trash2,
-  ChefHat
+  ChefHat,
+  UtensilsCrossed,
+  Flame,
+  Leaf
 } from 'lucide-react';
 
 function Profile() {
@@ -84,53 +87,54 @@ function Profile() {
   if (!user) return <div className="loading">Loading profile...</div>;
 
   return (
-    <div className="profile-page-wrapper" style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem' }}>
-      
-      {/* Welcome / Onboarding Banner */}
-      {isNewUser && (
-        <div className="onboarding-banner" style={{ 
-          background: 'linear-gradient(135deg, var(--primary) 0%, #064e3b 100%)', 
-          color: 'white', 
-          padding: '2rem', 
-          borderRadius: '24px', 
-          marginBottom: '2rem',
-          display: 'flex',
-          gap: '1.5rem',
-          alignItems: 'center',
-          boxShadow: 'var(--shadow-premium)'
-        }}>
-          <div className="onboarding-banner__icon" style={{ background: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '18px' }}>
-            <PartyPopper size={40} />
-          </div>
-          <div className="onboarding-banner__body">
-            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>Welcome to Smart Recipe, {user.name}!</h3>
-            <p style={{ margin: '0.5rem 0 0', opacity: 0.9, lineHeight: '1.5' }}>
-              To get personalised recipe recommendations, please fill in your dietary preferences below.
-              This helps us suggest meals you'll love.
-            </p>
-          </div>
-        </div>
-      )}
+    <div className="profile-page-wrapper">
+      {/* Premium Hero Header */}
+      <div className="page-hero">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '8%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '42%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '25%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '12%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
 
-      {/* Page Title */}
-      <div style={{ marginBottom: '2.5rem', textAlign: isNewUser ? 'center' : 'left' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          fontWeight: '900', 
-          background: 'linear-gradient(135deg, var(--primary) 0%, #064e3b 100%)', 
-          WebkitBackgroundClip: 'text', 
-          WebkitTextFillColor: 'transparent', 
-          margin: 0,
-          letterSpacing: '-0.02em'
-        }}>
-          {isNewUser ? 'Complete Your Profile' : 'Profile Settings'}
-        </h1>
-        <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 0', fontSize: '1.1rem' }}>
-          {isNewUser ? 'Just a few details to personalize your experience' : 'Manage your personal information and culinary preferences'}
-        </p>
+        <User size={48} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '900', color: '#ecfdf5' }}>
+            {isNewUser ? 'Complete Your Profile' : 'Profile Settings'}
+          </h1>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.1rem', color: '#a7f3d0' }}>
+            {isNewUser ? 'Just a few details to personalize your experience' : 'Manage your personal information and culinary preferences'}
+          </p>
+        </div>
       </div>
 
-      {message.text && (
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 1.5rem' }}>
+        {/* Welcome / Onboarding Banner */}
+        {isNewUser && (
+          <div className="onboarding-banner" style={{ 
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 78, 59, 0.05) 100%)', 
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            padding: '2rem', 
+            borderRadius: '24px', 
+            marginBottom: '2rem',
+            display: 'flex',
+            gap: '1.5rem',
+            alignItems: 'center',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <div className="onboarding-banner__icon" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '18px' }}>
+              <PartyPopper size={40} color="var(--primary)" />
+            </div>
+            <div className="onboarding-banner__body">
+              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)' }}>Welcome to Smart Recipe, {user.name}!</h3>
+              <p style={{ margin: '0.5rem 0 0', opacity: 0.9, lineHeight: '1.5', color: 'var(--text-muted)' }}>
+                To get personalised recipe recommendations, please fill in your dietary preferences below.
+                This helps us suggest meals you'll love.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {message.text && (
         <div className={`alert alert-${message.type}`} style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -318,6 +322,7 @@ function Profile() {
           </Link>
         </div>
       )}
+      </div>
     </div>
   );
 }

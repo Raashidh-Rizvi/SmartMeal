@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, RefreshCcw, Key, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, RefreshCcw, Key, ShieldCheck, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
 import api from '../../api/axios';
 import { validatePassword } from '../../utils/passwordValidation';
 import PasswordInput from '../../components/PasswordInput';
@@ -93,12 +93,24 @@ function ChangePassword() {
   };
 
   return (
-    <div className="auth-page-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: 'var(--bg-gradient)' }}>
-      <div className="auth-container card" style={{ width: '100%', maxWidth: '500px', padding: '3rem', borderRadius: '32px', boxShadow: 'var(--shadow-premium)', background: 'var(--card-bg)', backdropFilter: 'var(--glass-blur)' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: '900', marginBottom: '1rem', color: 'var(--text-main)', textAlign: 'center', letterSpacing: '-0.03em' }}>Change Password</h2>
-        <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '2.5rem', fontSize: '1rem' }}>
-          Choose how you'd like to verify your identity to set a new password.
-        </p>
+    <div className="auth-page-wrapper" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* Premium Hero Header */}
+      <div className="page-hero">
+        {/* Decorative Background Icons - Scattered */}
+        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '8%', '--rotation': '-18deg' }} />
+        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '42%', '--rotation': '12deg', animationDelay: '0.8s' }} />
+        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '25%', '--rotation': '22deg', animationDelay: '1.5s' }} />
+        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '12%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+
+        <Lock size={48} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '900', color: '#ecfdf5' }}>Change Password</h1>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '1.1rem', color: '#a7f3d0' }}>Choose how you'd like to verify your identity to set a new password.</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', padding: '2rem', marginTop: '-4rem', position: 'relative', zIndex: 10 }}>
+        <div className="auth-container card" style={{ width: '100%', maxWidth: '500px', padding: '3rem', borderRadius: '32px', boxShadow: 'var(--shadow-premium)', background: 'var(--card-bg)', backdropFilter: 'var(--glass-blur)' }}>
 
         {error && (
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
@@ -269,6 +281,7 @@ function ChangePassword() {
             </>
           )}
         </form>
+        </div>
       </div>
     </div>
   );
