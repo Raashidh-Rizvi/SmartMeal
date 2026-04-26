@@ -27,7 +27,8 @@ import {
   Trash2,
   ChevronUp,
   Search,
-  Info
+  Info,
+  Refrigerator
 } from 'lucide-react';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -315,6 +316,15 @@ function Leftovers() {
 
   return (
     <div>
+      {/* Page Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem' }}>
+        <Refrigerator size={48} color="var(--primary)" strokeWidth={1.75} />
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>Leftover Tracker</h1>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Track, manage, and make the most of your leftover food</p>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="stats-section" style={{ marginBottom: '1.5rem' }}>
         {[

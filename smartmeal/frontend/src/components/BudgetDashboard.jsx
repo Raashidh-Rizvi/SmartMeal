@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { budgetService } from '../services/budgetService';
+import { Wallet } from 'lucide-react';
 
 function BudgetDashboard() {
   const [summary, setSummary] = useState(null);
@@ -99,6 +100,15 @@ function BudgetDashboard() {
 
   return (
     <div>
+      {/* Page Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem 1rem 2rem' }}>
+        <Wallet size={48} color="var(--primary)" strokeWidth={1.75} />
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, color: 'var(--text)' }}>Budget Tracker</h1>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', fontSize: '1rem' }}>Monitor your spending and stay on top of your food budget</p>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="stats-section" style={{ marginBottom: '1.5rem' }}>
         {[
