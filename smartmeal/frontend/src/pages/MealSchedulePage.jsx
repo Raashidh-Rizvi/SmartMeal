@@ -26,6 +26,7 @@ import {
   Calendar, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
   Info,
   Clock,
   LayoutList,
@@ -599,33 +600,6 @@ export default function MealSchedulePage() {
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
             setMeals(loadedMeals);
             setAllRecipes(Array.isArray(rRes.data) ? rRes.data : []);
-
-            // Load ingredients for all meals and cross-check with shopping list
-            const [ingResults, shoppingRes] = await Promise.all([
-                Promise.allSettled(loadedMeals.map(m => getMealIngredients(m._id))),
-                ShoppingAPI.getItems(userId).catch(() => [])
-            ]);
-            const ingMap = {};
-            const addedMap = {};
-            loadedMeals.forEach((m, idx) => {
-                if (ingResults[idx].status !== "fulfilled") return;
-                const ings = ingResults[idx].value.data || [];
-                const resolvedNames = new Set(
-                    (shoppingRes || [])
-                        .filter(s => s.meal_id === m._id && s.status === "pending")
-                        .map(s => (s.name || "").toLowerCase())
-                );
-                ingMap[m._id] = ings.map(ing => ({
-                    ...ing,
-                    addedToList: resolvedNames.has(ing.name.toLowerCase()),
-                }));
-                ings.forEach(ing => {
-                    if (resolvedNames.has(ing.name.toLowerCase()))
-                        addedMap[`${m._id}_${ing.name}`] = true;
-                });
-            });
-            setIngredients(ingMap);
-            setAddedIng(addedMap);
         } catch (err) {
             console.error("Load error:", err?.response?.data || err?.message);
             try { const r = await getMeals(); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
@@ -700,7 +674,8 @@ export default function MealSchedulePage() {
                 description: form.description || null,
             };
             if (editingId) {
-                await updateMeal(editingId, payload);
+                const updateRes = await updateMeal(editingId, payload);
+                const updatedMeal = updateRes.data;
                 // if marked done, subtract ingredients from inventory with feedback
                 if (payload.status === "completed") {
                     try {
@@ -728,12 +703,13 @@ export default function MealSchedulePage() {
                     }
                 }
                 toast("Meal updated ✓", "success");
+                if (updatedMeal) setMeals(prev => prev.map(m => m._id === editingId ? updatedMeal : m));
             } else {
                 const createRes = await createMeal(payload);
                 const newMeal = createRes.data;
                 toast("Meal created ✓", "success");
-                // Add a small delay before refreshing to ensure DB sync
-                await new Promise(r => setTimeout(r, 300));
+                // Append new meal directly — no full reload needed
+                if (newMeal) setMeals(prev => [...prev, newMeal]);
                 // Prompt to add missing ingredients to shopping list
                 if (newMeal?._id) {
                     try {
@@ -760,12 +736,16 @@ export default function MealSchedulePage() {
                         }
                     } catch { /* non-critical */ }
                 }
+                setForm(EMPTY_FORM);
+                setErrors({});
+                setEditingId(null);
+                setTypeRecipes([]);
+                return;
             }
             setForm(EMPTY_FORM);
             setErrors({});
             setEditingId(null);
             setTypeRecipes([]);
-            await load();
         } catch (err) {
             const msg = err?.response?.data?.detail || "Operation failed";
             toast(typeof msg === "string" ? msg : JSON.stringify(msg), "error");
@@ -788,13 +768,16 @@ export default function MealSchedulePage() {
 
     // ✓✓ Delete ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
     const handleDelete = async () => {
+        const idToDelete = deleteId;
+        setDeleteId(null);
         try {
-            await deleteMeal(deleteId);
+            await deleteMeal(idToDelete);
+            setMeals(prev => prev.filter(m => m._id !== idToDelete));
+            setIngredients(prev => { const n = { ...prev }; delete n[idToDelete]; return n; });
             toast("Meal deleted", "success");
-            setDeleteId(null);
-            load();
         } catch {
             toast("Failed to delete meal", "error");
+            load();
         }
     };
 
