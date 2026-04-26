@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from ..models.recipe import RecipeCreate, RecipeUpdate, RecipeResponse, RecipeResponseRaw
 import re
 import logging
+from .image_mapper import get_cuisine_image
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,8 @@ async def get_recipes_by_meal_type(db, meal_type: str) -> List[dict[str, Any]]:
         
         for r in recipes:
             r["_id"] = str(r["_id"])
+            if not r.get("image_url"):
+                r["image_url"] = get_cuisine_image(r.get("title", ""))
         
         return recipes
     except HTTPException:
@@ -184,6 +187,8 @@ async def get_all_recipes(
         async for doc in cursor:
             # Convert _id to string and return raw dict
             doc["_id"] = str(doc["_id"])
+            if not doc.get("image_url"):
+                doc["image_url"] = get_cuisine_image(doc.get("title", ""))
             recipes.append(doc)
         
         return recipes
@@ -221,6 +226,9 @@ async def get_recipe_by_id(db, recipe_id: str) -> RecipeResponseRaw:
                 detail=f"Recipe not found"
             )
         
+        if not doc.get("image_url"):
+            doc["image_url"] = get_cuisine_image(doc.get("title", ""))
+            
         return RecipeResponseRaw(**_serialize(doc))
     except HTTPException:
         raise
@@ -428,6 +436,8 @@ async def get_favorite_recipes(db, user_id: str) -> List[dict]:
         recipes = []
         async for doc in cursor:
             doc["_id"] = str(doc["_id"])
+            if not doc.get("image_url"):
+                doc["image_url"] = get_cuisine_image(doc.get("title", ""))
             recipes.append(doc)
             
         return recipes

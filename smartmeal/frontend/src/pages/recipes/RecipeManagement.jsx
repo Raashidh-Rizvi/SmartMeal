@@ -543,7 +543,7 @@ function RecipeManagement() {
                                         )}
                                         {recipe.image_url ? (
                                             <img
-                                                src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
+                                                src={recipe.image_url.startsWith('/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}${recipe.image_url}` : recipe.image_url}
                                                 alt={recipe.title}
                                                 className="recipe-card-img"
                                                 onError={e => { 
@@ -645,7 +645,7 @@ function RecipeManagement() {
 
                     {selectedRecipe.image_url && (
                         <img
-                            src={selectedRecipe.image_url.startsWith('/') ? `http://localhost:8001${selectedRecipe.image_url}` : selectedRecipe.image_url}
+                            src={selectedRecipe.image_url.startsWith('/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}${selectedRecipe.image_url}` : selectedRecipe.image_url}
                             alt={selectedRecipe.title}
                             className="recipe-hero-img"
                             onError={e => { e.target.style.display = 'none'; }}

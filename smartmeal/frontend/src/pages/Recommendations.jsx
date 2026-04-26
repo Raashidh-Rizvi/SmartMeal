@@ -339,6 +339,21 @@ function Recommendations() {
                     border: '1px solid var(--card-border)', background: 'var(--card-bg)',
                     borderRadius: '28px', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                   }}>
+                    
+                    {/* Recipe Image Banner */}
+                    {r.image_url && (
+                      <div style={{
+                        width: '100%', height: '200px', borderRadius: '16px', overflow: 'hidden',
+                        marginBottom: '0.5rem', position: 'relative'
+                      }}>
+                        <img 
+                          src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}${r.image_url}`} 
+                          alt={r.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
 
                     {/* Header: Name + Match Score Badge & Favorite */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
