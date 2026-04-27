@@ -21,7 +21,6 @@ import {
   List, 
   Calendar, 
   Bot, 
-  Salad, 
   ChefHat,
   Plus,
   Trash2,
@@ -31,7 +30,10 @@ import {
   Refrigerator,
   UtensilsCrossed,
   Flame,
-  Leaf
+  Leaf,
+  History,
+  Thermometer,
+  Timer
 } from 'lucide-react';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -321,11 +323,16 @@ function Leftovers() {
     <div>
       {/* Page Header */}
       <div className="page-hero page-hero--sub">
-        {/* Decorative Background Icons - Scattered */}
-        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '6%', '--rotation': '-18deg' }} />
-        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '45%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '22%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '8%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+        {/* Premium Decorative Background Icons - Scattered Artistically */}
+        <UtensilsCrossed size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '12%', left: '5%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <ChefHat size={80} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '40%', left: '15%', '--rotation': '10deg', animationDelay: '1.5s' }} />
+        <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '8%', '--rotation': '25deg', animationDelay: '3s' }} />
+        <Leaf size={74} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '8%', right: '15%', '--rotation': '-20deg', animationDelay: '0.5s' }} />
+        
+        <History size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '50%', right: '4%', '--rotation': '18deg', animationDelay: '2.2s' }} />
+        <Clock size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '10%', right: '20%', '--rotation': '-12deg', animationDelay: '1s' }} />
+        <Snowflake size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '30%', right: '30%', '--rotation': '30deg', animationDelay: '4s' }} />
+        <Timer size={58} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '30%', left: '25%', '--rotation': '-25deg', animationDelay: '0.2s' }} />
 
         <Refrigerator size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>

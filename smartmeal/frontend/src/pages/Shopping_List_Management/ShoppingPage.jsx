@@ -8,7 +8,7 @@ import ShoppingTable from '../../components/ShoppingTable';
 import ShoppingChart from '../../components/ShoppingChart';
 import EditItemForm from '../../components/EditItemForm';
 import Toast from '../../components/Toast';
-import { Plus, PlusCircle, Share2, Edit3, ArrowLeft, ShoppingCart, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
+import { Plus, PlusCircle, Share2, Edit3, ArrowLeft, ShoppingCart, List, PlusSquare, CheckSquare, UtensilsCrossed, ChefHat, Flame, Leaf, Tag } from 'lucide-react';
 
 function ShoppingPage() {
 
@@ -148,11 +148,16 @@ function ShoppingPage() {
     <div className="shopping-page">
       {/* Page Header */}
       <div className="page-hero page-hero--sub">
-        {/* Decorative Background Icons - Scattered */}
-        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '10%', '--rotation': '-18deg' }} />
-        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '40%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '20%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '10%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+        {/* Premium Decorative Background Icons - Scattered Artistically */}
+        <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '5%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <ChefHat size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '75%', left: '25%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '20%', left: '10%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '10%', right: '15%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        
+        <ShoppingCart size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <List size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <PlusSquare size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '28%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <Tag size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '35%', left: '22%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
         <ShoppingCart size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>

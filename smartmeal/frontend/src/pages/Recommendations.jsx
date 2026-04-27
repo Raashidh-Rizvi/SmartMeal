@@ -2,7 +2,7 @@ import React, { useState, useRef, useContext } from 'react';
 import { searchRecommendations, rateRecipe, getRecipes, createRecipe, toggleFavoriteRecipe } from '../api/recipes';
 import { createMeal } from '../services/mealService';
 import { AuthContext } from '../context/AuthContext';
-import { Heart, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
+import { Heart, Star, Sparkles, Zap, Lightbulb, UtensilsCrossed, ChefHat, Flame, Leaf, Wand2 } from 'lucide-react';
 
 const DIET_OPTIONS = [
   { value: '', label: 'Any Diet' },
@@ -202,11 +202,16 @@ function Recommendations() {
     <div className="main-content">
       {/* Header */}
       <div className="page-hero page-hero--sub">
-        {/* Decorative Background Icons - Scattered */}
-        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '5%', '--rotation': '-18deg' }} />
-        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '35%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '18%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '7%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+        {/* Premium Decorative Background Icons - Scattered Artistically */}
+        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '10%', left: '10%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <ChefHat size={86} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '30%', left: '5%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '15%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <Leaf size={78} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '25%', right: '10%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        
+        {/* <Sparkles size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '60%', right: '8%', '--rotation': '18deg', animationDelay: '3.1s' }} /> */}
+        <Star size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '10%', right: '18%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        {/* <Zap size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '40%', right: '25%', '--rotation': '30deg', animationDelay: '4.2s' }} /> */}
+        <Wand2 size={54} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '40%', left: '30%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
         <h1 className="premium-gradient-text" style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
           AI Recipe Recommendations

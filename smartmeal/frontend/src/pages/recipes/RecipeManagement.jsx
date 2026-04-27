@@ -28,7 +28,10 @@ import {
     Heart,
     UtensilsCrossed,
     Flame,
-    Leaf
+    Leaf,
+    CookingPot,
+    Utensils,
+    Timer
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -414,11 +417,16 @@ function RecipeManagement() {
 
             {/* Header */}
             <div className="recipe-page-header page-hero page-hero--sub">
-                {/* Decorative Background Icons - Scattered */}
-                <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '35%', left: '5%', '--rotation': '-18deg' }} />
-                <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '30%', left: '35%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-                <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '18%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-                <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '7%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+                {/* Premium Decorative Background Icons - Scattered Artistically */}
+                <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '10%', left: '8%', '--rotation': '-15deg', animationDelay: '0s' }} />
+                <ChefHat size={86} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '4%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+                <Flame size={54} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '12%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+                <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '15%', right: '12%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+                
+                <BookOpen size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '60%', right: '5%', '--rotation': '-18deg', animationDelay: '3.1s' }} />
+                <Search size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '10%', right: '15%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+                <CookingPot size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '25%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+                <Timer size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '35%', left: '28%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
                 <BookOpen size={48} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
                 <div className="recipe-page-header-text" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>

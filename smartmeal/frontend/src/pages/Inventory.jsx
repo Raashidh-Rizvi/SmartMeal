@@ -16,6 +16,9 @@ import {
   ChevronRight,
   Package,
   Info,
+  ClipboardList,
+  Archive,
+  Box,
   UtensilsCrossed,
   Flame,
   Leaf
@@ -216,11 +219,16 @@ function Inventory() {
   return (
     <>
     <div className="page-hero page-hero--sub">
-      {/* Decorative Background Icons - Scattered */}
-      <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '8%', '--rotation': '-18deg' }} />
-      <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '42%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-      <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '25%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-      <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '12%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+      {/* Premium Decorative Background Icons - Scattered Artistically */}
+      <UtensilsCrossed size={68} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '8%', '--rotation': '-15deg', animationDelay: '0s' }} />
+      <ChefHat size={84} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '3%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+      <Flame size={54} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '20%', left: '12%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+      <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '10%', right: '12%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+      
+      <Package size={58} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '6%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+      <ClipboardList size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '10%', right: '15%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+      <Inbox size={78} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '22%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+      <Box size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '35%', left: '28%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
       <ChefHat size={48} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
       <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
