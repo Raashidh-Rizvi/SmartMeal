@@ -64,12 +64,22 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SmartMeal API", lifespan=lifespan)
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
+
 # Custom exception handler for request validation errors - formats them nicely
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Format Pydantic validation errors into user-friendly messages."""
     errors = exc.errors()
     formatted_msg = _format_validation_error(errors[0]) if errors else "Validation failed"
+    # DEBUG: Write the full exception and URL to a file
+    with open("422_debug.log", "a") as f:
+        f.write(f"URL: {request.url}\nHeaders: {request.headers}\nError: {repr(exc)}\n\n")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": formatted_msg}

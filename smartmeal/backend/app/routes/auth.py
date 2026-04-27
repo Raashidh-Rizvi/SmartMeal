@@ -10,6 +10,9 @@ from app.models.user import UserCreate, UserResponse, UserInDB, Token, UserBase
 from app.api.deps import get_current_user
 from bson import ObjectId
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 @router.post("/login")
@@ -26,6 +29,9 @@ async def login_access_token(
     user = UserInDB(**user_dict)
     if not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
+        
+    if not user_dict.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Account disabled")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
@@ -81,67 +87,96 @@ def generate_random_password(length=16):
 @router.post("/google")
 async def google_login(req: GoogleLoginRequest) -> Any:
     db = get_db()
-    # Find user by email (case-insensitive)
-    user_dict = await db["users"].find_one({"email": {"$regex": f"^{req.email}$", "$options": "i"}})
+    logger.info(f"Google Login attempt for email: {req.email}")
     
-    if not user_dict:
-        # Create a new user since they don't exist
-        random_pwd = generate_random_password()
-        new_user_data = {
-            "name": req.name,
-            "email": req.email.lower(),
-            "role": "USER",
-            "preferences": {}, # defaults
-            "password_hash": get_password_hash(random_pwd),
-            "createdAt": datetime.now(timezone.utc),
-            "updatedAt": datetime.now(timezone.utc)
+    try:
+        # Find user by email (case-insensitive)
+        user_dict = await db["users"].find_one({"email": {"$regex": f"^{req.email}$", "$options": "i"}})
+        
+        if not user_dict:
+            logger.info(f"New Google user: {req.email}. Creating account.")
+            # Create a new user since they don't exist
+            random_pwd = generate_random_password()
+            new_user_data = {
+                "name": req.name,
+                "email": req.email.lower(),
+                "role": "USER",
+                "is_active": True, # Explicitly set for new users
+                "preferences": {}, # defaults
+                "password_hash": get_password_hash(random_pwd),
+                "createdAt": datetime.now(timezone.utc),
+                "updatedAt": datetime.now(timezone.utc)
+            }
+            insert_result = await db["users"].insert_one(new_user_data)
+            user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
+        else:
+            logger.info(f"Existing Google user found: {req.email}")
+            # Ensure is_active is checked safely
+            if not user_dict.get("is_active", True):
+                logger.warning(f"Login blocked: Account disabled for {req.email}")
+                raise HTTPException(status_code=403, detail=f"Account disabled for {req.email}")
+                
+            # Update missing fields to avoid Pydantic validation errors
+            updates = {}
+            if not user_dict.get("name"):
+                updates["name"] = req.name
+                user_dict["name"] = req.name
+            
+            # Check both field names to prevent overwriting existing passwords
+            existing_hash = user_dict.get("password_hash") or user_dict.get("hashed_password")
+            
+            if not existing_hash:
+                pwd_hash = get_password_hash(generate_random_password())
+                updates["password_hash"] = pwd_hash
+                user_dict["password_hash"] = pwd_hash
+            elif not user_dict.get("password_hash") and user_dict.get("hashed_password"):
+                # Migrate from legacy field name if only hashed_password exists
+                updates["password_hash"] = existing_hash
+                user_dict["password_hash"] = existing_hash
+                
+            if not user_dict.get("createdAt"):
+                now = datetime.now(timezone.utc)
+                updates["createdAt"] = now
+                user_dict["createdAt"] = now
+                
+            if updates:
+                await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": updates})
+                
+        user_dict["_id"] = str(user_dict["_id"])
+        
+        # Validate data against UserInDB model
+        try:
+            user = UserInDB(**user_dict)
+        except Exception as pydantic_err:
+            logger.error(f"Pydantic validation failed for Google user {req.email}: {str(pydantic_err)}")
+            # Log the dict keys to see what's missing
+            logger.error(f"User dict keys: {list(user_dict.keys())}")
+            raise HTTPException(status_code=500, detail="User data integrity error")
+            
+        # Generate SmartMeal token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        token = create_access_token(subject=user.email, expires_delta=access_token_expires)
+        
+        logger.info(f"Google Login successful for {req.email}")
+        
+        # Return a clean dictionary to avoid Pydantic serialization issues in the final step
+        return {
+            "accessToken": token,
+            "user": {
+                "id": str(user.id or user_dict.get("_id")),
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+                "preferences": user.preferences.model_dump() if hasattr(user.preferences, 'model_dump') else user.preferences,
+                "createdAt": user.createdAt.isoformat() if hasattr(user.createdAt, 'isoformat') else str(user.createdAt),
+                "updatedAt": user.updatedAt.isoformat() if hasattr(user.updatedAt, 'isoformat') else str(user.updatedAt)
+            }
         }
-        insert_result = await db["users"].insert_one(new_user_data)
-        user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
-    else:
-        # Update missing fields to avoid Pydantic validation errors
-        updates = {}
-        if not user_dict.get("name"):
-            updates["name"] = req.name
-            user_dict["name"] = req.name
-        
-        # Check both field names to prevent overwriting existing passwords
-        existing_hash = user_dict.get("password_hash") or user_dict.get("hashed_password")
-        
-        if not existing_hash:
-            # Provide a random password hash for socially-joined users who haven't set a password
-            pwd_hash = get_password_hash(generate_random_password())
-            updates["password_hash"] = pwd_hash
-            user_dict["password_hash"] = pwd_hash
-        elif not user_dict.get("password_hash") and user_dict.get("hashed_password"):
-            # Migrate from legacy field name if only hashed_password exists
-            updates["password_hash"] = existing_hash
-            user_dict["password_hash"] = existing_hash
-            
-        if not user_dict.get("createdAt"):
-            now = datetime.now(timezone.utc)
-            updates["createdAt"] = now
-            user_dict["createdAt"] = now
-            
-        if not user_dict.get("updatedAt"):
-            now = datetime.now(timezone.utc)
-            updates["updatedAt"] = now
-            user_dict["updatedAt"] = now
-            
-        if updates:
-            await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": updates})
-            
-    user_dict["_id"] = str(user_dict["_id"])
-    user = UserInDB(**user_dict)
-    
-    # Generate SmartMeal token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return {
-        "accessToken": create_access_token(
-            subject=user.email, expires_delta=access_token_expires
-        ),
-        "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google login error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 from app.models.user import ForgotPasswordRequest, ResetPasswordRequest
 import random

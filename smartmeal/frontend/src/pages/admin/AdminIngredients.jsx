@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { 
-  Apple, 
   Plus, 
   Search, 
   Trash2, 
   Pencil, 
   ChevronLeft, 
   ChevronRight,
-  X
+  X,
+  Database,
+  FlaskConical,
+  Tag,
+  LayoutList,
+  BookMarked
 } from 'lucide-react';
 
 function AdminIngredients() {
@@ -112,15 +116,28 @@ function AdminIngredients() {
 
   return (
     <div className="admin-page">
-      <header className="admin-header flex justify-between align-center" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justify_content: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Apple size={32} color="var(--primary)" />
-          <h1 style={{ margin: 0 }}>Ingredient Management</h1>
+      <div className="page-hero page-hero--sub">
+        {/* Premium Decorative Background Icons */}
+        <Database size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '10%', left: '6%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <FlaskConical size={68} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '3%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Tag size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '14%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <LayoutList size={74} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '12%', right: '10%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        <BookMarked size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <Search size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '12%', right: '16%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <FlaskConical size={80} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '26%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <Database size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '38%', left: '28%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
+
+        <Database size={46} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: '0.25rem 0 0.1rem' }}>Ingredient Management</h1>
+          <p style={{ margin: 0, opacity: 0.75, fontSize: '1rem' }}>Manage the global ingredient database and nutritional data</p>
         </div>
-        <button onClick={() => openFormModal()} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: 'auto' }}>
-          <Plus size={18} /> Add Ingredient
-        </button>
-      </header>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'flex-end', width: '100%', padding: '0 1.5rem', boxSizing: 'border-box' }}>
+          <button onClick={() => openFormModal()} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: 'auto' }}>
+            <Plus size={18} /> Add Ingredient
+          </button>
+        </div>
+      </div>
 
       <div className="admin-filters">
         <form onSubmit={handleSearchSubmit} className="search-form flex gap-3 flex-wrap">

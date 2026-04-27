@@ -26,6 +26,7 @@ import {
   Calendar, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
   Info,
   Clock,
   LayoutList,
@@ -35,7 +36,8 @@ import {
   RefreshCw,
   UtensilsCrossed,
   Flame,
-  Leaf
+  Leaf,
+  Timer
 } from "lucide-react";
 import "../styles/MealSchedule.css";
 
@@ -599,33 +601,6 @@ export default function MealSchedulePage() {
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
             setMeals(loadedMeals);
             setAllRecipes(Array.isArray(rRes.data) ? rRes.data : []);
-
-            // Load ingredients for all meals and cross-check with shopping list
-            const [ingResults, shoppingRes] = await Promise.all([
-                Promise.allSettled(loadedMeals.map(m => getMealIngredients(m._id))),
-                ShoppingAPI.getItems(userId).catch(() => [])
-            ]);
-            const ingMap = {};
-            const addedMap = {};
-            loadedMeals.forEach((m, idx) => {
-                if (ingResults[idx].status !== "fulfilled") return;
-                const ings = ingResults[idx].value.data || [];
-                const resolvedNames = new Set(
-                    (shoppingRes || [])
-                        .filter(s => s.meal_id === m._id && s.status === "pending")
-                        .map(s => (s.name || "").toLowerCase())
-                );
-                ingMap[m._id] = ings.map(ing => ({
-                    ...ing,
-                    addedToList: resolvedNames.has(ing.name.toLowerCase()),
-                }));
-                ings.forEach(ing => {
-                    if (resolvedNames.has(ing.name.toLowerCase()))
-                        addedMap[`${m._id}_${ing.name}`] = true;
-                });
-            });
-            setIngredients(ingMap);
-            setAddedIng(addedMap);
         } catch (err) {
             console.error("Load error:", err?.response?.data || err?.message);
             try { const r = await getMeals(); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
@@ -700,7 +675,8 @@ export default function MealSchedulePage() {
                 description: form.description || null,
             };
             if (editingId) {
-                await updateMeal(editingId, payload);
+                const updateRes = await updateMeal(editingId, payload);
+                const updatedMeal = updateRes.data;
                 // if marked done, subtract ingredients from inventory with feedback
                 if (payload.status === "completed") {
                     try {
@@ -728,12 +704,13 @@ export default function MealSchedulePage() {
                     }
                 }
                 toast("Meal updated ✓", "success");
+                if (updatedMeal) setMeals(prev => prev.map(m => m._id === editingId ? updatedMeal : m));
             } else {
                 const createRes = await createMeal(payload);
                 const newMeal = createRes.data;
                 toast("Meal created ✓", "success");
-                // Add a small delay before refreshing to ensure DB sync
-                await new Promise(r => setTimeout(r, 300));
+                // Append new meal directly — no full reload needed
+                if (newMeal) setMeals(prev => [...prev, newMeal]);
                 // Prompt to add missing ingredients to shopping list
                 if (newMeal?._id) {
                     try {
@@ -760,12 +737,16 @@ export default function MealSchedulePage() {
                         }
                     } catch { /* non-critical */ }
                 }
+                setForm(EMPTY_FORM);
+                setErrors({});
+                setEditingId(null);
+                setTypeRecipes([]);
+                return;
             }
             setForm(EMPTY_FORM);
             setErrors({});
             setEditingId(null);
             setTypeRecipes([]);
-            await load();
         } catch (err) {
             const msg = err?.response?.data?.detail || "Operation failed";
             toast(typeof msg === "string" ? msg : JSON.stringify(msg), "error");
@@ -788,13 +769,16 @@ export default function MealSchedulePage() {
 
     // ✓✓ Delete ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
     const handleDelete = async () => {
+        const idToDelete = deleteId;
+        setDeleteId(null);
         try {
-            await deleteMeal(deleteId);
+            await deleteMeal(idToDelete);
+            setMeals(prev => prev.filter(m => m._id !== idToDelete));
+            setIngredients(prev => { const n = { ...prev }; delete n[idToDelete]; return n; });
             toast("Meal deleted", "success");
-            setDeleteId(null);
-            load();
         } catch {
             toast("Failed to delete meal", "error");
+            load();
         }
     };
 
@@ -925,11 +909,16 @@ export default function MealSchedulePage() {
 
             {/* Header */}
             <div className="ms-header page-hero page-hero--sub">
-                {/* Decorative Background Icons - Scattered Randomly */}
-                <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '4%', '--rotation': '-18deg' }} />
-                <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '38%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-                <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '22%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-                <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '10%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+                {/* Premium Decorative Background Icons - Scattered Artistically */}
+                <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '4%', '--rotation': '-15deg', animationDelay: '0s' }} />
+                <ChefHat size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '12%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+                <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '20%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+                <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '12%', right: '12%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+                
+                <Calendar size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+                <Clock size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '10%', right: '18%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+                <CalendarDays size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '30%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+                <Timer size={54} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '40%', left: '32%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
                 <div className="ms-header-title" style={{ position: 'relative', zIndex: 2 }}>
                     <h1 style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>

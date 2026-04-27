@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
+import { budgetService } from '../../services/budgetService';
 import { 
   Check, 
   PartyPopper, 
@@ -30,7 +31,8 @@ function Profile() {
     dietType: '',
     allergies: '',
     cuisinePreferences: '',
-    householdSize: 1
+    householdSize: 1,
+    budgetLevel: ''
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -42,15 +44,30 @@ function Profile() {
         dietType: user.preferences?.dietType || '',
         allergies: user.preferences?.allergies?.join(', ') || '',
         cuisinePreferences: user.preferences?.cuisinePreferences?.join(', ') || '',
-        householdSize: user.preferences?.householdSize || 1
+        householdSize: user.preferences?.householdSize || 1,
+        budgetLevel: user.preferences?.budgetLevel || ''
       });
     }
   }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'budgetLevel') {
+      const existingBudget = user?.preferences?.budgetLevel;
+      if (existingBudget && existingBudget !== value) {
+        const confirmChange = window.confirm("You already have a budget set. Are you sure you want to change it?");
+        if (!confirmChange) {
+          return; // Cancel change
+        }
+      }
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+  // Map budget tier → amount (midpoint of each range)
+  // Low: 35K–50K → 42,500 | Medium: 55K–80K → 67,500 | High: 90K–140K → 115,000
+  const BUDGET_AMOUNTS = { low: 42500, medium: 67500, high: 115000 };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,12 +82,38 @@ function Profile() {
           dietType: formData.dietType,
           allergies: formData.allergies.split(',').map(i => i.trim()).filter(i => i),
           cuisinePreferences: formData.cuisinePreferences.split(',').map(i => i.trim()).filter(i => i),
-          householdSize: parseInt(formData.householdSize, 10) || 1
+          householdSize: parseInt(formData.householdSize, 10) || 1,
+          budgetLevel: formData.budgetLevel
         }
       };
 
+      // Save profile first
       const response = await api.put('/api/users/me', updatePayload);
       setUser(response.data.user);
+
+      // Auto-sync Budget Tracker when a budget level is selected
+      if (formData.budgetLevel && BUDGET_AMOUNTS[formData.budgetLevel]) {
+        const amount = BUDGET_AMOUNTS[formData.budgetLevel];
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        try {
+          let existingId = null;
+          try {
+            const res = await budgetService.getCurrentBudget();
+            existingId = res?.data?.id || null;
+          } catch (_) {
+            // No existing budget or fetch failed — will create a new one
+          }
+
+          if (existingId) {
+            await budgetService.updateBudget(existingId, { amount });
+          } else {
+            await budgetService.createBudget({ amount, month: currentMonth, category: 'general' });
+          }
+        } catch (budgetErr) {
+          console.warn('Budget sync failed:', budgetErr);
+        }
+      }
+
       setMessage({ type: 'success', text: isNewUser ? 'Preferences saved! You\'re all set.' : 'Profile updated successfully!' });
 
       // Remove the welcome flag from the URL once they save
@@ -224,6 +267,74 @@ function Profile() {
                   max="20"
                   style={{ paddingLeft: '3rem', borderRadius: '14px' }}
                 />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label>Monthly Food Budget</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.5rem' }}>
+                <label style={{ 
+                  cursor: 'pointer', 
+                  border: formData.budgetLevel === 'low' ? '2px solid #10b981' : '1px solid var(--card-border)',
+                  background: formData.budgetLevel === 'low' ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-card)',
+                  padding: '1.25rem',
+                  borderRadius: '16px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  position: 'relative'
+                }}>
+                  <input type="radio" name="budgetLevel" value="low" checked={formData.budgetLevel === 'low'} onChange={handleChange} style={{ position: 'absolute', opacity: 0 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.25rem' }}>🟢</span>
+                    <span style={{ fontWeight: '800', color: 'var(--text-main)' }}>Low</span>
+                  </div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#10b981' }}>35K – 50K</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Basic survival</div>
+                </label>
+
+                <label style={{ 
+                  cursor: 'pointer', 
+                  border: formData.budgetLevel === 'medium' ? '2px solid #f59e0b' : '1px solid var(--card-border)',
+                  background: formData.budgetLevel === 'medium' ? 'rgba(245, 158, 11, 0.05)' : 'var(--bg-card)',
+                  padding: '1.25rem',
+                  borderRadius: '16px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  position: 'relative'
+                }}>
+                  <input type="radio" name="budgetLevel" value="medium" checked={formData.budgetLevel === 'medium'} onChange={handleChange} style={{ position: 'absolute', opacity: 0 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.25rem' }}>🟡</span>
+                    <span style={{ fontWeight: '800', color: 'var(--text-main)' }}>Medium</span>
+                  </div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f59e0b' }}>55K – 80K</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Balanced & healthy</div>
+                </label>
+
+                <label style={{ 
+                  cursor: 'pointer', 
+                  border: formData.budgetLevel === 'high' ? '2px solid #ef4444' : '1px solid var(--card-border)',
+                  background: formData.budgetLevel === 'high' ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-card)',
+                  padding: '1.25rem',
+                  borderRadius: '16px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  position: 'relative'
+                }}>
+                  <input type="radio" name="budgetLevel" value="high" checked={formData.budgetLevel === 'high'} onChange={handleChange} style={{ position: 'absolute', opacity: 0 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.25rem' }}>🔴</span>
+                    <span style={{ fontWeight: '800', color: 'var(--text-main)' }}>High</span>
+                  </div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#ef4444' }}>90K – 140K+</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Premium home diet</div>
+                </label>
               </div>
             </div>
 

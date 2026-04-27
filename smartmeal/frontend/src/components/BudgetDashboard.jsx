@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { budgetService } from '../services/budgetService';
-import { Wallet, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
+import { Wallet, UtensilsCrossed, ChefHat, Flame, Leaf, Banknote, TrendingUp, PieChart, Receipt } from 'lucide-react';
 
 function BudgetDashboard() {
   const [summary, setSummary] = useState(null);
@@ -40,7 +40,7 @@ function BudgetDashboard() {
 
   useEffect(() => {
     if (!summary) return;
-    if (summary.is_over_budget) showToast('error', `Budget exceeded by $${Math.abs(summary.remaining).toFixed(2)}!`);
+    if (summary.is_over_budget) showToast('error', `Budget exceeded by LKR ${Math.abs(summary.remaining).toFixed(2)}!`);
     else if (summary.warning_threshold_reached) showToast('warning', `${summary.percentage_used.toFixed(1)}% of budget used`);
   }, [summary?.is_over_budget, summary?.warning_threshold_reached, summary]);
 
@@ -94,7 +94,7 @@ function BudgetDashboard() {
     } catch { showToast('error', 'Failed to delete expense'); }
   };
 
-  const fmt = (n) => `$${Number(n).toFixed(2)}`;
+  const fmt = (n) => `LKR ${Number(n).toFixed(2)}`;
 
   if (loading) return <p className="loading">Loading budget...</p>;
 
@@ -102,11 +102,16 @@ function BudgetDashboard() {
     <div>
       {/* Page Header */}
       <div className="page-hero">
-        {/* Decorative Background Icons - Scattered */}
-        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '35%', left: '5%', '--rotation': '-18deg' }} />
-        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '30%', left: '35%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '18%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '7%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+        {/* Premium Decorative Background Icons - Scattered Artistically */}
+        <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '12%', left: '8%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <ChefHat size={86} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '48%', left: '3%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Flame size={54} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '18%', left: '15%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '15%', right: '12%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        
+        <Banknote size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '58%', right: '6%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <TrendingUp size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '12%', right: '18%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <PieChart size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '38%', right: '25%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <Receipt size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '38%', left: '30%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
         <Wallet size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
         <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
@@ -236,8 +241,8 @@ function BudgetDashboard() {
             <form onSubmit={handleBudgetSubmit}>
               <div className="form-grid">
                 <div className="form-group form-group-full">
-                  <label>Amount ($)</label>
-                  <input type="number" step="0.01" value={budgetForm.amount} onChange={e => setBudgetForm({ ...budgetForm, amount: e.target.value })} placeholder="e.g., 500" required />
+                  <label>Amount (LKR)</label>
+                  <input type="number" step="0.01" value={budgetForm.amount} onChange={e => setBudgetForm({ ...budgetForm, amount: e.target.value })} placeholder="e.g., 50000" required />
                 </div>
                 <div className="form-group">
                   <label>Period</label>
@@ -273,7 +278,7 @@ function BudgetDashboard() {
                   <input type="text" value={expenseForm.item_name} onChange={e => setExpenseForm({ ...expenseForm, item_name: e.target.value })} placeholder="e.g., Groceries" required />
                 </div>
                 <div className="form-group">
-                  <label>Amount ($)</label>
+                  <label>Amount (LKR)</label>
                   <input type="number" step="0.01" value={expenseForm.amount} onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} required />
                 </div>
                 <div className="form-group">
