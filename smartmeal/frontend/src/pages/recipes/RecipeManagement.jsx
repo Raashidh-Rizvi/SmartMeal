@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import {
@@ -48,6 +48,7 @@ const EMPTY_FORM = {
 };
 const INGREDIENT_FETCH_LIMIT = 500;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const STEP_TEXTAREA_MIN_HEIGHT = 88;
 
 const normalizeIngredientName = (name) => String(name || '').trim().toLowerCase();
 
@@ -84,6 +85,7 @@ function RecipeManagement() {
     const [formLoading, setFormLoading] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
     const [availableIngredients, setAvailableIngredients] = useState([]);
+    const stepTextareaRefs = useRef([]);
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -392,6 +394,13 @@ function RecipeManagement() {
             return { ...prev, preparation_steps };
         });
 
+    const resizeStepTextarea = useCallback((element) => {
+        if (!element) return;
+
+        element.style.height = 'auto';
+        element.style.height = `${Math.max(element.scrollHeight, STEP_TEXTAREA_MIN_HEIGHT)}px`;
+    }, []);
+
     const addStep = () =>
         setForm(prev => ({ ...prev, preparation_steps: [...prev.preparation_steps, ''] }));
 
@@ -400,6 +409,13 @@ function RecipeManagement() {
             ...prev,
             preparation_steps: prev.preparation_steps.filter((_, i) => i !== idx),
         }));
+
+    useEffect(() => {
+        stepTextareaRefs.current = stepTextareaRefs.current.slice(0, form.preparation_steps.length);
+        if (view !== VIEW.FORM) return;
+
+        stepTextareaRefs.current.forEach(resizeStepTextarea);
+    }, [form.preparation_steps, resizeStepTextarea, view]);
 
     // ── Submit form ──────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
@@ -459,6 +475,17 @@ function RecipeManagement() {
     };
 
     // ── Render ───────────────────────────────────────────────────────────────
+    const recipeTabCount =
+        1 +
+        (user ? 2 : 0) +
+        (user && view === VIEW.LIST ? 1 : 0) +
+        (view !== VIEW.LIST ? 1 : 0);
+
+    const recipeTabsClassName = `recipe-tabs align-side-by-side${recipeTabCount >= 4 ? ' recipe-tabs--distributed' : ''}`;
+    const FormHeadingIcon = editMode ? Pencil : Plus;
+    const formHeading = editMode ? 'Edit Recipe' : 'Create Recipe';
+    const recipeGridClassName = `recipe-grid${recipes.length === 1 ? ' recipe-grid--single' : ''}`;
+
     return (
         <div className="recipe-page">
 
@@ -479,7 +506,7 @@ function RecipeManagement() {
 
             {/* Top Navigation */}
             <div className="recipe-tabs-container premium-nav-bar">
-                <div className="recipe-tabs align-side-by-side">
+                <div className={recipeTabsClassName}>
                     <button
                         className={`recipe-tab ${view === VIEW.LIST && activeTab === 'all' ? 'active' : ''}`}
                         onClick={() => { setView(VIEW.LIST); setActiveTab('all'); setSkip(0); }}
@@ -571,7 +598,7 @@ function RecipeManagement() {
                             )}
                         </div>
                     ) : (
-                        <div className="recipe-grid">
+                        <div className={recipeGridClassName}>
                             {recipes.map(recipe => {
                                 const ownsRecipe = isOwner(recipe);
 
@@ -812,10 +839,12 @@ function RecipeManagement() {
             {/* ── FORM VIEW ── */}
             {view === VIEW.FORM && (
                 <div className="recipe-form-wrapper">
-                    <h1 className="recipe-page-title recipe-form-title">
-                        {editMode ? <Pencil size={32} /> : <Plus size={32} />}
-                        {editMode ? 'Edit Recipe' : 'Add New Recipe'}
-                    </h1>
+                    <div className="recipe-form-header">
+                        <h1 className="recipe-form-title">
+                            <FormHeadingIcon size={28} />
+                            {formHeading}
+                        </h1>
+                    </div>
 
                     <form onSubmit={handleSubmit} className="recipe-form" id="recipe-form">
                         {formError && <div className="error">{formError}</div>}
@@ -989,8 +1018,12 @@ function RecipeManagement() {
                                         className="form-textarea step-input"
                                         placeholder={`Step ${idx + 1}...`}
                                         value={step}
+                                        ref={(element) => {
+                                            stepTextareaRefs.current[idx] = element;
+                                        }}
+                                        onInput={e => resizeStepTextarea(e.currentTarget)}
                                         onChange={e => setStep(idx, e.target.value)}
-                                        rows={2}
+                                        rows={1}
                                     />
                                     {form.preparation_steps.length > 1 && (
                                         <button
@@ -1016,7 +1049,7 @@ function RecipeManagement() {
                                 Cancel
                             </button>
                             <button type="submit" className="btn-primary" disabled={formLoading} id="submit-recipe-btn">
-                                {formLoading ? 'Saving…' : editMode ? 'Update Recipe' : 'Create Recipe'}
+                                {formLoading ? 'Saving...' : editMode ? 'Update Recipe' : 'Create Recipe'}
                             </button>
                         </div>
                     </form>

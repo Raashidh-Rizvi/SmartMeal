@@ -1,557 +1,862 @@
-import React, { useState, useRef, useContext } from 'react';
-import { searchRecommendations, rateRecipe, getRecipes, createRecipe, toggleFavoriteRecipe } from '../api/recipes';
+import React, { useContext, useRef, useState } from 'react';
+import {
+  createRecipe,
+  getRecipes,
+  searchRecommendations,
+  toggleFavoriteRecipe,
+} from '../api/recipes';
 import { createMeal } from '../services/mealService';
 import { AuthContext } from '../context/AuthContext';
-import { Heart, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
+import {
+  CalendarDays,
+  ChefHat,
+  ChevronDown,
+  ChevronUp,
+  CircleAlert,
+  Clock3,
+  Flame,
+  Heart,
+  Leaf,
+  RefreshCcw,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react';
+import './recommendations.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
 const DIET_OPTIONS = [
   { value: '', label: 'Any Diet' },
-  { value: 'veg', label: '🥦 Vegetarian' },
-  { value: 'non-veg', label: '🍗 Non-Vegetarian' },
+  { value: 'veg', label: 'Vegetarian' },
+  { value: 'non-veg', label: 'Non-Vegetarian' },
 ];
 
-const MEAL_TYPES  = ['breakfast', 'lunch', 'dinner', 'snack'];
+const QUICK_EXAMPLES = [
+  ['chicken', 'rice', 'onion'],
+  ['egg', 'tomato', 'garlic'],
+  ['potato', 'spinach', 'curry'],
+  ['pasta', 'cheese', 'garlic'],
+];
+
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 const STATUS_OPTS = ['planned', 'pending', 'ready', 'bought', 'cooking', 'completed', 'skipped'];
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-const scoreColor = (s) => s >= 0.5 ? 'var(--primary)' : s >= 0.25 ? '#f59e0b' : 'var(--text-muted)';
 const today = () => new Date().toISOString().slice(0, 10);
+
+const sentenceCase = (value) => {
+  const text = String(value || '').trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+};
+
+const formatPrepTime = (value) => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  const match = text.match(/(\d+)/);
+  return match ? `${match[1]} min` : sentenceCase(text);
+};
+
+const normalizeIngredients = (values) =>
+  values
+    .flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+const getRecipeImageSrc = (imageUrl) =>
+  imageUrl?.startsWith('/') ? `${API_BASE_URL}${imageUrl}` : imageUrl;
+
+const normalizeRecipeKey = (name) =>
+  String(name || '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\brecipe\b/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const dedupeRecommendedRecipes = (items) => {
+  const seen = new Set();
+
+  return (Array.isArray(items) ? items : []).filter((recipe) => {
+    const key = normalizeRecipeKey(recipe?.name);
+    if (!key || seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+};
+
+const parseLeadingQuantity = (value) => {
+  const fractionMatch = value.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if (fractionMatch) {
+    return Number(fractionMatch[1]) + (Number(fractionMatch[2]) / Number(fractionMatch[3]));
+  }
+
+  const simpleFractionMatch = value.match(/^(\d+)\/(\d+)$/);
+  if (simpleFractionMatch) {
+    return Number(simpleFractionMatch[1]) / Number(simpleFractionMatch[2]);
+  }
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const sanitizeIngredientName = (value, fallbackIndex) => {
+  const cleaned = String(value || '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[,\-:;.\s]+|[,\-:;.\s]+$/g, '')
+    .trim();
+
+  const limited = cleaned.slice(0, 100).trim();
+  return limited || `Ingredient ${fallbackIndex + 1}`;
+};
+
+const toRecipeIngredient = (ingredient, index) => {
+  const raw = String(ingredient || '').replace(/\s+/g, ' ').trim();
+  if (!raw) {
+    return null;
+  }
+
+  const quantityUnitMatch = raw.match(/^(\d+(?:\.\d+)?|\d+\s+\d+\/\d+|\d+\/\d+)\s+([a-zA-Z][a-zA-Z-]{0,49})\s+(.+)$/);
+  if (quantityUnitMatch) {
+    const quantity = parseLeadingQuantity(quantityUnitMatch[1]);
+    const unit = quantityUnitMatch[2].slice(0, 50).toLowerCase();
+    const name = sanitizeIngredientName(quantityUnitMatch[3], index);
+
+    if (quantity && name) {
+      return { name, quantity, unit };
+    }
+  }
+
+  return {
+    name: sanitizeIngredientName(raw, index),
+    quantity: 1,
+    unit: 'serving',
+  };
+};
+
+const buildRecommendationIngredients = (ingredients) =>
+  (Array.isArray(ingredients) ? ingredients : [])
+    .map((ingredient, index) => toRecipeIngredient(ingredient, index))
+    .filter(Boolean)
+    .slice(0, 40);
+
+const buildRecommendationSteps = (recipe) => {
+  const rawSteps = recipe.instructions
+    ? String(recipe.instructions)
+      .split(/[.\n]/)
+      .map((step) => step.trim())
+      .filter(Boolean)
+    : [];
+
+  const limitedSteps = rawSteps
+    .map((step) => step.slice(0, 1000).trim())
+    .filter(Boolean)
+    .slice(0, 25);
+
+  return limitedSteps.length > 0
+    ? limitedSteps
+    : [`Prepare ${recipe.name} using the listed ingredients.`];
+};
 
 function Recommendations() {
   const { user, setUser } = useContext(AuthContext);
-  const userId   = user?.id || user?._id || '1';
+  const userId = user?.id || user?._id || '1';
 
-  // ── search state ──────────────────────────────────────────────────────────
-  const [inputVal, setInputVal]       = useState('');
+  const [inputVal, setInputVal] = useState('');
   const [ingredients, setIngredients] = useState([]);
-  const [diet, setDiet]               = useState('');
-  const [timeMax, setTimeMax]         = useState('');
-  const [topN, setTopN]               = useState(5);
-  const [recipes, setRecipes]         = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [searched, setSearched]       = useState(false);
-  const [errorMsg, setErrorMsg]       = useState('');
+  const [diet, setDiet] = useState('');
+  const [timeMax, setTimeMax] = useState('');
+  const [topN, setTopN] = useState(5);
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [expandedIdx, setExpandedIdx] = useState(null);
+  const [scheduleForm, setScheduleForm] = useState({});
+  const [imageFailures, setImageFailures] = useState({});
   const inputRef = useRef(null);
 
-  // ── per-card schedule state: { [idx]: { open, date, meal_type, status, description, loading, done, error } }
-  const [scheduleForm, setScheduleForm] = useState({});
+  const hasSearchState =
+    ingredients.length > 0 ||
+    Boolean(inputVal.trim()) ||
+    Boolean(diet) ||
+    Boolean(timeMax) ||
+    topN !== 5;
+  const emptyStateTitle = errorMsg ? 'Adjust your search' : 'No matching recipes yet';
+  const emptyStateMessage = errorMsg
+    ? errorMsg
+    : 'Try adding another ingredient or relax one of the filters to widen the search.';
 
-  // ── ingredient tag helpers ────────────────────────────────────────────────
-  const addIngredient = (raw) => {
-    const parts = raw.split(',').map(p => p.trim().toLowerCase()).filter(Boolean);
-    setIngredients(prev => {
+  const appendIngredients = (values) => {
+    const normalized = normalizeIngredients(values);
+    if (normalized.length === 0) return;
+
+    setIngredients((prev) => {
       const existing = new Set(prev);
-      return [...prev, ...parts.filter(p => !existing.has(p))];
+      return [...prev, ...normalized.filter((value) => !existing.has(value))];
     });
     setInputVal('');
   };
 
-  const removeIngredient = (idx) => setIngredients(prev => prev.filter((_, i) => i !== idx));
+  const removeIngredient = (idx) =>
+    setIngredients((prev) => prev.filter((_, index) => index !== idx));
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addIngredient(inputVal); }
-    else if (e.key === 'Backspace' && !inputVal && ingredients.length > 0)
-      setIngredients(prev => prev.slice(0, -1));
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      appendIngredients([inputVal]);
+      return;
+    }
+
+    if (e.key === 'Backspace' && !inputVal && ingredients.length > 0) {
+      setIngredients((prev) => prev.slice(0, -1));
+    }
   };
 
-  // ── search ────────────────────────────────────────────────────────────────
   const handleSearch = async (e) => {
     e.preventDefault();
-    const pending = inputVal.trim();
-    let finalIng = ingredients;
-    if (pending) {
-      const parts = pending.split(',').map(p => p.trim().toLowerCase()).filter(Boolean);
-      finalIng = [...new Set([...ingredients, ...parts])];
-      setIngredients(finalIng);
+
+    const pending = normalizeIngredients([inputVal]);
+    const finalIngredients = pending.length > 0
+      ? [...new Set([...ingredients, ...pending])]
+      : ingredients;
+
+    if (pending.length > 0) {
+      setIngredients(finalIngredients);
       setInputVal('');
     }
-    if (finalIng.length === 0) { setErrorMsg('Please add at least one ingredient.'); return; }
-    setErrorMsg(''); setLoading(true); setRecipes([]); setSearched(false);
-    setExpandedIdx(null); setScheduleForm({});
+
+    if (finalIngredients.length === 0) {
+      setErrorMsg('Add at least one ingredient to search for recipes.');
+      return;
+    }
+
+    setErrorMsg('');
+    setLoading(true);
+    setRecipes([]);
+    setSearched(false);
+    setExpandedIdx(null);
+    setScheduleForm({});
+    setImageFailures({});
+
     try {
-      const res = await searchRecommendations(finalIng.join(' '), {
+      const response = await searchRecommendations(finalIngredients.join(' '), {
         top_n: topN,
         diet: diet || undefined,
-        cooking_time_max: timeMax ? parseInt(timeMax) : undefined,
+        cooking_time_max: timeMax ? parseInt(timeMax, 10) : undefined,
       });
-      if (!res.data.success) setErrorMsg(res.data.message);
-      else setRecipes(res.data.recipes);
+
+      if (!response.data.success) {
+        setErrorMsg(response.data.message || 'Unable to find recommendations right now.');
+      } else {
+        setRecipes(dedupeRecommendedRecipes(response.data.recipes));
+      }
+
       setSearched(true);
     } catch (err) {
       setErrorMsg(err.response?.data?.detail || 'Failed to fetch recommendations.');
-    } finally { setLoading(false); }
-  };
-
-  const handleReset = () => {
-    setSearched(false); setRecipes([]); setIngredients([]);
-    setInputVal(''); setErrorMsg(''); setScheduleForm({});
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
-  const handleRating = async (recipeId, rating, idx) => {
-    if (!recipeId) return;
-    try {
-      await rateRecipe(recipeId, rating);
-      setRecipes(prev => prev.map((r, i) => i === idx ? { ...r, _userRating: rating } : r));
-    } catch { /* silent */ }
-  };
-
-  // ── schedule helpers ──────────────────────────────────────────────────────
-  const sf = (idx) => scheduleForm[idx] || {};
-  const setSF = (idx, patch) =>
-    setScheduleForm(prev => ({ ...prev, [idx]: { ...sf(idx), ...patch } }));
-
-  // Find existing recipe in MongoDB or auto-create it from AI data
-  const resolveRecipeId = async (r) => {
-    try {
-      const searchRes = await getRecipes({ search: r.name, limit: 5 });
-      const matched = (searchRes.data || []).find(
-        rec => rec.title?.toLowerCase() === r.name?.toLowerCase()
-      ) || searchRes.data?.[0];
-      if (matched) return matched._id;
-
-      // Auto-create from AI data
-      const ingredients = (r.ingredients || []).map(ing => {
-        const parts = String(ing).trim().split(' ');
-        const qty = parseFloat(parts[0]);
-        if (!isNaN(qty) && parts.length >= 3)
-          return { name: parts.slice(2).join(' '), quantity: qty, unit: parts[1] };
-        return { name: String(ing).trim(), quantity: 1, unit: 'serving' };
-      }).filter(i => i.name);
-
-      const steps = r.instructions
-        ? String(r.instructions).split(/[.\n]/).map(s => s.trim()).filter(Boolean)
-        : [`Prepare ${r.name} using the listed ingredients.`];
-
-      const mealType = sf(null)?.meal_type || 'lunch';
-      const newRecipe = await createRecipe({
-        title: r.name,
-        description: `AI-recommended recipe. Cuisine: ${r.cuisine || 'N/A'}. Diet: ${r.diet || 'N/A'}.`,
-        category: mealType,
-        ingredients,
-        preparation_steps: steps,
-        dietary_tags: r.diet && r.diet !== 'N/A' ? [r.diet] : [],
-        estimated_cooking_time: (() => {
-          const m = String(r.prep_time || '').match(/(\d+)/);
-          return m ? parseInt(m[1]) : null;
-        })(),
-      });
-      return newRecipe.data._id || newRecipe.data.id;
-    } catch (err) {
-      if (err.response?.status === 401) {
-        throw new Error('Authentication failed. Please log in again.');
-      }
-      throw err;
+      setSearched(true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddToSchedule = async (r, idx) => {
-    const form = sf(idx);
-    if (!form.date)      { setSF(idx, { error: 'Please select a date.' }); return; }
-    if (!form.meal_type) { setSF(idx, { error: 'Please select a meal type.' }); return; }
+  const handleReset = () => {
+    setSearched(false);
+    setRecipes([]);
+    setIngredients([]);
+    setInputVal('');
+    setDiet('');
+    setTimeMax('');
+    setTopN(5);
+    setErrorMsg('');
+    setExpandedIdx(null);
+    setScheduleForm({});
+    setImageFailures({});
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
 
-    setSF(idx, { loading: true, error: null });
+  const sf = (idx) => scheduleForm[idx] || {};
+  const setSF = (idx, patch) =>
+    setScheduleForm((prev) => ({ ...prev, [idx]: { ...sf(idx), ...patch } }));
+
+  const markImageFailure = (idx) =>
+    setImageFailures((prev) => (prev[idx] ? prev : { ...prev, [idx]: true }));
+
+  const resolveRecipeId = async (recipe, mealType = 'lunch') => {
+    const searchRes = await getRecipes({ search: recipe.name, limit: 5 });
+    const matches = Array.isArray(searchRes.data) ? searchRes.data : [];
+    const targetKey = normalizeRecipeKey(recipe.name);
+    const exactMatch = matches.find(
+      (item) => normalizeRecipeKey(item.title) === targetKey
+    );
+
+    if (exactMatch?._id) {
+      return exactMatch._id;
+    }
+    const ingredientItems = buildRecommendationIngredients(recipe.ingredients);
+    const safeIngredients = ingredientItems.length > 0
+      ? ingredientItems
+      : [{ name: 'Assorted ingredients', quantity: 1, unit: 'serving' }];
+    const steps = buildRecommendationSteps(recipe);
+
+    const createdRecipe = await createRecipe({
+      title: String(recipe.name || 'AI Recommended Recipe').slice(0, 200).trim(),
+      description: `AI-recommended recipe. Cuisine: ${recipe.cuisine || 'N/A'}. Diet: ${recipe.diet || 'N/A'}.`,
+      category: mealType,
+      ingredients: safeIngredients,
+      preparation_steps: steps,
+      dietary_tags: recipe.diet && recipe.diet !== 'N/A' ? [recipe.diet] : [],
+      estimated_cooking_time: (() => {
+        const match = String(recipe.prep_time || '').match(/(\d+)/);
+        return match ? parseInt(match[1], 10) : null;
+      })(),
+    });
+
+    return createdRecipe.data._id || createdRecipe.data.id;
+  };
+
+  const handleAddToSchedule = async (recipe, idx) => {
+    const form = sf(idx);
+
+    if (!form.date) {
+      setSF(idx, { error: 'Select a date before saving this meal.' });
+      return;
+    }
+
+    if (!form.meal_type) {
+      setSF(idx, { error: 'Choose a meal type before saving this meal.' });
+      return;
+    }
+
+    setSF(idx, { scheduleLoading: true, error: null });
+
     try {
-      const recipeId = await resolveRecipeId(r);
+      const recipeId = await resolveRecipeId(recipe, form.meal_type);
       await createMeal({
-        user_id:     userId,
-        recipe_id:   recipeId,
-        meal_date:   form.date,
-        meal_type:   form.meal_type,
-        status:      form.status || 'planned',
-        description: form.description?.trim() || `Added from AI Recommendations`,
+        user_id: userId,
+        recipe_id: recipeId,
+        meal_date: form.date,
+        meal_type: form.meal_type,
+        status: form.status || 'planned',
+        description: form.description?.trim() || 'Added from AI Recommendations',
       });
-      setSF(idx, { loading: false, done: true, error: null });
+
+      setSF(idx, { scheduleLoading: false, done: true, error: null, open: false });
+      setRecipes((prev) =>
+        prev.map((item, recipeIdx) =>
+          recipeIdx === idx ? { ...item, _id: recipeId } : item
+        )
+      );
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to add to meal schedule.';
-      setSF(idx, { loading: false, error: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+      const message = err.response?.data?.detail || 'Failed to add this recipe to the meal schedule.';
+      setSF(idx, {
+        scheduleLoading: false,
+        error: typeof message === 'string' ? message : JSON.stringify(message),
+      });
     }
   };
 
   const isFavorited = (recipeId) => {
-    if (!user || !user.favoriteRecipes || !recipeId) return false;
-    return user.favoriteRecipes.includes(recipeId);
+    if (!user || !Array.isArray(user.favoriteRecipes) || !recipeId) return false;
+    return user.favoriteRecipes.some((id) => String(id) === String(recipeId));
   };
 
-  const handleToggleFavorite = async (r, idx) => {
+  const handleToggleFavorite = async (recipe, idx) => {
     if (!user) {
       setErrorMsg('Please log in to save favorites.');
       return;
     }
-    setSF(idx, { loading: true, error: null });
+
+    setSF(idx, { favoriteLoading: true, error: null });
+
     try {
-      // First ensure the recipe exists in our DB to get a real ID
-      const recipeId = await resolveRecipeId(r);
-      const res = await toggleFavoriteRecipe(recipeId);
-      const newFavorites = res.data.favorites;
-      setUser(prev => ({ ...prev, favoriteRecipes: newFavorites }));
-      
-      // Update the local recipes state so the heart icon updates immediately
-      setRecipes(prev => prev.map((item, i) => i === idx ? { ...item, _id: recipeId } : item));
-      setSF(idx, { loading: false });
+      const recipeId = await resolveRecipeId(recipe);
+      const response = await toggleFavoriteRecipe(recipeId);
+      const favorites = Array.isArray(response.data?.favorites) ? response.data.favorites : [];
+
+      setUser((prev) => (prev ? { ...prev, favoriteRecipes: favorites } : prev));
+      setRecipes((prev) =>
+        prev.map((item, recipeIdx) =>
+          recipeIdx === idx ? { ...item, _id: recipeId } : item
+        )
+      );
+      setSF(idx, { favoriteLoading: false });
     } catch (err) {
-      const errMsg = err.response?.data?.detail || err.message || 'Error toggling favorite';
-      console.error('Error toggling favorite:', err);
-      setSF(idx, { loading: false, error: errMsg });
+      const message = err.response?.data?.detail || err.message || 'Unable to update favorites right now.';
+      setSF(idx, { favoriteLoading: false, error: message });
     }
   };
 
-  // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div className="main-content">
-      {/* Header */}
-      <div className="page-hero page-hero--sub">
-        {/* Decorative Background Icons - Scattered */}
-        <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '180px', left: '5%', '--rotation': '-18deg' }} />
-        <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '220px', left: '35%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-        <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '18%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-        <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '190px', right: '7%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+    <div className="main-content recommendations-page">
+      <section className="recommendations-hero page-hero page-hero--sub">
+        <UtensilsCrossed
+          size={44}
+          className="hero-sway"
+          style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '30%', left: '4%', '--rotation': '-18deg' }}
+        />
+        <ChefHat
+          size={52}
+          className="hero-sway"
+          style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '26%', left: '34%', '--rotation': '12deg', animationDelay: '0.8s' }}
+        />
+        <Flame
+          size={40}
+          className="hero-sway"
+          style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '18%', left: '18%', '--rotation': '20deg', animationDelay: '1.5s' }}
+        />
+        <Leaf
+          size={48}
+          className="hero-sway"
+          style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '28%', right: '6%', '--rotation': '-10deg', animationDelay: '2.3s' }}
+        />
 
-        <h1 className="premium-gradient-text" style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
-          AI Recipe Recommendations
-        </h1>
-        <p style={{ position: 'relative', zIndex: 1, fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto' }}>
-          Discover culinary masterpieces with your available ingredients. Our AI finds recipes that harmonize perfectly.
+        <div className="recommendations-hero-badge">
+          <Sparkles size={16} />
+          Smart Matching
+        </div>
+        <h1 className="recommendations-title">Recipe Recommendations</h1>
+        <p className="recommendations-subtitle">
+          Enter the ingredients you have, apply a few filters, and let SmartMeal surface the best matching recipes for your next meal.
         </p>
-      </div>
+      </section>
 
-      {/* Search form */}
-      <div className="card" style={{ padding: '2rem', marginBottom: '3rem', border: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
-        <form onSubmit={handleSearch}>
-          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <span>YOUR INGREDIENTS</span>
-              <span style={{ fontWeight: 400, fontSize: '0.75rem', opacity: 0.7 }}>
-                Press Enter or comma to add
-              </span>
-            </label>
-
-            {/* Tag box */}
-            <div onClick={() => inputRef.current?.focus()} style={{
-              display: 'flex', flexWrap: 'wrap', gap: '0.6rem',
-              padding: '0.75rem 1rem', minHeight: '56px',
-              border: `1px solid ${errorMsg ? 'var(--danger)' : 'var(--card-border)'}`,
-              borderRadius: '16px', background: 'rgba(255,255,255,0.4)', cursor: 'text', alignItems: 'center',
-              transition: 'all 0.3s ease',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-            }}>
-              {ingredients.map((ing, i) => (
-                <span key={i} className="badge" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                  padding: '0.4rem 0.8rem', borderRadius: '50px', fontSize: '0.85rem',
-                  background: 'var(--primary-gradient)', color: '#fff',
-                  boxShadow: '0 4px 10px var(--primary-glow)',
-                  fontWeight: 600,
-                  animation: 'slideUp 0.3s ease-out'
-                }}>
-                  {ing}
-                  <span onClick={e => { e.stopPropagation(); removeIngredient(i); }}
-                    style={{ cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem', marginLeft: '0.2rem', lineHeight: 1 }}>×</span>
-                </span>
-              ))}
-              <input ref={inputRef} type="text" value={inputVal}
-                onChange={e => setInputVal(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onBlur={() => { if (inputVal.trim()) addIngredient(inputVal); }}
-                placeholder={ingredients.length === 0 ? 'e.g. chicken, rice, onion…' : 'Add more…'}
-                style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '1rem', color: 'var(--text-main)', flex: '1', minWidth: '150px', padding: '0.2rem 0' }}
-              />
+      <section className="recommendations-search-card card">
+        <form className="recommendations-search-form" onSubmit={handleSearch}>
+          <div className="recommendations-section-heading">
+            <div>
+              <p className="recommendations-eyebrow">Your Ingredients</p>
+              <h2>Build your ingredient list</h2>
             </div>
+            {hasSearchState && (
+              <button
+                type="button"
+                className="recommendations-reset-link"
+                onClick={handleReset}
+              >
+                <RefreshCcw size={15} />
+                Clear
+              </button>
+            )}
+          </div>
 
-            {errorMsg && <span style={{ fontSize: '0.82rem', color: 'var(--danger)', marginTop: '0.5rem', display: 'block', fontWeight: 500 }}>{errorMsg}</span>}
+          <div className="recommendations-label-row">
+            <span>Add ingredients one by one</span>
+            <span>Press Enter or comma to add</span>
+          </div>
 
-            {/* Quick examples */}
-            <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Try:</span>
-              {['chicken rice onion', 'egg tomato garlic', 'potato spinach curry', 'pasta cheese garlic'].map(ex => (
-                <button key={ex} type="button"
-                  onClick={() => ex.split(' ').forEach(w => addIngredient(w))}
-                  className="btn-secondary"
-                  style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', borderRadius: '50px', width: 'auto' }}>
-                  {ex}
+          <div
+            className={`recommendations-tag-field ${errorMsg ? 'is-error' : ''}`}
+            onClick={() => inputRef.current?.focus()}
+          >
+            {ingredients.map((ingredient, idx) => (
+              <span key={`${ingredient}-${idx}`} className="recommendations-chip">
+                {ingredient}
+                <button
+                  type="button"
+                  className="recommendations-chip-remove"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeIngredient(idx);
+                  }}
+                  aria-label={`Remove ${ingredient}`}
+                >
+                  <X size={14} />
+                </button>
+              </span>
+            ))}
+
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={() => {
+                if (inputVal.trim()) appendIngredients([inputVal]);
+              }}
+              placeholder={ingredients.length === 0 ? 'e.g. chicken, rice, onion' : 'Add another ingredient'}
+              className="recommendations-tag-input"
+            />
+          </div>
+
+          {errorMsg && (
+            <div className="recommendations-inline-error">
+              <CircleAlert size={16} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <div className="recommendations-quick-examples">
+            <span className="recommendations-quick-label">Quick starts</span>
+            <div className="recommendations-quick-list">
+              {QUICK_EXAMPLES.map((example) => (
+                <button
+                  key={example.join('-')}
+                  type="button"
+                  className="recommendations-quick-chip"
+                  onClick={() => appendIngredients(example)}
+                >
+                  {example.join(', ')}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Filters Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', alignItems: 'flex-end' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label>Dietary Preference</label>
-              <select value={diet} onChange={e => setDiet(e.target.value)} style={{ borderRadius: '12px' }}>
-                {DIET_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <div className="recommendations-section-heading recommendations-section-heading--filters">
+            <div>
+              <p className="recommendations-eyebrow">Filters</p>
+              <h2>Refine the results</h2>
+            </div>
+            <div className="recommendations-filter-icon">
+              <SlidersHorizontal size={16} />
+              Search options
+            </div>
+          </div>
+
+          <div className="recommendations-filter-grid">
+            <div className="form-group recommendations-form-group">
+              <label htmlFor="recommendation-diet">Dietary Preference</label>
+              <select
+                id="recommendation-diet"
+                value={diet}
+                onChange={(e) => setDiet(e.target.value)}
+              >
+                {DIET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label>Max Preparation Time</label>
-              <div style={{ position: 'relative' }}>
-                <input type="number" min="1" value={timeMax} onChange={e => setTimeMax(e.target.value)} placeholder="e.g. 30" style={{ borderRadius: '12px', paddingRight: '3rem' }} />
-                <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>min</span>
+
+            <div className="form-group recommendations-form-group">
+              <label htmlFor="recommendation-time">Max Preparation Time</label>
+              <div className="recommendations-input-with-suffix">
+                <input
+                  id="recommendation-time"
+                  type="number"
+                  min="1"
+                  value={timeMax}
+                  onChange={(e) => setTimeMax(e.target.value)}
+                  placeholder="e.g. 30"
+                />
+                <span>min</span>
               </div>
             </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label>Number of Results</label>
-              <select value={topN} onChange={e => setTopN(parseInt(e.target.value))} style={{ borderRadius: '12px' }}>
-                {[3, 5, 8, 10].map(n => <option key={n} value={n}>{n} recipes</option>)}
+
+            <div className="form-group recommendations-form-group">
+              <label htmlFor="recommendation-topn">Number of Results</label>
+              <select
+                id="recommendation-topn"
+                value={topN}
+                onChange={(e) => setTopN(parseInt(e.target.value, 10))}
+              >
+                {[3, 5, 8, 10].map((count) => (
+                  <option key={count} value={count}>
+                    {count} recipes
+                  </option>
+                ))}
               </select>
             </div>
-            <button type="submit" disabled={loading} className="btn-primary"
-              style={{ padding: '1.1rem 2rem', boxShadow: 'var(--shadow-premium)' }}>
-              {loading ? 'Searching…' : '✨ Find Perfect Recipes'}
+          </div>
+
+          <div className="recommendations-search-actions">
+            <button type="submit" disabled={loading} className="btn-primary recommendations-search-button">
+              <Search size={18} />
+              {loading ? 'Searching...' : 'Find Recipes'}
             </button>
+
+            {searched && (
+              <button
+                type="button"
+                className="btn-secondary recommendations-secondary-button"
+                onClick={handleReset}
+              >
+                <RefreshCcw size={16} />
+                New Search
+              </button>
+            )}
           </div>
         </form>
-      </div>
+      </section>
 
-      {loading && <p className="loading">Finding best matches for your ingredients…</p>}
+      {loading && (
+        <section className="recommendations-loading card">
+          <div className="recommendations-loading-icon">
+            <Sparkles size={22} />
+          </div>
+          <div>
+            <h2>Finding your best matches</h2>
+            <p>We're comparing your ingredients against the recipe repository now.</p>
+          </div>
+        </section>
+      )}
 
-      {/* Results */}
       {searched && !loading && (
-        <div style={{ animation: 'slideUp 0.5s ease-out' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <section className="recommendations-results">
+          <div className="recommendations-results-bar">
             <div>
-              <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.75rem', fontWeight: 800 }}>
-                {recipes.length === 0 ? 'No recipes found' : `${recipes.length} ${recipes.length > 1 ? 'Recipes' : 'Recipe'} Found`}
+              <p className="recommendations-eyebrow">Results</p>
+              <h2>
+                {recipes.length === 0
+                  ? 'No recipes found'
+                  : `${recipes.length} ${recipes.length === 1 ? 'recipe' : 'recipes'} found`}
               </h2>
               {ingredients.length > 0 && (
-                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  Ingredients: <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{ingredients.join(', ')}</span>
+                <p className="recommendations-results-copy">
+                  Matching with: <span>{ingredients.join(', ')}</span>
                 </p>
               )}
             </div>
-            <button className="btn-secondary" onClick={handleReset}
-              style={{ width: 'auto', padding: '0.6rem 1.25rem', fontSize: '0.9rem', borderRadius: '12px' }}>
-              ← New Search
+
+            <button
+              type="button"
+              className="btn-secondary recommendations-secondary-button"
+              onClick={handleReset}
+            >
+              <RefreshCcw size={16} />
+              New Search
             </button>
           </div>
 
           {recipes.length === 0 ? (
-            <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)', borderRadius: '28px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👩‍🍳</div>
-              <p style={{ fontSize: '1.1rem' }}>No recipes matched your selection. Try adding more ingredients or broadening your filters.</p>
+            <div className="recommendations-empty card">
+              <ChefHat size={42} />
+              <h3>{emptyStateTitle}</h3>
+              <p>{emptyStateMessage}</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '2rem' }}>
-              {recipes.map((r, i) => {
-                const isExpanded = expandedIdx === i;
-                const form       = sf(i);
-                const showSched  = !!form.open;
-                const score      = Math.round(r.similarity_score * 100);
+            <div className="recommendations-grid">
+              {recipes.map((recipe, idx) => {
+                const form = sf(idx);
+                const isExpanded = expandedIdx === idx;
+                const showSchedule = Boolean(form.open);
+                const score = Math.round((recipe.similarity_score || 0) * 100);
+                const scoreTone =
+                  score >= 75 ? 'high' : score >= 45 ? 'medium' : 'low';
+                const hasIngredients = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0;
+                const recipeId = recipe._id;
+                const favoriteLabel = isFavorited(recipeId) ? 'Favorited' : 'Save';
+                const prepTime = formatPrepTime(recipe.prep_time);
+                const imageFailed = Boolean(imageFailures[idx]);
 
                 return (
-                  <div key={i} className="card" style={{
-                    padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem',
-                    border: '1px solid var(--card-border)', background: 'var(--card-bg)',
-                    borderRadius: '28px', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                  }}>
-                    
-                    {/* Recipe Image Banner */}
-                    {r.image_url && (
-                      <div style={{
-                        width: '100%', height: '200px', borderRadius: '16px', overflow: 'hidden',
-                        marginBottom: '0.5rem', position: 'relative'
-                      }}>
-                        <img 
-                          src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}${r.image_url}`} 
-                          alt={r.name} 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                          onError={(e) => { e.target.style.display = 'none'; }}
+                  <article key={`${recipe.name}-${idx}`} className="recommendation-card card">
+                    <div className="recommendation-card-media">
+                      {recipe.image_url && !imageFailed ? (
+                        <img
+                          src={getRecipeImageSrc(recipe.image_url)}
+                          alt={recipe.name}
+                          className="recommendation-card-image"
+                          onError={() => markImageFailure(idx)}
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="recommendation-card-image recommendation-card-image--placeholder">
+                          <ChefHat size={34} />
+                        </div>
+                      )}
 
-                    {/* Header: Name + Match Score Badge & Favorite */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)', lineHeight: 1.3 }}>{r.name}</div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem' }}>
-                        <div style={{
-                          padding: '4px', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '50px',
-                          display: 'flex', alignItems: 'center', gap: '0.5rem', paddingRight: '0.75rem'
-                        }}>
-                          <div style={{
-                            width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-                            fontSize: '0.75rem', fontWeight: 900
-                          }}>
-                            {score}%
-                          </div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Match
-                          </div>
+                      {user && (
+                        <button
+                          type="button"
+                          className={`recommendation-favorite ${isFavorited(recipeId) ? 'is-active' : ''}`}
+                          onClick={() => handleToggleFavorite(recipe, idx)}
+                          disabled={form.favoriteLoading}
+                        >
+                          <Heart size={16} fill={isFavorited(recipeId) ? 'currentColor' : 'none'} />
+                          <span>{form.favoriteLoading ? 'Saving...' : favoriteLabel}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="recommendation-card-body">
+                      <div className="recommendation-card-header">
+                        <div className="recommendation-card-heading">
+                          <h3>{recipe.name}</h3>
+                          <p>Why it matches</p>
                         </div>
 
-                        {user && (
-                          <div style={{ marginTop: '0.5rem' }}>
-                            <button 
-                              onClick={() => handleToggleFavorite(r, i)}
-                              style={{ 
-                                background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px',
-                                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600,
-                                color: isFavorited(r._id) ? '#ef4444' : 'var(--text-muted)',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <Heart size={18} strokeWidth={2.5} fill={isFavorited(r._id) ? 'currentColor' : 'none'} />
-                              {isFavorited(r._id) ? 'Favorited' : 'Add to Favorites'}
-                            </button>
-                          </div>
+                        <div className={`recommendation-score recommendation-score--${scoreTone}`}>
+                          <strong>{score}%</strong>
+                          <span>match</span>
+                        </div>
+                      </div>
+
+                      <div className="recommendation-meta">
+                        {recipe.cuisine && (
+                          <span className="recommendation-meta-chip">
+                            <UtensilsCrossed size={14} />
+                            {sentenceCase(recipe.cuisine)}
+                          </span>
+                        )}
+                        {recipe.diet && (
+                          <span className="recommendation-meta-chip recommendation-meta-chip--diet">
+                            <Leaf size={14} />
+                            {sentenceCase(recipe.diet)}
+                          </span>
+                        )}
+                        {prepTime && (
+                          <span className="recommendation-meta-chip recommendation-meta-chip--time">
+                            <Clock3 size={14} />
+                            {prepTime}
+                          </span>
                         )}
                       </div>
-                    </div>
 
-                    {/* Badges Row */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {r.cuisine   && <span className="source-badge" style={{ fontSize: '0.75rem' }}>🌍 {r.cuisine}</span>}
-                      {r.diet      && <span className="source-badge" style={{ fontSize: '0.75rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>🥦 {r.diet}</span>}
-                      {r.prep_time && r.prep_time !== '' && (
-                        <span className="source-badge" style={{ fontSize: '0.75rem', background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>⏱ {r.prep_time}</span>
-                      )}
-                    </div>
+                      <p className="recommendation-explanation">
+                        {recipe.match_explanation || 'Matched on ingredient overlap and the filters you selected.'}
+                      </p>
 
-                    {/* Matched keywords */}
-                    {r.matched_keywords?.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                        {r.matched_keywords.map(kw => (
-                          <span key={kw} style={{
-                            fontSize: '0.7rem', background: 'rgba(var(--primary-rgb), 0.08)',
-                            color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '50px',
-                            border: '1px solid rgba(var(--primary-rgb), 0.15)', fontWeight: 600
-                          }}>
-                            ✓ {kw}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Explanation */}
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
-                      "{r.match_explanation}"
-                    </p>
-
-                    {/* Star Rating Overlay */}
-                    <div style={{ display: 'flex', gap: '0.25rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--card-border)' }}>
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <span key={star} onClick={() => handleRating(r._id, star, i)}
-                          style={{
-                            cursor: r._id ? 'pointer' : 'default', fontSize: '1.25rem',
-                            color: star <= (r._userRating || 0) ? '#f59e0b' : 'rgba(0,0,0,0.1)',
-                            transition: 'all 0.2s ease',
-                            transform: star <= (r._userRating || 0) ? 'scale(1.1)' : 'scale(1)'
-                          }}>★</span>
-                      ))}
-                    </div>
-
-                    {/* Action buttons */}
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <button onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                        className={isExpanded ? 'btn-primary' : 'btn-secondary'}
-                        style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '12px' }}>
-                        {isExpanded ? '▲ Hide Info' : '🥘 View Ingredients'}
-                      </button>
-
-                      {!form.done ? (
-                        <button onClick={() => setSF(i, { open: !showSched, error: null })}
-                          className="btn-secondary"
-                          style={{
-                            width: 'auto', padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '12px',
-                            borderColor: showSched ? '#3b82f6' : 'var(--card-border)',
-                            color: showSched ? '#3b82f6' : 'var(--text-main)',
-                            background: showSched ? 'rgba(59,130,246,0.05)' : 'var(--white)'
-                          }}>
-                          📅 Schedule
-                        </button>
-                      ) : (
-                        <div style={{
-                          fontSize: '0.8rem', color: 'var(--primary)', padding: '0.5rem 1rem',
-                          background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px',
-                          border: '1px solid rgba(16, 185, 129, 0.2)', fontWeight: 600
-                        }}>
-                          ✅ Scheduled: {form.date}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Expanded ingredients */}
-                    {isExpanded && r.ingredients?.length > 0 && (
-                      <div style={{
-                        padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '16px',
-                        marginTop: '0.5rem', animation: 'fadeIn 0.3s ease'
-                      }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>REQUIRED INGREDIENTS</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                          {r.ingredients.map((ing, j) => (
-                            <span key={j} style={{
-                              fontSize: '0.8rem', background: '#fff', border: '1px solid var(--card-border)',
-                              padding: '0.3rem 0.6rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                            }}>
-                              {ing}
+                      {recipe.matched_keywords?.length > 0 && (
+                        <div className="recommendation-keywords">
+                          {recipe.matched_keywords.map((keyword) => (
+                            <span key={keyword} className="recommendation-keyword">
+                              {keyword}
                             </span>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* ── Meal Schedule inline form ── */}
-                    {showSched && !form.done && (
-                      <div style={{
-                        marginTop: '1rem', padding: '1.25rem', borderRadius: '20px',
-                        background: 'rgba(59,130,246,0.04)', border: '1px solid rgba(59,130,246,0.1)',
-                        display: 'flex', flexDirection: 'column', gap: '1rem',
-                        animation: 'slideUp 0.3s ease'
-                      }}>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b82f6', letterSpacing: '0.05em' }}>SCHEDULE MEAL</div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                          <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '0.75rem' }}>Select Date</label>
-                            <input type="date" min={today()} value={form.date || ''}
-                              onChange={e => setSF(i, { date: e.target.value })}
-                              style={{ padding: '0.6rem', borderRadius: '12px' }} />
-                          </div>
-                          <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '0.75rem' }}>Meal Type</label>
-                            <select value={form.meal_type || ''} onChange={e => setSF(i, { meal_type: e.target.value })}
-                              style={{ padding: '0.6rem', borderRadius: '12px' }}>
-                              <option value=''>Type</option>
-                              {MEAL_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-                            </select>
-                          </div>
+                      {form.error && (
+                        <div className="recommendation-card-error">
+                          <CircleAlert size={16} />
+                          <span>{form.error}</span>
                         </div>
+                      )}
 
-                        <div className="form-group" style={{ margin: 0 }}>
-                          <label style={{ fontSize: '0.75rem' }}>Notes</label>
-                          <input type="text" value={form.description || ''}
-                            onChange={e => setSF(i, { description: e.target.value })}
-                            placeholder="Add a note…"
-                            style={{ padding: '0.6rem', borderRadius: '12px' }} />
-                        </div>
-
-                        {form.error && (
-                          <p style={{ fontSize: '0.8rem', color: 'var(--danger)', margin: 0, fontWeight: 500 }}>{form.error}</p>
-                        )}
-
-                        <button onClick={() => handleAddToSchedule(r, i)} disabled={form.loading}
-                          className="btn-primary"
-                          style={{
-                            width: '100%', padding: '0.8rem', fontSize: '0.9rem',
-                            background: '#3b82f6', boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
-                          }}>
-                          {form.loading ? '⏳ Scheduling…' : 'Confirm Selection'}
+                      <div className="recommendation-card-actions">
+                        <button
+                          type="button"
+                          className={`btn-secondary recommendation-action-button ${isExpanded ? 'is-active' : ''}`}
+                          onClick={() => setExpandedIdx(isExpanded ? null : idx)}
+                        >
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          {isExpanded ? 'Hide Ingredients' : 'View Ingredients'}
                         </button>
+
+                        {!form.done ? (
+                          <button
+                            type="button"
+                            className={`btn-secondary recommendation-action-button ${showSchedule ? 'is-active' : ''}`}
+                            onClick={() => setSF(idx, { open: !showSchedule, error: null })}
+                          >
+                            <CalendarDays size={16} />
+                            {showSchedule ? 'Close Schedule' : 'Add to Schedule'}
+                          </button>
+                        ) : (
+                          <div className="recommendation-scheduled-pill">
+                            <CalendarDays size={15} />
+                            Scheduled for {form.date}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+
+                      {isExpanded && hasIngredients && (
+                        <div className="recommendation-panel">
+                          <div className="recommendation-panel-header">
+                            <h4>Ingredients</h4>
+                            <span>{recipe.ingredients.length} items</span>
+                          </div>
+                          <ul className="recommendation-ingredient-list">
+                            {recipe.ingredients.map((ingredient, ingredientIdx) => (
+                              <li key={`${ingredient}-${ingredientIdx}`}>{ingredient}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {showSchedule && !form.done && (
+                        <div className="recommendation-panel recommendation-panel--schedule">
+                          <div className="recommendation-panel-header">
+                            <h4>Schedule this recipe</h4>
+                            <span>Save it to your meal plan</span>
+                          </div>
+
+                          <div className="recommendation-schedule-grid">
+                            <div className="form-group recommendations-form-group">
+                              <label htmlFor={`schedule-date-${idx}`}>Date</label>
+                              <input
+                                id={`schedule-date-${idx}`}
+                                type="date"
+                                min={today()}
+                                value={form.date || ''}
+                                onChange={(e) => setSF(idx, { date: e.target.value, error: null })}
+                              />
+                            </div>
+
+                            <div className="form-group recommendations-form-group">
+                              <label htmlFor={`schedule-mealtype-${idx}`}>Meal Type</label>
+                              <select
+                                id={`schedule-mealtype-${idx}`}
+                                value={form.meal_type || ''}
+                                onChange={(e) => setSF(idx, { meal_type: e.target.value, error: null })}
+                              >
+                                <option value="">Select type</option>
+                                {MEAL_TYPES.map((mealType) => (
+                                  <option key={mealType} value={mealType}>
+                                    {sentenceCase(mealType)}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="form-group recommendations-form-group">
+                              <label htmlFor={`schedule-status-${idx}`}>Status</label>
+                              <select
+                                id={`schedule-status-${idx}`}
+                                value={form.status || 'planned'}
+                                onChange={(e) => setSF(idx, { status: e.target.value })}
+                              >
+                                {STATUS_OPTS.map((status) => (
+                                  <option key={status} value={status}>
+                                    {sentenceCase(status)}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="form-group recommendations-form-group">
+                            <label htmlFor={`schedule-notes-${idx}`}>Notes</label>
+                            <input
+                              id={`schedule-notes-${idx}`}
+                              type="text"
+                              value={form.description || ''}
+                              onChange={(e) => setSF(idx, { description: e.target.value })}
+                              placeholder="Add a short note for this meal"
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            className="btn-primary recommendation-schedule-button"
+                            onClick={() => handleAddToSchedule(recipe, idx)}
+                            disabled={form.scheduleLoading}
+                          >
+                            <CalendarDays size={16} />
+                            {form.scheduleLoading ? 'Saving to Schedule...' : 'Save to Meal Schedule'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </article>
                 );
               })}
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   );
 }
 
 export default Recommendations;
+
