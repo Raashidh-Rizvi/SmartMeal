@@ -10,6 +10,9 @@ from app.models.user import UserCreate, UserResponse, UserInDB, Token, UserBase
 from app.api.deps import get_current_user
 from bson import ObjectId
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 @router.post("/login")
@@ -98,9 +101,9 @@ async def google_login(req: GoogleLoginRequest) -> Any:
                 "name": req.name,
                 "email": req.email.lower(),
                 "role": "USER",
+                "is_active": True, # Explicitly set for new users
                 "preferences": {}, # defaults
                 "password_hash": get_password_hash(random_pwd),
-                "is_active": True,
                 "createdAt": datetime.now(timezone.utc),
                 "updatedAt": datetime.now(timezone.utc)
             }
@@ -108,6 +111,7 @@ async def google_login(req: GoogleLoginRequest) -> Any:
             user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
         else:
             logger.info(f"Existing Google user found: {req.email}")
+            # Ensure is_active is checked safely
             if not user_dict.get("is_active", True):
                 logger.warning(f"Login blocked: Account disabled for {req.email}")
                 raise HTTPException(status_code=403, detail=f"Account disabled for {req.email}")
@@ -125,21 +129,48 @@ async def google_login(req: GoogleLoginRequest) -> Any:
                 pwd_hash = get_password_hash(generate_random_password())
                 updates["password_hash"] = pwd_hash
                 user_dict["password_hash"] = pwd_hash
-            
+            elif not user_dict.get("password_hash") and user_dict.get("hashed_password"):
+                # Migrate from legacy field name if only hashed_password exists
+                updates["password_hash"] = existing_hash
+                user_dict["password_hash"] = existing_hash
+                
+            if not user_dict.get("createdAt"):
+                now = datetime.now(timezone.utc)
+                updates["createdAt"] = now
+                user_dict["createdAt"] = now
+                
             if updates:
                 await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": updates})
                 
         user_dict["_id"] = str(user_dict["_id"])
-        user = UserInDB(**user_dict)
         
+        # Validate data against UserInDB model
+        try:
+            user = UserInDB(**user_dict)
+        except Exception as pydantic_err:
+            logger.error(f"Pydantic validation failed for Google user {req.email}: {str(pydantic_err)}")
+            # Log the dict keys to see what's missing
+            logger.error(f"User dict keys: {list(user_dict.keys())}")
+            raise HTTPException(status_code=500, detail="User data integrity error")
+            
         # Generate SmartMeal token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        token = create_access_token(subject=user.email, expires_delta=access_token_expires)
+        
         logger.info(f"Google Login successful for {req.email}")
+        
+        # Return a clean dictionary to avoid Pydantic serialization issues in the final step
         return {
-            "accessToken": create_access_token(
-                subject=user.email, expires_delta=access_token_expires
-            ),
-            "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
+            "accessToken": token,
+            "user": {
+                "id": str(user.id or user_dict.get("_id")),
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+                "preferences": user.preferences.model_dump() if hasattr(user.preferences, 'model_dump') else user.preferences,
+                "createdAt": user.createdAt.isoformat() if hasattr(user.createdAt, 'isoformat') else str(user.createdAt),
+                "updatedAt": user.updatedAt.isoformat() if hasattr(user.updatedAt, 'isoformat') else str(user.updatedAt)
+            }
         }
     except HTTPException:
         raise
