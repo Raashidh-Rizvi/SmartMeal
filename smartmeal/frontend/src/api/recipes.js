@@ -81,5 +81,5 @@ export const toggleFavoriteRecipe = (recipeId) =>
 /**
  * Get all recipes favorited by the current user
  */
-export const getFavoriteRecipes = () =>
-    api.get('/api/recipes/user/favorites');
+export const getFavoriteRecipes = (params = {}) =>
+    api.get('/api/recipes/user/favorites', { params });

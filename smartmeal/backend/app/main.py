@@ -64,6 +64,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SmartMeal API", lifespan=lifespan)
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
+
 # Custom exception handler for request validation errors - formats them nicely
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

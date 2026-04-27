@@ -170,29 +170,40 @@ function RecipeManagement() {
         };
     }, [view]);
 
+    const isFavorited = useCallback((recipeId) => {
+        if (!user || !user.favoriteRecipes) return false;
+        return user.favoriteRecipes.includes(recipeId);
+    }, [user]);
+
     // ── Fetch recipes list ───────────────────────────────────────────────────
     const fetchRecipes = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
             let res;
+            const params = { skip, limit: LIMIT };
+            if (search) params.search = search;
+            if (categoryFilter) params.category = categoryFilter;
+
             if (activeTab === 'favorites') {
-                res = await getFavoriteRecipes();
+                res = await getFavoriteRecipes(params);
             } else {
-                const params = { skip, limit: LIMIT };
-                if (search) params.search = search;
-                if (categoryFilter) params.category = categoryFilter;
                 if (activeTab === 'mine' && user) params.created_by = user.id || user._id;
                 res = await getRecipes(params);
             }
-            setRecipes(res.data);
+            console.log(`[RecipeManagement] Tab: ${activeTab}, Count: ${res.data?.length}`);
+            let fetchedRecipes = Array.isArray(res.data) ? res.data : [];
+            if (activeTab === 'favorites') {
+                fetchedRecipes = fetchedRecipes.filter(r => isFavorited(r._id || r.id));
+            }
+            setRecipes(fetchedRecipes);
         } catch (err) {
             console.error('Fetch recipes error:', err);
             setError('Failed to load recipes. Please try again.');
         } finally {
             setLoading(false);
         }
-    }, [search, categoryFilter, activeTab, skip, user]);
+    }, [search, categoryFilter, activeTab, skip, user, isFavorited]);
 
     useEffect(() => {
         if (view === VIEW.LIST) fetchRecipes();
@@ -389,10 +400,6 @@ function RecipeManagement() {
     const isOwner = (recipe) =>
         user && recipe && (recipe.created_by === user._id || recipe.created_by === user.id);
 
-    const isFavorited = (recipeId) => {
-        if (!user || !user.favoriteRecipes) return false;
-        return user.favoriteRecipes.includes(recipeId);
-    };
 
     const handleToggleFavorite = async (recipeId, e) => {
         if (e) e.stopPropagation();
@@ -551,20 +558,25 @@ function RecipeManagement() {
                                                 title={isFavorited(recipe._id) ? "Remove from Favorites" : "Add to Favorites"}
                                             >
                                                 <Heart 
-                                                    size={28} 
-                                                    strokeWidth={2} 
+                                                    size={22} 
+                                                    strokeWidth={2.5} 
                                                     stroke="currentColor"
                                                     fill={isFavorited(recipe._id) ? "currentColor" : "none"} 
                                                 />
                                             </button>
                                         )}
+
+                                        {/* Category Badge Overlay */}
+                                        <div className={`recipe-category-overlay badge-${recipe.category}`}>
+                                            {recipe.category}
+                                        </div>
+
                                         {recipe.image_url ? (
                                             <img
                                                 src={recipe.image_url.startsWith('/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001'}${recipe.image_url}` : recipe.image_url}
                                                 alt={recipe.title}
                                                 className="recipe-card-img"
                                                 onError={e => { 
-                                                    // Don't replace innerHTML, just hide the broken image
                                                     e.target.style.display = 'none';
                                                     e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
                                                 }}
@@ -578,20 +590,23 @@ function RecipeManagement() {
                                     </div>
 
                                     {/* Card Content */}
-                                    <div className="recipe-card-body">
-                                        <div className="recipe-card-category">
-                                            <span className={`badge badge-${recipe.category}`}>
-                                                {recipe.category}
-                                            </span>
+                                    <div className="recipe-card-content">
+                                        <div className="recipe-card-info">
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                <h3 className="recipe-card-title" style={{ textTransform: 'capitalize' }}>
+                                                    {recipe.title}
+                                                </h3>
+                                                {isFavorited(recipe._id) && (
+                                                    <span className="favorite-badge">Favorite</span>
+                                                )}
+                                            </div>
+                                            
+                                            {recipe.description && (
+                                                <p className="recipe-card-desc">
+                                                    {recipe.description}
+                                                </p>
+                                            )}
                                         </div>
-
-                                        <h3 className="recipe-card-title">{recipe.title}</h3>
-                                        
-                                        {recipe.description && (
-                                            <p className="recipe-card-desc">
-                                                {recipe.description}
-                                            </p>
-                                        )}
 
                                         <div className="recipe-card-meta">
                                             {recipe.estimated_cooking_time && (

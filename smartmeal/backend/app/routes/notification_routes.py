@@ -213,7 +213,7 @@ async def generate_budget_alerts(db, user_id: str):
             await db.notifications.insert_one({
                 "userId": user_id,
                 "type": "BUDGET_OVER",
-                "message": f"🚨 Alert! You have exceeded your budget of ${budget_amount:.2f} by ${(total_spent - budget_amount):.2f}.",
+                "message": f"🚨 Alert! You have exceeded your budget of LKR {budget_amount:.2f} by LKR {(total_spent - budget_amount):.2f}.",
                 "budgetId": budget_id,
                 "isRead": False,
                 "createdAt": now,
@@ -228,7 +228,7 @@ async def generate_budget_alerts(db, user_id: str):
             await db.notifications.insert_one({
                 "userId": user_id,
                 "type": "BUDGET_WARNING",
-                "message": f"⚠️ Warning! You have used {percentage_used:.0f}% of your budget. Remaining: ${(budget_amount - total_spent):.2f}.",
+                "message": f"⚠️ Warning! You have used {percentage_used:.0f}% of your budget. Remaining: LKR {(budget_amount - total_spent):.2f}.",
                 "budgetId": budget_id,
                 "isRead": False,
                 "createdAt": now,

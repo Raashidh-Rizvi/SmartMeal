@@ -26,6 +26,9 @@ async def login_access_token(
     user = UserInDB(**user_dict)
     if not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
+        
+    if not user_dict.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Account disabled")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
@@ -81,67 +84,68 @@ def generate_random_password(length=16):
 @router.post("/google")
 async def google_login(req: GoogleLoginRequest) -> Any:
     db = get_db()
-    # Find user by email (case-insensitive)
-    user_dict = await db["users"].find_one({"email": {"$regex": f"^{req.email}$", "$options": "i"}})
+    logger.info(f"Google Login attempt for email: {req.email}")
     
-    if not user_dict:
-        # Create a new user since they don't exist
-        random_pwd = generate_random_password()
-        new_user_data = {
-            "name": req.name,
-            "email": req.email.lower(),
-            "role": "USER",
-            "preferences": {}, # defaults
-            "password_hash": get_password_hash(random_pwd),
-            "createdAt": datetime.now(timezone.utc),
-            "updatedAt": datetime.now(timezone.utc)
+    try:
+        # Find user by email (case-insensitive)
+        user_dict = await db["users"].find_one({"email": {"$regex": f"^{req.email}$", "$options": "i"}})
+        
+        if not user_dict:
+            logger.info(f"New Google user: {req.email}. Creating account.")
+            # Create a new user since they don't exist
+            random_pwd = generate_random_password()
+            new_user_data = {
+                "name": req.name,
+                "email": req.email.lower(),
+                "role": "USER",
+                "preferences": {}, # defaults
+                "password_hash": get_password_hash(random_pwd),
+                "is_active": True,
+                "createdAt": datetime.now(timezone.utc),
+                "updatedAt": datetime.now(timezone.utc)
+            }
+            insert_result = await db["users"].insert_one(new_user_data)
+            user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
+        else:
+            logger.info(f"Existing Google user found: {req.email}")
+            if not user_dict.get("is_active", True):
+                logger.warning(f"Login blocked: Account disabled for {req.email}")
+                raise HTTPException(status_code=403, detail=f"Account disabled for {req.email}")
+                
+            # Update missing fields to avoid Pydantic validation errors
+            updates = {}
+            if not user_dict.get("name"):
+                updates["name"] = req.name
+                user_dict["name"] = req.name
+            
+            # Check both field names to prevent overwriting existing passwords
+            existing_hash = user_dict.get("password_hash") or user_dict.get("hashed_password")
+            
+            if not existing_hash:
+                pwd_hash = get_password_hash(generate_random_password())
+                updates["password_hash"] = pwd_hash
+                user_dict["password_hash"] = pwd_hash
+            
+            if updates:
+                await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": updates})
+                
+        user_dict["_id"] = str(user_dict["_id"])
+        user = UserInDB(**user_dict)
+        
+        # Generate SmartMeal token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        logger.info(f"Google Login successful for {req.email}")
+        return {
+            "accessToken": create_access_token(
+                subject=user.email, expires_delta=access_token_expires
+            ),
+            "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
         }
-        insert_result = await db["users"].insert_one(new_user_data)
-        user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
-    else:
-        # Update missing fields to avoid Pydantic validation errors
-        updates = {}
-        if not user_dict.get("name"):
-            updates["name"] = req.name
-            user_dict["name"] = req.name
-        
-        # Check both field names to prevent overwriting existing passwords
-        existing_hash = user_dict.get("password_hash") or user_dict.get("hashed_password")
-        
-        if not existing_hash:
-            # Provide a random password hash for socially-joined users who haven't set a password
-            pwd_hash = get_password_hash(generate_random_password())
-            updates["password_hash"] = pwd_hash
-            user_dict["password_hash"] = pwd_hash
-        elif not user_dict.get("password_hash") and user_dict.get("hashed_password"):
-            # Migrate from legacy field name if only hashed_password exists
-            updates["password_hash"] = existing_hash
-            user_dict["password_hash"] = existing_hash
-            
-        if not user_dict.get("createdAt"):
-            now = datetime.now(timezone.utc)
-            updates["createdAt"] = now
-            user_dict["createdAt"] = now
-            
-        if not user_dict.get("updatedAt"):
-            now = datetime.now(timezone.utc)
-            updates["updatedAt"] = now
-            user_dict["updatedAt"] = now
-            
-        if updates:
-            await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": updates})
-            
-    user_dict["_id"] = str(user_dict["_id"])
-    user = UserInDB(**user_dict)
-    
-    # Generate SmartMeal token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return {
-        "accessToken": create_access_token(
-            subject=user.email, expires_delta=access_token_expires
-        ),
-        "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google login error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 from app.models.user import ForgotPasswordRequest, ResetPasswordRequest
 import random

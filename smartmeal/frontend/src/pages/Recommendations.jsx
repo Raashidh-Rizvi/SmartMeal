@@ -103,41 +103,58 @@ function Recommendations() {
     setScheduleForm(prev => ({ ...prev, [idx]: { ...sf(idx), ...patch } }));
 
   // Find existing recipe in MongoDB or auto-create it from AI data
-  const resolveRecipeId = async (r) => {
+  const resolveRecipeId = async (r, idx) => {
+    // If it already has an _id from enriched backend (most reliable)
+    if (r._id) return r._id;
+
+    const normalizedName = String(r.name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
     try {
-      const searchRes = await getRecipes({ search: r.name, limit: 5 });
-      const matched = (searchRes.data || []).find(
-        rec => rec.title?.toLowerCase() === r.name?.toLowerCase()
-      ) || searchRes.data?.[0];
-      if (matched) return matched._id;
+      // Search by title with better matching
+      const searchRes = await getRecipes({ search: r.name, limit: 10 });
+      const matched = (searchRes.data || []).find(rec => {
+        const dbTitle = String(rec.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        return dbTitle === normalizedName;
+      });
+      
+      if (matched) return matched._id || matched.id;
 
       // Auto-create from AI data
       const ingredients = (r.ingredients || []).map(ing => {
         const parts = String(ing).trim().split(' ');
         const qty = parseFloat(parts[0]);
-        if (!isNaN(qty) && parts.length >= 3)
-          return { name: parts.slice(2).join(' '), quantity: qty, unit: parts[1] };
-        return { name: String(ing).trim(), quantity: 1, unit: 'serving' };
+        if (!isNaN(qty) && parts.length >= 3) {
+          return { 
+            name: parts.slice(2).join(' ').slice(0, 100), 
+            quantity: qty, 
+            unit: parts[1].slice(0, 50) 
+          };
+        }
+        return { 
+          name: String(ing).trim().slice(0, 100), 
+          quantity: 1, 
+          unit: 'serving' 
+        };
       }).filter(i => i.name);
 
       const steps = r.instructions
         ? String(r.instructions).split(/[.\n]/).map(s => s.trim()).filter(Boolean)
         : [`Prepare ${r.name} using the listed ingredients.`];
 
-      const mealType = sf(null)?.meal_type || 'lunch';
+      const mealType = sf(idx)?.meal_type || 'lunch';
       const newRecipe = await createRecipe({
-        title: r.name,
-        description: `AI-recommended recipe. Cuisine: ${r.cuisine || 'N/A'}. Diet: ${r.diet || 'N/A'}.`,
+        title: String(r.name).slice(0, 200),
+        description: `AI-recommended recipe. Cuisine: ${r.cuisine || 'N/A'}. Diet: ${r.diet || 'N/A'}.`.slice(0, 2000),
         category: mealType,
         ingredients,
-        preparation_steps: steps,
-        dietary_tags: r.diet && r.diet !== 'N/A' ? [r.diet] : [],
+        preparation_steps: steps.map(s => s.slice(0, 1000)).slice(0, 50),
+        dietary_tags: r.diet && r.diet !== 'N/A' ? [String(r.diet).slice(0, 50)] : [],
         estimated_cooking_time: (() => {
           const m = String(r.prep_time || '').match(/(\d+)/);
           return m ? parseInt(m[1]) : null;
         })(),
       });
-      return newRecipe.data._id || newRecipe.data.id;
+      return newRecipe.data.id || newRecipe.data._id;
     } catch (err) {
       if (err.response?.status === 401) {
         throw new Error('Authentication failed. Please log in again.');
@@ -153,7 +170,7 @@ function Recommendations() {
 
     setSF(idx, { loading: true, error: null });
     try {
-      const recipeId = await resolveRecipeId(r);
+      const recipeId = await resolveRecipeId(r, idx);
       await createMeal({
         user_id:     userId,
         recipe_id:   recipeId,
@@ -169,9 +186,13 @@ function Recommendations() {
     }
   };
 
-  const isFavorited = (recipeId) => {
-    if (!user || !user.favoriteRecipes || !recipeId) return false;
-    return user.favoriteRecipes.includes(recipeId);
+  const isFavorited = (r) => {
+    if (!user || !user.favoriteRecipes) return false;
+    const id = r._id || r.id;
+    if (id && user.favoriteRecipes.includes(id)) return true;
+    // Fallback for enriched results from backend
+    if (r.is_favorited) return true;
+    return false;
   };
 
   const handleToggleFavorite = async (r, idx) => {
@@ -179,16 +200,25 @@ function Recommendations() {
       setErrorMsg('Please log in to save favorites.');
       return;
     }
+    if (sf(idx).loading) return; // Prevent double clicks
+    
     setSF(idx, { loading: true, error: null });
     try {
       // First ensure the recipe exists in our DB to get a real ID
-      const recipeId = await resolveRecipeId(r);
+      const recipeId = await resolveRecipeId(r, idx);
       const res = await toggleFavoriteRecipe(recipeId);
       const newFavorites = res.data.favorites;
+      
+      // Update global user state
       setUser(prev => ({ ...prev, favoriteRecipes: newFavorites }));
       
       // Update the local recipes state so the heart icon updates immediately
-      setRecipes(prev => prev.map((item, i) => i === idx ? { ...item, _id: recipeId } : item));
+      setRecipes(prev => prev.map((item, i) => i === idx ? { 
+        ...item, 
+        _id: recipeId, 
+        is_favorited: newFavorites.includes(recipeId) 
+      } : item));
+      
       setSF(idx, { loading: false });
     } catch (err) {
       const errMsg = err.response?.data?.detail || err.message || 'Error toggling favorite';
@@ -392,16 +422,28 @@ function Recommendations() {
                           <div style={{ marginTop: '0.5rem' }}>
                             <button 
                               onClick={() => handleToggleFavorite(r, i)}
+                              disabled={sf(i).loading}
                               style={{ 
-                                background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px',
+                                background: 'transparent', border: 'none', cursor: sf(i).loading ? 'default' : 'pointer', padding: '4px',
                                 display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600,
-                                color: isFavorited(r._id) ? '#ef4444' : 'var(--text-muted)',
-                                transition: 'all 0.2s ease'
+                                color: isFavorited(r) ? '#ef4444' : 'var(--text-muted)',
+                                transition: 'all 0.2s ease',
+                                opacity: sf(i).loading ? 0.6 : 1
                               }}
                             >
-                              <Heart size={18} strokeWidth={2.5} fill={isFavorited(r._id) ? 'currentColor' : 'none'} />
-                              {isFavorited(r._id) ? 'Favorited' : 'Add to Favorites'}
+                              <Heart 
+                                size={18} 
+                                strokeWidth={2.5} 
+                                fill={isFavorited(r) ? 'currentColor' : 'none'} 
+                                className={sf(i).loading ? 'animate-pulse' : ''}
+                              />
+                              {sf(i).loading ? 'Saving...' : isFavorited(r) ? 'Favorited' : 'Add to Favorites'}
                             </button>
+                            {sf(i).error && !sf(i).open && (
+                              <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '2px' }}>
+                                {sf(i).error}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

@@ -410,16 +410,14 @@ async def toggle_favorite_recipe(db, recipe_id: str, user_id: str) -> List[str]:
         )
 
 
-async def get_favorite_recipes(db, user_id: str) -> List[dict]:
-    """
-    Get all recipes favorited by the user.
-    """
+async def get_favorite_recipes(db, user_id: str, skip: int = 0, limit: int = 20, search: str = None, category: str = None) -> List[dict]:
+    """Get all recipes favorited by the current user with filtering and pagination."""
     try:
         u_oid = ObjectId(user_id) if len(user_id) == 24 else user_id
         user = await db["users"].find_one({"_id": u_oid})
         if not user:
             return []
-
+            
         favorites = user.get("favoriteRecipes", [])
         if not favorites:
             return []
@@ -432,17 +430,26 @@ async def get_favorite_recipes(db, user_id: str) -> List[dict]:
             except:
                 continue
 
-        cursor = db["recipes"].find({"_id": {"$in": recipe_oids}}).sort("created_at", -1)
-        recipes = []
-        async for doc in cursor:
+        # Base query: must be in the favorites list
+        query = {"_id": {"$in": recipe_oids}}
+        
+        # Apply additional filters
+        if search:
+            query["title"] = {"$regex": search, "$options": "i"}
+        if category:
+            query["category"] = category
+
+        cursor = db["recipes"].find(query).sort("created_at", -1).skip(skip).limit(limit)
+        recipes = await cursor.to_list(length=limit)
+        
+        for doc in recipes:
             doc["_id"] = str(doc["_id"])
             if not doc.get("image_url"):
                 doc["image_url"] = get_cuisine_image(doc.get("title", ""))
-            recipes.append(doc)
             
         return recipes
     except Exception as e:
-        logger.error(f"Error fetching favorite recipes: {str(e)}")
+        logger.error(f"Error in get_favorite_recipes service: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch favorite recipes"

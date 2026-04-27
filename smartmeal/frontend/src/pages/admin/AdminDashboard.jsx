@@ -13,7 +13,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { Line, Pie, Bar } from 'react-chartjs-2';
+import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { 
   Users, 
   Utensils, 
@@ -104,38 +104,78 @@ function AdminDashboard() {
   };
 
   const categoryData = {
-    labels: Object.keys(analytics?.categories || {}),
+    labels: Object.keys(analytics?.categories || {}).length ? Object.keys(analytics?.categories) : ['No Data'],
     datasets: [{
-      data: Object.values(analytics?.categories || {}),
-      backgroundColor: [
+      data: Object.values(analytics?.categories || {}).length ? Object.values(analytics?.categories) : [1],
+      backgroundColor: Object.keys(analytics?.categories || {}).length ? [
         '#10b981',
         '#3b82f6',
         '#f59e0b',
         '#ef4444',
-        '#8b5cf6'
-      ],
-      borderWidth: 0
+        '#8b5cf6',
+        '#ec4899',
+        '#14b8a6'
+      ] : ['#e2e8f0'],
+      borderWidth: 0,
+      hoverOffset: 4
     }]
   };
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { color: '#94a3b8', usePointStyle: true, font: { family: 'Inter' } }
+        labels: { color: 'var(--text-muted)', usePointStyle: true, padding: 20, font: { family: 'Inter', weight: '500' } }
       },
       tooltip: {
         backgroundColor: 'rgba(15, 23, 42, 0.9)',
         padding: 12,
-        cornerRadius: 8,
-        titleFont: { family: 'Inter' },
-        bodyFont: { family: 'Inter' }
+        cornerRadius: 12,
+        titleFont: { family: 'Inter', size: 14, weight: '600' },
+        bodyFont: { family: 'Inter', size: 13 },
+        boxPadding: 6,
+        usePointStyle: true,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1
       }
     },
     scales: {
-      y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { family: 'Inter' } } },
-      x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'Inter' } } }
+      y: { 
+        border: { display: false },
+        grid: { color: 'rgba(0, 0, 0, 0.06)', drawBorder: false }, 
+        ticks: { 
+          color: 'var(--text-muted)', 
+          font: { family: 'Inter' }, 
+          padding: 10,
+          precision: 0,
+          stepSize: 1
+        },
+        beginAtZero: true
+      },
+      x: { 
+        border: { display: false },
+        grid: { display: false, drawBorder: false }, 
+        ticks: { color: 'var(--text-muted)', font: { family: 'Inter' }, padding: 10 } 
+      }
+    }
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '75%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { color: 'var(--text-muted)', usePointStyle: true, padding: 20, font: { family: 'Inter', weight: '500' } }
+      },
+      tooltip: chartOptions.plugins.tooltip
     }
   };
 
@@ -207,17 +247,61 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Charts Section */}
       <div className="charts-grid">
         <div className="chart-container main-chart">
-          <h2>Usage Trends (Last 7 Days)</h2>
-          <Line data={usageTrendData} options={chartOptions} />
+          <div className="chart-header">
+            <h2><TrendingUp size={20} className="icon-green" /> Usage Trends (Last 7 Days)</h2>
+            <div className="chart-badge">Active</div>
+          </div>
+          <div className="chart-wrapper line-chart-wrapper">
+            {analytics?.usageTrends?.length > 0 ? (
+              <Line 
+                data={{
+                  ...usageTrendData,
+                  datasets: [{
+                    ...usageTrendData.datasets[0],
+                    backgroundColor: (context) => {
+                      const ctx = context.chart.ctx;
+                      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+                      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+                      return gradient;
+                    },
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                  }]
+                }} 
+                options={chartOptions} 
+              />
+            ) : (
+              <div className="empty-chart-state">
+                <BarChart2 size={48} className="empty-icon" />
+                <p>Not enough data to display trends yet.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="chart-container">
-          <h2>Popular Categories</h2>
-          <div style={{ maxHeight: '300px', display: 'flex', justifyContent: 'center' }}>
-            <Pie data={categoryData} options={{ ...chartOptions, scales: {} }} />
+          <div className="chart-header">
+            <h2><PieChart size={20} className="icon-blue" /> Popular Categories</h2>
+          </div>
+          <div className="chart-wrapper doughnut-chart-wrapper">
+            {Object.keys(analytics?.categories || {}).length > 0 ? (
+              <div style={{ position: 'relative', height: '100%', width: '100%', maxWidth: '300px', margin: '0 auto' }}>
+                <Doughnut data={categoryData} options={doughnutOptions} />
+              </div>
+            ) : (
+              <div className="empty-chart-state">
+                <PieChart size={48} className="empty-icon" />
+                <p>No category data yet.</p>
+                <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Start planning meals to see categories.</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

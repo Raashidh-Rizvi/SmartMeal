@@ -40,7 +40,7 @@ function BudgetDashboard() {
 
   useEffect(() => {
     if (!summary) return;
-    if (summary.is_over_budget) showToast('error', `Budget exceeded by $${Math.abs(summary.remaining).toFixed(2)}!`);
+    if (summary.is_over_budget) showToast('error', `Budget exceeded by LKR ${Math.abs(summary.remaining).toFixed(2)}!`);
     else if (summary.warning_threshold_reached) showToast('warning', `${summary.percentage_used.toFixed(1)}% of budget used`);
   }, [summary?.is_over_budget, summary?.warning_threshold_reached, summary]);
 
@@ -94,7 +94,7 @@ function BudgetDashboard() {
     } catch { showToast('error', 'Failed to delete expense'); }
   };
 
-  const fmt = (n) => `$${Number(n).toFixed(2)}`;
+  const fmt = (n) => `LKR ${Number(n).toFixed(2)}`;
 
   if (loading) return <p className="loading">Loading budget...</p>;
 
@@ -241,8 +241,8 @@ function BudgetDashboard() {
             <form onSubmit={handleBudgetSubmit}>
               <div className="form-grid">
                 <div className="form-group form-group-full">
-                  <label>Amount ($)</label>
-                  <input type="number" step="0.01" value={budgetForm.amount} onChange={e => setBudgetForm({ ...budgetForm, amount: e.target.value })} placeholder="e.g., 500" required />
+                  <label>Amount (LKR)</label>
+                  <input type="number" step="0.01" value={budgetForm.amount} onChange={e => setBudgetForm({ ...budgetForm, amount: e.target.value })} placeholder="e.g., 50000" required />
                 </div>
                 <div className="form-group">
                   <label>Period</label>
@@ -278,7 +278,7 @@ function BudgetDashboard() {
                   <input type="text" value={expenseForm.item_name} onChange={e => setExpenseForm({ ...expenseForm, item_name: e.target.value })} placeholder="e.g., Groceries" required />
                 </div>
                 <div className="form-group">
-                  <label>Amount ($)</label>
+                  <label>Amount (LKR)</label>
                   <input type="number" step="0.01" value={expenseForm.amount} onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} required />
                 </div>
                 <div className="form-group">
