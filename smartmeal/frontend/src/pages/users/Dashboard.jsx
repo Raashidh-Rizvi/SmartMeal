@@ -519,22 +519,22 @@ function Dashboard() {
       <div style={s.heroSection}>
         {/* Decorative Background Icons - Subtle Dynamics */}
         <UtensilsCrossed 
-          size={240} 
+          size={200} 
           className="hero-sway"
           style={{ ...s.heroBgIcon, top: '200px', left: '60px', '--rotation': '-15deg' }} 
         />
         <ChefHat 
-          size={240} 
+          size={200} 
           className="hero-sway"
           style={{ ...s.heroBgIcon, top: '200px', right: '120px', '--rotation': '10deg', animationDelay: '1s' }} 
         />
         <Flame 
-          size={240} 
+          size={200} 
           className="hero-sway"
           style={{ ...s.heroBgIcon, top: '60%', right: '10%', '--rotation': '20deg', animationDelay: '2s' }} 
         />
         <Leaf 
-          size={240} 
+          size={200} 
           className="hero-sway"
           style={{ ...s.heroBgIcon, top: '60%', left: '05%', '--rotation': '-10deg', animationDelay: '3s' }} 
         />

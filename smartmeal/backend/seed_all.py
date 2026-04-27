@@ -35,7 +35,7 @@ async def seed_data():
         "name": "Raashidh Rizvi",
         "email": "raashidh24@gmail.com",
         "password_hash": hashed_password,
-        "role": "USER",
+        "role": "ADMIN",
         "is_active": True,
         "createdAt": now,
         "updatedAt": now

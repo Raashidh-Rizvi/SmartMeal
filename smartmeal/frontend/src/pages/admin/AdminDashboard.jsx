@@ -21,7 +21,12 @@ import {
   Star,
   Award,
   RefreshCw,
-  Clock
+  Clock,
+  BarChart2,
+  PieChart,
+  Activity,
+  Layers,
+  Gauge
 } from 'lucide-react';
 import './AdminCharts.css';
 
@@ -136,16 +141,29 @@ function AdminDashboard() {
 
   return (
     <div className="admin-analytics-container">
-      <header className="admin-header premium">
-        <div className="header-info">
-          <h1>Analytics Executive Suite</h1>
-          <p className="subtitle">Real-time platform insights & performance metrics</p>
+      <div className="page-hero page-hero--sub">
+        {/* Premium Decorative Background Icons */}
+        <BarChart2 size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '10%', left: '6%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <TrendingUp size={68} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '3%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <PieChart size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '14%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <Activity size={74} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '12%', right: '10%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        <Users size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <Layers size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '12%', right: '16%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <Gauge size={80} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '26%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <BarChart2 size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '38%', left: '28%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
+
+        <Activity size={46} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: '0.25rem 0 0.1rem' }}>Analytics Executive Suite</h1>
+          <p style={{ margin: 0, opacity: 0.75, fontSize: '1rem' }}>Real-time platform insights &amp; performance metrics</p>
         </div>
-        <button onClick={fetchData} className="btn-refresh premium">
-          <RefreshCw size={18} className={loading ? 'spinning' : ''} /> 
-          <span>Refresh Data</span>
-        </button>
-      </header>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <button onClick={fetchData} className="btn-refresh premium">
+            <RefreshCw size={18} className={loading ? 'spinning' : ''} /> 
+            <span>Refresh Data</span>
+          </button>
+        </div>
+      </div>
 
       {/* Top Stat Cards */}
       <div className="stats-grid">

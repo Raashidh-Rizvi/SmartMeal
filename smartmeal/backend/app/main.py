@@ -70,6 +70,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """Format Pydantic validation errors into user-friendly messages."""
     errors = exc.errors()
     formatted_msg = _format_validation_error(errors[0]) if errors else "Validation failed"
+    # DEBUG: Write the full exception and URL to a file
+    with open("422_debug.log", "a") as f:
+        f.write(f"URL: {request.url}\nHeaders: {request.headers}\nError: {repr(exc)}\n\n")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": formatted_msg}

@@ -7,7 +7,12 @@ import {
   AlertTriangle, 
   ChevronLeft, 
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  Package,
+  ShieldAlert,
+  BarChart2,
+  Eye,
+  ScanLine
 } from 'lucide-react';
 
 function AdminInventory() {
@@ -73,13 +78,23 @@ function AdminInventory() {
 
   return (
     <div className="admin-page">
-      <header className="admin-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <ClipboardList size={32} color="var(--primary)" />
-          <h1>Inventory Oversight</h1>
+      <div className="page-hero page-hero--sub">
+        {/* Premium Decorative Background Icons */}
+        <ClipboardList size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '10%', left: '6%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <Package size={68} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '3%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <ShieldAlert size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '14%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <BarChart2 size={74} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '12%', right: '10%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        <Eye size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <ScanLine size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '12%', right: '16%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <Package size={80} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '26%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <ClipboardList size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '38%', left: '28%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
+
+        <ClipboardList size={46} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: '0.25rem 0 0.1rem' }}>Inventory Oversight</h1>
+          <p style={{ margin: 0, opacity: 0.75, fontSize: '1rem' }}>Monitor and manage global food inventory across all users</p>
         </div>
-        <p className="subtitle">Monitor and manage global food inventory across all users</p>
-      </header>
+      </div>
 
       <div className="admin-filters">
         <form onSubmit={handleFilterSubmit} style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>

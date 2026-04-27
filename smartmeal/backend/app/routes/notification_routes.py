@@ -270,11 +270,16 @@ async def get_user_notifications(
             logger.error(f"[EMAIL] Could not send digest for user {user_id}: {e}")
 
     # ── return all notifications ──────────────────────────────────────────────
-    query = {"userId": {"$in": [user_id, "ALL"]}}
+    query = {"isDeleted": {"$ne": True}}
     if unread:
         query["$or"] = [
             {"userId": user_id, "isRead": False},
             {"userId": "ALL", "hiddenByUserIds": {"$ne": user_id}, "readByUserIds": {"$ne": user_id}}
+        ]
+    else:
+        query["$or"] = [
+            {"userId": user_id},
+            {"userId": "ALL", "hiddenByUserIds": {"$ne": user_id}}
         ]
 
     cursor = db.notifications.find(query).sort("createdAt", -1)
@@ -428,6 +433,10 @@ async def delete_notification(
             {"$addToSet": {"hiddenByUserIds": user_id}}
         )
     else:
-        await db.notifications.delete_one({"_id": oid})
+        # For personal notifications, soft-delete to prevent re-generation
+        await db.notifications.update_one(
+            {"_id": oid},
+            {"$set": {"isDeleted": True}}
+        )
 
     return {"message": "Notification deleted"}
