@@ -329,7 +329,7 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
                   lineHeight: 1.5,
                   whiteSpace: 'pre-wrap'
                 }}>
-                  {msg.content}
+                  {msg.content.replace(/[*#]/g, '').replace(/---/g, '')}
                 </div>
               </div>
             ))
@@ -350,13 +350,13 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
             value={chatInput} 
             onChange={(e) => setChatInput(e.target.value)}
             placeholder="Ask about substitutions, cooking times, etc..." 
-            style={{ flex: 1, border: '1px solid var(--card-border)', borderRadius: '50px 0 0 50px', padding: '0.75rem 1.25rem', fontSize: '0.85rem', outline: 'none', background: 'rgba(0,0,0,0.02)' }}
+            style={{ flex: 1, minWidth: 0, border: '1px solid var(--card-border)', borderRadius: '50px 0 0 50px', padding: '0.75rem 1.25rem', fontSize: '0.85rem', outline: 'none', background: 'rgba(0,0,0,0.02)' }}
             disabled={chatLoading}
           />
           <button 
             type="submit" 
             disabled={chatLoading || !chatInput.trim()}
-            style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '0 50px 50px 0', padding: '0 1.25rem', cursor: chatLoading || !chatInput.trim() ? 'default' : 'pointer', opacity: chatLoading || !chatInput.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+            style={{ width: '60px', flexShrink: 0, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '0 50px 50px 0', padding: '0', cursor: chatLoading || !chatInput.trim() ? 'default' : 'pointer', opacity: chatLoading || !chatInput.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
           >
             <Send size={16} />
           </button>

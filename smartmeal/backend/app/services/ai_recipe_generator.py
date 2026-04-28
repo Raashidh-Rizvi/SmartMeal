@@ -299,7 +299,8 @@ Instructions:
 {inst_str}
 
 Answer the user's questions about this recipe, suggest substitutions, or explain cooking techniques.
-Keep your answers concise, friendly, and helpful. Format your responses with plain text or basic markdown (e.g. bolding, lists) as appropriate. Do not return JSON.
+Keep your answers concise, friendly, and helpful. 
+CRITICAL RULE: Return PLAIN TEXT ONLY. DO NOT use any markdown formatting. No asterisks (*), no hashes (#), no dashes (-) for lists, no backticks. Just use regular paragraphs and punctuation.
 """
 
     api_messages = [{"role": "system", "content": system_prompt}]
