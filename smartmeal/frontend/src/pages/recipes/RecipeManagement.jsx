@@ -10,9 +10,11 @@ import {
     uploadRecipeImage,
     toggleFavoriteRecipe,
     getFavoriteRecipes,
+    generateAIRecipe,
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
+import AIRecipePanel from '../../components/AIRecipePanel';
 import {
     Pencil,
     Trash2,
@@ -28,7 +30,8 @@ import {
     Heart,
     UtensilsCrossed,
     Flame,
-    Leaf
+    Leaf,
+    Sparkles
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -86,6 +89,11 @@ function RecipeManagement() {
     const [imageUploading, setImageUploading] = useState(false);
     const [availableIngredients, setAvailableIngredients] = useState([]);
     const stepTextareaRefs = useRef([]);
+
+    // AI state
+    const [aiData, setAiData] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const aiPanelRef = useRef(null);
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -239,6 +247,8 @@ function RecipeManagement() {
     // ── Open detail ──────────────────────────────────────────────────────────
     const openDetail = async (id) => {
         setError('');
+        setAiData(null);
+        setAiLoading(false);
         try {
             const res = await getRecipeById(id);
             setSelectedRecipe(res.data);
@@ -350,6 +360,33 @@ function RecipeManagement() {
             setFormError(typeof msg === 'string' ? msg : JSON.stringify(msg));
         } finally {
             setImageUploading(false);
+        }
+    };
+
+    // ── Generate AI Recipe ───────────────────────────────────────────────────
+    const handleGenerateAIRecipe = async () => {
+        if (!selectedRecipe) return;
+        setAiLoading(true);
+        setAiData(null);
+        
+        setTimeout(() => {
+            if (aiPanelRef.current) {
+                aiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+
+        try {
+            const ingredientString = selectedRecipe.ingredients.map(i => `${i.quantity} ${i.unit} ${i.name}`).join(', ');
+            const payload = {
+                ingredients: ingredientString,
+                cuisine: selectedRecipe.title,
+            };
+            const res = await generateAIRecipe(payload);
+            setAiData(res.data);
+        } catch (err) {
+            setAiData({ error: true, message: err.response?.data?.detail || 'AI generation failed.' });
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -815,24 +852,43 @@ function RecipeManagement() {
                     </section>
 
                     {/* Action Buttons (Moved to Bottom) */}
-                    {isOwner(selectedRecipe) && (
-                        <div className="recipe-detail-actions-footer">
-                            <button
-                                className="action-edit detail-action-btn"
-                                onClick={() => openEdit(selectedRecipe)}
-                                id="edit-recipe-btn"
-                            >
-                                <Pencil size={18} /> Edit
-                            </button>
-                            <button
-                                className="action-delete detail-action-btn"
-                                onClick={() => handleDelete(selectedRecipe)}
-                                id="delete-recipe-btn"
-                            >
-                                <Trash2 size={18} /> Delete
-                            </button>
-                        </div>
-                    )}
+                    <div className="recipe-detail-actions-footer">
+                        <button
+                            className="action-edit detail-action-btn"
+                            onClick={handleGenerateAIRecipe}
+                            disabled={aiLoading}
+                            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none' }}
+                        >
+                            <Sparkles size={18} /> {aiLoading ? 'Generating...' : 'AI Recipe'}
+                        </button>
+                        {isOwner(selectedRecipe) && (
+                            <>
+                                <button
+                                    className="action-edit detail-action-btn"
+                                    onClick={() => openEdit(selectedRecipe)}
+                                    id="edit-recipe-btn"
+                                >
+                                    <Pencil size={18} /> Edit
+                                </button>
+                                <button
+                                    className="action-delete detail-action-btn"
+                                    onClick={() => handleDelete(selectedRecipe)}
+                                    id="delete-recipe-btn"
+                                >
+                                    <Trash2 size={18} /> Delete
+                                </button>
+                            </>
+                        )}
+                    </div>
+                    
+                    <div ref={aiPanelRef} style={{ marginTop: '2rem' }}>
+                        {(aiLoading || aiData) && (
+                            <AIRecipePanel
+                                data={aiData}
+                                loading={aiLoading}
+                            />
+                        )}
+                    </div>
                 </div>
             )}
 

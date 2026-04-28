@@ -306,29 +306,89 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
       )}
 
       {/* Chef Chat */}
-      <section style={{ marginTop: '2rem', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--card-border)', borderRadius: '16px', overflow: 'hidden' }}>
-        <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05))', padding: '1rem 1.25rem', borderBottom: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <MessageSquare size={18} color="var(--primary)" />
-          <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)' }}>Chat with Chef AI</h3>
+      <section style={{ 
+        marginTop: '2rem', 
+        background: '#ffffff', 
+        border: '1px solid rgba(0,0,0,0.06)', 
+        borderRadius: '24px', 
+        overflow: 'hidden',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{ 
+          background: 'linear-gradient(to right, rgba(16,185,129,0.08), rgba(16,185,129,0.02))', 
+          padding: '1.25rem 1.5rem', 
+          borderBottom: '1px solid rgba(16,185,129,0.1)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.85rem' 
+        }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '10px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(16,185,129,0.3)'
+          }}>
+            <MessageSquare size={18} color="#fff" />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>Chef AI Assistant</h3>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Ask about substitutions, tips, or modifications</p>
+          </div>
         </div>
         
-        <div ref={chatContainerRef} style={{ padding: '1.25rem', maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div ref={chatContainerRef} style={{ 
+          padding: '1.5rem', 
+          maxHeight: '380px', 
+          overflowY: 'auto', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1.25rem',
+          background: '#fafafa'
+        }}>
           {chatMessages.length === 0 ? (
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '2rem 0' }}>
-              Have questions about this recipe? Want to substitute an ingredient? Ask me anything!
+            <div style={{ 
+              textAlign: 'center', 
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem',
+              padding: '3rem 1rem' 
+            }}>
+               <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <ChefHat size={32} color="var(--primary)" />
+               </div>
+               <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '80%' }}>
+                 I'm your personal sous-chef! Have questions about this recipe? Want to substitute an ingredient or adjust the serving size? Ask me anything!
+               </p>
             </div>
           ) : (
             chatMessages.map((msg, i) => (
-              <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+              <div key={i} style={{ 
+                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', 
+                maxWidth: '85%',
+                display: 'flex',
+                gap: '0.75rem',
+                flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                alignItems: 'flex-end'
+              }}>
+                {msg.role === 'assistant' && (
+                  <div style={{ 
+                    width: '28px', height: '28px', borderRadius: '50%', 
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
+                  }}>
+                    <ChefHat size={14} color="#fff" />
+                  </div>
+                )}
+                
                 <div style={{ 
                   background: msg.role === 'user' ? 'linear-gradient(135deg,#10b981,#059669)' : '#fff',
                   color: msg.role === 'user' ? '#fff' : 'var(--text-main)',
-                  padding: '0.75rem 1rem',
-                  borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                  border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
-                  boxShadow: msg.role === 'user' ? '0 4px 12px rgba(16,185,129,0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
-                  fontSize: '0.85rem',
-                  lineHeight: 1.5,
+                  padding: '0.85rem 1.15rem',
+                  borderRadius: msg.role === 'user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+                  border: msg.role === 'user' ? 'none' : '1px solid rgba(0,0,0,0.06)',
+                  boxShadow: msg.role === 'user' ? '0 6px 16px rgba(16,185,129,0.25)' : '0 4px 12px rgba(0,0,0,0.03)',
+                  fontSize: '0.9rem',
+                  lineHeight: 1.6,
                   whiteSpace: 'pre-wrap'
                 }}>
                   {msg.content.replace(/[*#]/g, '').replace(/---/g, '')}
@@ -337,29 +397,81 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
             ))
           )}
           {chatLoading && (
-            <div style={{ alignSelf: 'flex-start', background: '#fff', padding: '0.75rem 1rem', borderRadius: '18px 18px 18px 4px', border: '1px solid var(--card-border)', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.32s'}}></div>
-              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.16s'}}></div>
-              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both'}}></div>
+            <div style={{ alignSelf: 'flex-start', display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
+               <div style={{ 
+                 width: '28px', height: '28px', borderRadius: '50%', 
+                 background: 'linear-gradient(135deg, #10b981, #059669)',
+                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                 flexShrink: 0,
+                 boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
+               }}>
+                 <ChefHat size={14} color="#fff" />
+               </div>
+               <div style={{ background: '#fff', padding: '1rem 1.25rem', borderRadius: '20px 20px 20px 4px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', gap: '0.4rem', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                 <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.32s'}}></div>
+                 <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.16s'}}></div>
+                 <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both'}}></div>
+               </div>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleChatSubmit} style={{ display: 'flex', padding: '1rem', borderTop: '1px solid var(--card-border)', background: '#fff' }}>
-          <input 
-            type="text" 
-            value={chatInput} 
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask about substitutions, cooking times, etc..." 
-            style={{ flex: 1, minWidth: 0, border: '1px solid var(--card-border)', borderRadius: '50px 0 0 50px', padding: '0.75rem 1.25rem', fontSize: '0.85rem', outline: 'none', background: 'rgba(0,0,0,0.02)' }}
-            disabled={chatLoading}
-          />
+        <form onSubmit={handleChatSubmit} style={{ 
+          display: 'flex', 
+          padding: '1.25rem 1.5rem', 
+          borderTop: '1px solid rgba(0,0,0,0.06)', 
+          background: '#fff',
+          gap: '0.75rem',
+          alignItems: 'center'
+        }}>
+          <div style={{ 
+            flex: 1, 
+            display: 'flex', 
+            background: 'rgba(0,0,0,0.03)', 
+            borderRadius: '50px',
+            border: '1px solid rgba(0,0,0,0.05)',
+            transition: 'all 0.2s',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+          }}>
+            <input 
+              type="text" 
+              value={chatInput} 
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask about substitutions, tips, or modifications..." 
+              style={{ 
+                flex: 1, 
+                minWidth: 0, 
+                border: 'none', 
+                background: 'transparent',
+                padding: '0.85rem 1.25rem', 
+                fontSize: '0.9rem', 
+                outline: 'none',
+                color: 'var(--text-main)'
+              }}
+              disabled={chatLoading}
+            />
+          </div>
           <button 
             type="submit" 
             disabled={chatLoading || !chatInput.trim()}
-            style={{ width: '60px', flexShrink: 0, background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '0 50px 50px 0', padding: '0', cursor: chatLoading || !chatInput.trim() ? 'default' : 'pointer', opacity: chatLoading || !chatInput.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+            style={{ 
+              width: '46px', 
+              height: '46px', 
+              flexShrink: 0, 
+              background: chatLoading || !chatInput.trim() ? 'rgba(0,0,0,0.05)' : 'linear-gradient(135deg, #10b981, #059669)', 
+              color: chatLoading || !chatInput.trim() ? 'var(--text-muted)' : '#fff', 
+              border: 'none', 
+              borderRadius: '50%', 
+              padding: '0', 
+              cursor: chatLoading || !chatInput.trim() ? 'default' : 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              transition: 'all 0.2s',
+              boxShadow: chatLoading || !chatInput.trim() ? 'none' : '0 4px 12px rgba(16,185,129,0.3)',
+            }}
           >
-            <Send size={16} />
+            <Send size={18} style={{ marginLeft: '-2px' }} />
           </button>
         </form>
       </section>
