@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChefHat, ShoppingCart, Lightbulb, AlertCircle, CheckCircle2, Loader2, ExternalLink, Send, MessageSquare } from 'lucide-react';
+import { ChefHat, ShoppingCart, Lightbulb, AlertCircle, CheckCircle2, Loader2, ExternalLink, Send, MessageSquare, Heart } from 'lucide-react';
 import { ShoppingAPI } from '../api/axios';
-import { chatAboutRecipe } from '../api/recipes';
+import { chatAboutRecipe, createRecipe, toggleFavoriteRecipe } from '../api/recipes';
 
 /**
  * AIRecipePanel
@@ -14,6 +14,11 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
   const [addingAll, setAddingAll]       = useState(false);
   const [addedAll, setAddedAll]         = useState(false);
   const [addError, setAddError]         = useState('');
+
+  // Favorites state
+  const [isFavoriting, setIsFavoriting] = useState(false);
+  const [isFavorited, setIsFavorited]   = useState(false);
+  const [favoriteError, setFavoriteError] = useState('');
 
   // Chat state
   const [chatMessages, setChatMessages] = useState([]);
@@ -126,6 +131,77 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
     }
   };
 
+  const handleAddToFavorites = async () => {
+    if (!r.recipe_name) return;
+    setIsFavoriting(true);
+    setFavoriteError('');
+    try {
+      // 1. Parse prep time
+      let time = 30; // default
+      if (r.prep_time) {
+        const match = r.prep_time.match(/(\d+)/);
+        if (match) {
+          const t = parseInt(match[1]);
+          if (!isNaN(t)) time = t;
+        }
+      }
+
+      // 2. Map category (must be breakfast, lunch, dinner, snack)
+      let category = 'dinner';
+      const dietLower = (r.diet || '').toLowerCase();
+      if (dietLower.includes('breakfast')) category = 'breakfast';
+      else if (dietLower.includes('lunch')) category = 'lunch';
+      else if (dietLower.includes('snack')) category = 'snack';
+
+      // 3. Parse ingredients
+      const parsedIngredients = (r.ingredients || []).map((ing) => {
+        const raw = ing.item || ing;
+        const parsed = parseShoppingItem(raw);
+        let q = parsed.quantity;
+        if (isNaN(q) || q <= 0) q = 1;
+        if (q > 9999) q = 9999;
+        
+        // Make sure name is not too long
+        let name = parsed.name || 'ingredient';
+        if (name.length > 100) name = name.substring(0, 100);
+        
+        let unit = parsed.unit || 'piece';
+        if (unit.length > 50) unit = unit.substring(0, 50);
+
+        return {
+          name: name,
+          quantity: q,
+          unit: unit,
+        };
+      });
+
+      // 4. Create recipe payload
+      const payload = {
+        title: r.recipe_name,
+        description: r.tips || 'AI Generated Recipe',
+        ingredients: parsedIngredients,
+        preparation_steps: r.instructions || ['Cook and enjoy'],
+        category: category,
+        dietary_tags: r.diet ? [r.diet] : [],
+        estimated_cooking_time: time,
+      };
+
+      // 5. Call API to save recipe
+      const createRes = await createRecipe(payload);
+      const recipeId = createRes.data._id || createRes.data.id;
+
+      // 6. Add to favorites
+      await toggleFavoriteRecipe(recipeId);
+
+      setIsFavorited(true);
+    } catch (err) {
+      console.error('Failed to add to favorites:', err);
+      setFavoriteError('Failed to save to favorites.');
+    } finally {
+      setIsFavoriting(false);
+    }
+  };
+
   // Derived values — declared before early returns so handler closure can access them
   const r            = (data && data.generated_recipe) || {};
   const shopping     = (data && data.shopping_list)    || [];
@@ -170,12 +246,37 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
             </div>
           </div>
         </div>
-        {!aiAvailable && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '0.5rem 0.9rem', borderRadius: '50px', border: '1px solid rgba(245,158,11,0.25)' }}>
-            <AlertCircle size={14} /> AI unavailable — showing fallback
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {!aiAvailable && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '0.5rem 0.9rem', borderRadius: '50px', border: '1px solid rgba(245,158,11,0.25)' }}>
+              <AlertCircle size={14} /> AI unavailable — showing fallback
+            </div>
+          )}
+          <button
+            onClick={handleAddToFavorites}
+            disabled={isFavoriting || isFavorited}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.45rem',
+              padding: '0.5rem 1.1rem', borderRadius: '50px', fontWeight: 700, fontSize: '0.85rem',
+              background: isFavorited ? 'rgba(239,68,68,0.1)' : '#fff',
+              color: isFavorited ? '#ef4444' : 'var(--text-main)',
+              border: `1px solid ${isFavorited ? 'rgba(239,68,68,0.3)' : 'var(--card-border)'}`,
+              cursor: (isFavoriting || isFavorited) ? 'default' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: isFavorited ? 'none' : '0 2px 8px rgba(0,0,0,0.05)',
+            }}
+          >
+            {isFavoriting ? (
+              <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</>
+            ) : isFavorited ? (
+              <><Heart size={16} fill="#ef4444" color="#ef4444" /> Saved to Favorites</>
+            ) : (
+              <><Heart size={16} color="#ef4444" /> Save to Favorites</>
+            )}
+          </button>
+        </div>
       </div>
+      {favoriteError && <p style={{ fontSize: '0.78rem', color: '#ef4444', marginTop: '-1rem', marginBottom: '1rem', fontWeight: 500 }}>{favoriteError}</p>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
 

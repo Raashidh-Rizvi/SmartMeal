@@ -360,15 +360,15 @@
 
 .recommendations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.5rem;
   align-items: start;
 }
 
 .recommendation-card {
   display: flex;
-  flex-direction: column;
-  height: 100%;
+  flex-direction: row;
+  height: auto;
   border: 1px solid var(--card-border);
   border-radius: 20px;
   overflow: hidden;
@@ -378,7 +378,7 @@
 
 .recommendation-card-media {
   position: relative;
-  aspect-ratio: 16 / 9;
+  flex: 0 0 320px;
   overflow: hidden;
   background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1) 0%, rgba(var(--primary-rgb), 0.03) 100%);
 }
@@ -721,6 +721,15 @@
 
   .recommendations-grid {
     grid-template-columns: 1fr;
+  }
+
+  .recommendation-card {
+    flex-direction: column;
+  }
+
+  .recommendation-card-media {
+    flex: 0 0 auto;
+    aspect-ratio: 16 / 9;
   }
 }
 
