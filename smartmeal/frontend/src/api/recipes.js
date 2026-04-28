@@ -90,3 +90,10 @@ export const getFavoriteRecipes = (params = {}) =>
  */
 export const generateAIRecipe = (body = {}) =>
     api.post('/api/recommendations/generate-recipe', body);
+
+/**
+ * Chat with the AI chef about a recipe
+ * @param {Object} body - { messages: [{role, content}], recipe_context: {...} }
+ */
+export const chatAboutRecipe = (body = {}) =>
+    api.post('/api/recommendations/chat', body);

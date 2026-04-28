@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChefHat, ShoppingCart, Lightbulb, AlertCircle, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
+import { ChefHat, ShoppingCart, Lightbulb, AlertCircle, CheckCircle2, Loader2, ExternalLink, Send, MessageSquare } from 'lucide-react';
 import { ShoppingAPI } from '../api/axios';
+import { chatAboutRecipe } from '../api/recipes';
 
 /**
  * AIRecipePanel
@@ -13,6 +14,39 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
   const [addingAll, setAddingAll]       = useState(false);
   const [addedAll, setAddedAll]         = useState(false);
   const [addError, setAddError]         = useState('');
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput]       = useState('');
+  const [chatLoading, setChatLoading]   = useState(false);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleChatSubmit = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+
+    const newMsg = { role: 'user', content: chatInput.trim() };
+    const newHistory = [...chatMessages, newMsg];
+    setChatMessages(newHistory);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const res = await chatAboutRecipe({
+        messages: newHistory,
+        recipe_context: data?.generated_recipe || {}
+      });
+      setChatMessages([...newHistory, { role: 'assistant', content: res.data.reply }]);
+    } catch (err) {
+      setChatMessages([...newHistory, { role: 'assistant', content: 'Oops! I had a problem processing that. Could you try again?' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   // Parse "1 cup moong dal" → { name, quantity, unit }
   const parseShoppingItem = (raw) => {
@@ -268,6 +302,66 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
           </div>
         </section>
       )}
+
+      {/* Chef Chat */}
+      <section style={{ marginTop: '2rem', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--card-border)', borderRadius: '16px', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05))', padding: '1rem 1.25rem', borderBottom: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <MessageSquare size={18} color="var(--primary)" />
+          <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)' }}>Chat with Chef AI</h3>
+        </div>
+        
+        <div style={{ padding: '1.25rem', maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {chatMessages.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '2rem 0' }}>
+              Have questions about this recipe? Want to substitute an ingredient? Ask me anything!
+            </div>
+          ) : (
+            chatMessages.map((msg, i) => (
+              <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                <div style={{ 
+                  background: msg.role === 'user' ? 'linear-gradient(135deg,#10b981,#059669)' : '#fff',
+                  color: msg.role === 'user' ? '#fff' : 'var(--text-main)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  border: msg.role === 'user' ? 'none' : '1px solid var(--card-border)',
+                  boxShadow: msg.role === 'user' ? '0 4px 12px rgba(16,185,129,0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
+                  fontSize: '0.85rem',
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {msg.content}
+                </div>
+              </div>
+            ))
+          )}
+          {chatLoading && (
+            <div style={{ alignSelf: 'flex-start', background: '#fff', padding: '0.75rem 1rem', borderRadius: '18px 18px 18px 4px', border: '1px solid var(--card-border)', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.32s'}}></div>
+              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.16s'}}></div>
+              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both'}}></div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        <form onSubmit={handleChatSubmit} style={{ display: 'flex', padding: '1rem', borderTop: '1px solid var(--card-border)', background: '#fff' }}>
+          <input 
+            type="text" 
+            value={chatInput} 
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Ask about substitutions, cooking times, etc..." 
+            style={{ flex: 1, border: '1px solid var(--card-border)', borderRadius: '50px 0 0 50px', padding: '0.75rem 1.25rem', fontSize: '0.85rem', outline: 'none', background: 'rgba(0,0,0,0.02)' }}
+            disabled={chatLoading}
+          />
+          <button 
+            type="submit" 
+            disabled={chatLoading || !chatInput.trim()}
+            style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '0 50px 50px 0', padding: '0 1.25rem', cursor: chatLoading || !chatInput.trim() ? 'default' : 'pointer', opacity: chatLoading || !chatInput.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+          >
+            <Send size={16} />
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

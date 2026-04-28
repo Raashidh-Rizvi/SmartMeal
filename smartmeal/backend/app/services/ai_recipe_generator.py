@@ -269,3 +269,57 @@ def generate_ai_recipe(
             matched_recipe_names,
             reason=f"Azure OpenAI call failed: {str(e)}",
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chat capabilities
+# ─────────────────────────────────────────────────────────────────────────────
+def chat_about_recipe(messages: List[Dict[str, str]], recipe_context: Dict[str, Any]) -> str:
+    """
+    Continue a conversation about a generated recipe.
+    """
+    client, deployment, init_error = _get_client()
+    if client is None:
+        return "I'm sorry, my AI features are currently offline."
+
+    # Build system prompt with recipe context
+    recipe_name = recipe_context.get("recipe_name", "the recipe")
+    ingredients = recipe_context.get("ingredients", [])
+    instructions = recipe_context.get("instructions", [])
+    
+    ing_str = ", ".join([i.get("item", "") for i in ingredients if isinstance(i, dict)])
+    inst_str = "\n".join([f"- {step}" for step in instructions])
+
+    system_prompt = f"""You are a helpful, professional chef AI assistant.
+The user is currently viewing a recipe you generated called "{recipe_name}".
+
+RECIPE CONTEXT:
+Ingredients: {ing_str}
+Instructions:
+{inst_str}
+
+Answer the user's questions about this recipe, suggest substitutions, or explain cooking techniques.
+Keep your answers concise, friendly, and helpful. Format your responses with plain text or basic markdown (e.g. bolding, lists) as appropriate. Do not return JSON.
+"""
+
+    api_messages = [{"role": "system", "content": system_prompt}]
+    
+    # Append user's conversation history
+    for msg in messages:
+        role = msg.get("role", "user")
+        if role not in ["user", "assistant"]:
+            role = "user"
+        api_messages.append({"role": role, "content": msg.get("content", "")})
+
+    try:
+        response = client.chat.completions.create(
+            model=deployment,
+            messages=api_messages,
+            temperature=0.7,
+            max_tokens=800,
+        )
+        return response.choices[0].message.content or "I'm not sure how to answer that."
+    except Exception as e:
+        logger.error(f"[AIRecipe] Chat completion failed: {e}", exc_info=True)
+        return "I'm sorry, I encountered an error while trying to think of a response."
+
