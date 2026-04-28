@@ -97,3 +97,10 @@ export const generateAIRecipe = (body = {}) =>
  */
 export const chatAboutRecipe = (body = {}) =>
     api.post('/api/recommendations/chat', body);
+
+/**
+ * Chat with the general app assistant
+ * @param {Object} body - { messages: [{role, content}] }
+ */
+export const generalAppChat = (body = {}) =>
+    api.post('/api/recommendations/general-chat', body);

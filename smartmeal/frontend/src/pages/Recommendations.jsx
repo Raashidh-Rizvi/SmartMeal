@@ -1,5 +1,5 @@
-import React, { useContext, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useContext, useRef, useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   createRecipe,
   getRecipes,
@@ -239,19 +239,10 @@ function Recommendations() {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const location = useLocation();
 
-    const pending = normalizeIngredients([inputVal]);
-    const finalIngredients = pending.length > 0
-      ? [...new Set([...ingredients, ...pending])]
-      : ingredients;
-
-    if (pending.length > 0) {
-      setIngredients(finalIngredients);
-      setInputVal('');
-    }
-
+  // Refactored core search logic to allow programmatic invocation
+  const executeSearch = async (finalIngredients, overrides = {}) => {
     if (finalIngredients.length === 0) {
       setErrorMsg('Add at least one ingredient to search for recipes.');
       return;
@@ -265,11 +256,14 @@ function Recommendations() {
     setScheduleForm({});
     setImageFailures({});
 
+    const finalDiet = overrides.diet !== undefined ? overrides.diet : diet;
+    const finalTimeMax = overrides.timeMax !== undefined ? overrides.timeMax : timeMax;
+
     try {
       const response = await searchRecommendations(finalIngredients.join(' '), {
         top_n: topN,
-        diet: diet || undefined,
-        cooking_time_max: timeMax ? parseInt(timeMax, 10) : undefined,
+        diet: finalDiet || undefined,
+        cooking_time_max: finalTimeMax ? parseInt(finalTimeMax, 10) : undefined,
       });
 
       if (!response.data.success) {
@@ -286,6 +280,96 @@ function Recommendations() {
       setLoading(false);
     }
   };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+
+    const pending = normalizeIngredients([inputVal]);
+    const finalIngredients = pending.length > 0
+      ? [...new Set([...ingredients, ...pending])]
+      : ingredients;
+
+    if (pending.length > 0) {
+      setIngredients(finalIngredients);
+      setInputVal('');
+    }
+
+    executeSearch(finalIngredients);
+  };
+
+  // Auto-trigger search if query param 'q' is present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q');
+    if (q && !searched && !loading && ingredients.length === 0) {
+      let remainingQuery = q.toLowerCase();
+      let extractedDiet = '';
+      let extractedTime = '';
+      let extractedCuisine = '';
+      let extractedSpice = '';
+
+      // Extract Diet
+      if (remainingQuery.includes('non-veg')) {
+        extractedDiet = 'non-veg';
+        remainingQuery = remainingQuery.replace('non-veg', '');
+      } else if (remainingQuery.includes('veg') || remainingQuery.includes('vegetarian')) {
+        extractedDiet = 'veg';
+        remainingQuery = remainingQuery.replace('vegetarian', '').replace('veg', '');
+      }
+
+      // Extract Time
+      const timeMatch = remainingQuery.match(/(\d+)\s*(min|minutes|m)/);
+      if (timeMatch) {
+        extractedTime = timeMatch[1];
+        remainingQuery = remainingQuery.replace(timeMatch[0], '');
+      } else if (remainingQuery.includes('quick') || remainingQuery.includes('fast')) {
+        extractedTime = '30';
+        remainingQuery = remainingQuery.replace('quick', '').replace('fast', '');
+      }
+
+      // Extract Cuisine
+      const cuisinesList = ['indian', 'italian', 'chinese', 'mexican', 'american', 'thai', 'japanese', 'mediterranean'];
+      for (const c of cuisinesList) {
+        if (remainingQuery.includes(c)) {
+          extractedCuisine = sentenceCase(c);
+          remainingQuery = remainingQuery.replace(c, '');
+          break;
+        }
+      }
+
+      // Extract Spice
+      const spiceList = ['mild', 'medium', 'spicy', 'hot'];
+      for (const s of spiceList) {
+        if (remainingQuery.includes(s)) {
+          extractedSpice = sentenceCase(s);
+          remainingQuery = remainingQuery.replace(s, '');
+          break;
+        }
+      }
+
+      // Clean up common stop words/meal types so they don't pollute ingredients
+      const stopWords = ['breakfast', 'lunch', 'dinner', 'snack', 'meal', 'recipe', 'for', 'with', 'and', 'make', 'cook'];
+      for (const w of stopWords) {
+        remainingQuery = remainingQuery.replace(new RegExp(`\\b${w}\\b`, 'gi'), '');
+      }
+
+      const items = remainingQuery.split(/\s+/).filter(Boolean);
+      const finalItems = items.length > 0 ? items : ['recipe']; // Provide fallback if everything was filtered
+
+      // Update state so the UI reflects the filters
+      if (extractedDiet) setDiet(extractedDiet);
+      if (extractedTime) setTimeMax(extractedTime);
+      if (extractedCuisine) setCuisine(extractedCuisine);
+      if (extractedSpice) setSpiceLevel(extractedSpice);
+      setIngredients(finalItems);
+
+      // Execute search with overrides since state updates are async
+      executeSearch(finalItems, { diet: extractedDiet, timeMax: extractedTime });
+      
+      // Remove query param to prevent loops
+      navigate('/recommendations', { replace: true });
+    }
+  }, [location.search]);
 
   const handleReset = () => {
     setSearched(false);

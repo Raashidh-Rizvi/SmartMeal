@@ -26,6 +26,7 @@ import {
   Zap,
   UtensilsCrossed
 } from 'lucide-react';
+import GeneralAIChat from '../../components/GeneralAIChat';
 
 /* ─── Premium Design Tokens & Styles ─── */
 const s = {
@@ -277,10 +278,37 @@ function Dashboard() {
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showChat, setShowChat] = useState(false);
+  const [initialQuery, setInitialQuery] = useState('');
 
   const handleSearch = (e) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
-      navigate(`/recipes?search=${encodeURIComponent(searchQuery.trim())}`);
+      const q = searchQuery.trim().toLowerCase();
+      
+      // Heuristic to detect if the user is looking for recipes/meals
+      const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'meal', 'supper'];
+      const recipeKeywords = ['recipe', 'cook', 'make', 'ingredient', 'food', 'dish'];
+      const filterKeywords = ['veg', 'vegetarian', 'non-veg', 'spicy', 'fast', 'quick', 'min', 'minutes', 'chicken', 'beef', 'pork', 'fish', 'pasta', 'rice', 'indian', 'italian', 'chinese', 'mexican'];
+      
+      const hasMealType = mealTypes.some(m => q.includes(m));
+      const hasRecipeKeyword = recipeKeywords.some(k => q.includes(k));
+      const hasFilterKeyword = filterKeywords.some(k => q.includes(k));
+      
+      // If it doesn't look like a natural language question (who, what, where, how, why)
+      const isQuestion = q.includes('how ') || q.includes('what ') || q.includes('why ') || q.includes('where ') || q.includes('who ') || q.includes('can you') || q.includes('help');
+      
+      // Route to recommendations if it's NOT a question, AND (it has meal/recipe/filter keywords OR it's a short phrase)
+      const wordsCount = q.split(/\s+/).length;
+      
+      if (!isQuestion && (hasMealType || hasRecipeKeyword || hasFilterKeyword || wordsCount <= 5)) {
+        // Redirect to recommendations with the query
+        navigate(`/recommendations?q=${encodeURIComponent(searchQuery.trim())}`);
+      } else {
+        // Otherwise, it's a general question for the AI Assistant
+        setInitialQuery(searchQuery.trim());
+        setShowChat(true);
+        setSearchQuery('');
+      }
     }
   };
 
@@ -584,6 +612,14 @@ function Dashboard() {
           />
         </div>
       </div>
+
+      {/* ── AI Assistant Chat Panel ── */}
+      {showChat && (
+        <GeneralAIChat 
+          initialQuery={initialQuery} 
+          onClose={() => setShowChat(false)} 
+        />
+      )}
 
       {/* ── Welcome Header & Quick Stats ── */}
       <div style={s.welcomeRow}>
