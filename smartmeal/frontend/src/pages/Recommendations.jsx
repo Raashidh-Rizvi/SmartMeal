@@ -1,4 +1,5 @@
 import React, { useContext, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   createRecipe,
   getRecipes,
@@ -172,6 +173,7 @@ const buildRecommendationSteps = (recipe) => {
 };
 
 function Recommendations() {
+  const navigate = useNavigate();
   const { user, setUser } = useContext(AuthContext);
   const userId = user?.id || user?._id || '1';
 
@@ -184,6 +186,7 @@ function Recommendations() {
   const [topN, setTopN] = useState(5);
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [navigatingIdx, setNavigatingIdx] = useState(null);
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [expandedIdx, setExpandedIdx] = useState(null);
@@ -386,6 +389,18 @@ function Recommendations() {
     return createdRecipe.data._id || createdRecipe.data.id;
   };
 
+  const handleRecipeClick = async (recipe, idx) => {
+    setNavigatingIdx(idx);
+    try {
+      const recipeId = await resolveRecipeId(recipe);
+      navigate(`/recipes/${recipeId}`);
+    } catch (err) {
+      setErrorMsg('Failed to open recipe details.');
+    } finally {
+      setNavigatingIdx(null);
+    }
+  };
+
   const handleAddToSchedule = async (recipe, idx) => {
     const form = sf(idx);
 
@@ -461,45 +476,28 @@ function Recommendations() {
   return (
     <div className="main-content recommendations-page">
       <section className="recommendations-hero page-hero page-hero--sub">
-        <UtensilsCrossed
-          size={44}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '30%', left: '4%', '--rotation': '-18deg' }}
-        />
-        <ChefHat
-          size={52}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '26%', left: '34%', '--rotation': '12deg', animationDelay: '0.8s' }}
-        />
-        <Flame
-          size={40}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '18%', left: '18%', '--rotation': '20deg', animationDelay: '1.5s' }}
-        />
-        <Leaf
-          size={48}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '28%', right: '6%', '--rotation': '-10deg', animationDelay: '2.3s' }}
-        />
-        <Star
-          size={56}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.04, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }}
-        />
-        <Wand2
-          size={48}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '60%', right: '6%', '--rotation': '30deg', animationDelay: '0.4s' }}
-        />
+        {/* Premium Decorative Background Icons - Scattered Artistically */}
+        <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '5%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <ChefHat size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '75%', left: '25%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '20%', left: '10%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '10%', right: '15%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        
+        <Star size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <Wand2 size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <Sparkles size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '28%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <Lightbulb size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '35%', left: '22%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
-        <div className="recommendations-hero-badge">
-          <Sparkles size={16} />
-          Smart Matching
+        <Wand2 size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div className="recommendations-hero-badge" style={{ margin: '0 auto 1rem auto', display: 'flex', width: 'fit-content' }}>
+            <Sparkles size={16} />
+            Smart Matching
+          </div>
+          <h1 className="recommendations-title" style={{ textAlign: 'center' }}>Recipe Recommendations</h1>
+          <p className="recommendations-subtitle" style={{ textAlign: 'center', margin: '0.5rem auto 0 auto' }}>
+            Enter the ingredients you have, apply a few filters, and let SmartMeal surface the best matching recipes for your next meal.
+          </p>
         </div>
-        <h1 className="recommendations-title">Recipe Recommendations</h1>
-        <p className="recommendations-subtitle">
-          Enter the ingredients you have, apply a few filters, and let SmartMeal surface the best matching recipes for your next meal.
-        </p>
       </section>
 
       <section className="recommendations-search-card card">
@@ -795,7 +793,9 @@ function Recommendations() {
 
                 return (
                   <article key={`${recipe.name}-${idx}`} className="recommendation-card card">
-                    <div className="recommendation-card-media">
+                    <div className="recommendation-card-media"
+                         onClick={() => handleRecipeClick(recipe, idx)}
+                         style={{ cursor: 'pointer', position: 'relative' }}>
                       {recipe.image_url && !imageFailed ? (
                         <img
                           src={getRecipeImageSrc(recipe.image_url)}
@@ -809,11 +809,17 @@ function Recommendations() {
                         </div>
                       )}
 
+                      {navigatingIdx === idx && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, borderRadius: '20px 20px 0 0' }}>
+                          <Sparkles size={24} color="var(--primary)" style={{ animation: 'spin 2s linear infinite' }} />
+                        </div>
+                      )}
+
                       {user && (
                         <button
                           type="button"
                           className={`recommendation-favorite ${isFavorited(recipeId) ? 'is-active' : ''}`}
-                          onClick={() => handleToggleFavorite(recipe, idx)}
+                          onClick={(e) => { e.stopPropagation(); handleToggleFavorite(recipe, idx); }}
                           disabled={form.favoriteLoading}
                         >
                           <Heart size={16} fill={isFavorited(recipeId) ? 'currentColor' : 'none'} />
@@ -824,8 +830,14 @@ function Recommendations() {
 
                     <div className="recommendation-card-body">
                       <div className="recommendation-card-header">
-                        <div className="recommendation-card-heading">
-                          <h3>{recipe.name}</h3>
+                        <div className="recommendation-card-heading"
+                             onClick={() => handleRecipeClick(recipe, idx)}
+                             style={{ cursor: 'pointer' }}>
+                          <h3 style={{ textDecoration: 'none' }}
+                              onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                              onMouseLeave={e => e.target.style.textDecoration = 'none'}>
+                            {recipe.name}
+                          </h3>
                           <p>Why it matches</p>
                         </div>
 

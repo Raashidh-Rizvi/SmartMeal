@@ -38,6 +38,7 @@ import AdminNotifications from './pages/admin/AdminNotifications';
 
 // Recipe Components
 import RecipeManagement from './pages/recipes/RecipeManagement';
+import RecipeDetailsPage from './pages/recipes/RecipeDetailsPage';
 
 // Your Components
 import Leftovers from './pages/Leftovers';
@@ -75,6 +76,7 @@ function App() {
                     <Route path="/add-meal" element={<AddMealPage />} />
                     <Route path="/shoppinglist" element={<ShoppingList />} />
                     <Route path="/recipes" element={<RecipeManagement />} />
+                    <Route path="/recipes/:id" element={<RecipeDetailsPage />} />
                     <Route path="/leftovers" element={<Leftovers />} />
                     <Route path="/budget" element={<BudgetDashboard />} />
                     <Route path="/notifications" element={<Notifications />} />
