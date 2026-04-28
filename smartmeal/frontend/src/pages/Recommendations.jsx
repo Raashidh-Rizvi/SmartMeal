@@ -1,4 +1,5 @@
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useRef, useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   createRecipe,
   getRecipes,
@@ -172,6 +173,7 @@ const buildRecommendationSteps = (recipe) => {
 };
 
 function Recommendations() {
+  const navigate = useNavigate();
   const { user, setUser } = useContext(AuthContext);
   const userId = user?.id || user?._id || '1';
 
@@ -184,12 +186,14 @@ function Recommendations() {
   const [topN, setTopN] = useState(5);
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [navigatingIdx, setNavigatingIdx] = useState(null);
   const [searched, setSearched] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [scheduleForm, setScheduleForm] = useState({});
   const [imageFailures, setImageFailures] = useState({});
   const inputRef = useRef(null);
+  const aiPanelRef = useRef(null);
 
   // ── AI generation state ───────────────────────────────────────────────────
   const [aiData, setAiData]           = useState(null);
@@ -235,19 +239,10 @@ function Recommendations() {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const location = useLocation();
 
-    const pending = normalizeIngredients([inputVal]);
-    const finalIngredients = pending.length > 0
-      ? [...new Set([...ingredients, ...pending])]
-      : ingredients;
-
-    if (pending.length > 0) {
-      setIngredients(finalIngredients);
-      setInputVal('');
-    }
-
+  // Refactored core search logic to allow programmatic invocation
+  const executeSearch = async (finalIngredients, overrides = {}) => {
     if (finalIngredients.length === 0) {
       setErrorMsg('Add at least one ingredient to search for recipes.');
       return;
@@ -261,11 +256,14 @@ function Recommendations() {
     setScheduleForm({});
     setImageFailures({});
 
+    const finalDiet = overrides.diet !== undefined ? overrides.diet : diet;
+    const finalTimeMax = overrides.timeMax !== undefined ? overrides.timeMax : timeMax;
+
     try {
       const response = await searchRecommendations(finalIngredients.join(' '), {
         top_n: topN,
-        diet: diet || undefined,
-        cooking_time_max: timeMax ? parseInt(timeMax, 10) : undefined,
+        diet: finalDiet || undefined,
+        cooking_time_max: finalTimeMax ? parseInt(finalTimeMax, 10) : undefined,
       });
 
       if (!response.data.success) {
@@ -282,6 +280,96 @@ function Recommendations() {
       setLoading(false);
     }
   };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+
+    const pending = normalizeIngredients([inputVal]);
+    const finalIngredients = pending.length > 0
+      ? [...new Set([...ingredients, ...pending])]
+      : ingredients;
+
+    if (pending.length > 0) {
+      setIngredients(finalIngredients);
+      setInputVal('');
+    }
+
+    executeSearch(finalIngredients);
+  };
+
+  // Auto-trigger search if query param 'q' is present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q');
+    if (q && !searched && !loading && ingredients.length === 0) {
+      let remainingQuery = q.toLowerCase();
+      let extractedDiet = '';
+      let extractedTime = '';
+      let extractedCuisine = '';
+      let extractedSpice = '';
+
+      // Extract Diet
+      if (remainingQuery.includes('non-veg')) {
+        extractedDiet = 'non-veg';
+        remainingQuery = remainingQuery.replace('non-veg', '');
+      } else if (remainingQuery.includes('veg') || remainingQuery.includes('vegetarian')) {
+        extractedDiet = 'veg';
+        remainingQuery = remainingQuery.replace('vegetarian', '').replace('veg', '');
+      }
+
+      // Extract Time
+      const timeMatch = remainingQuery.match(/(\d+)\s*(min|minutes|m)/);
+      if (timeMatch) {
+        extractedTime = timeMatch[1];
+        remainingQuery = remainingQuery.replace(timeMatch[0], '');
+      } else if (remainingQuery.includes('quick') || remainingQuery.includes('fast')) {
+        extractedTime = '30';
+        remainingQuery = remainingQuery.replace('quick', '').replace('fast', '');
+      }
+
+      // Extract Cuisine
+      const cuisinesList = ['indian', 'italian', 'chinese', 'mexican', 'american', 'thai', 'japanese', 'mediterranean'];
+      for (const c of cuisinesList) {
+        if (remainingQuery.includes(c)) {
+          extractedCuisine = sentenceCase(c);
+          remainingQuery = remainingQuery.replace(c, '');
+          break;
+        }
+      }
+
+      // Extract Spice
+      const spiceList = ['mild', 'medium', 'spicy', 'hot'];
+      for (const s of spiceList) {
+        if (remainingQuery.includes(s)) {
+          extractedSpice = sentenceCase(s);
+          remainingQuery = remainingQuery.replace(s, '');
+          break;
+        }
+      }
+
+      // Clean up common stop words/meal types so they don't pollute ingredients
+      const stopWords = ['breakfast', 'lunch', 'dinner', 'snack', 'meal', 'recipe', 'for', 'with', 'and', 'make', 'cook'];
+      for (const w of stopWords) {
+        remainingQuery = remainingQuery.replace(new RegExp(`\\b${w}\\b`, 'gi'), '');
+      }
+
+      const items = remainingQuery.split(/\s+/).filter(Boolean);
+      const finalItems = items.length > 0 ? items : ['recipe']; // Provide fallback if everything was filtered
+
+      // Update state so the UI reflects the filters
+      if (extractedDiet) setDiet(extractedDiet);
+      if (extractedTime) setTimeMax(extractedTime);
+      if (extractedCuisine) setCuisine(extractedCuisine);
+      if (extractedSpice) setSpiceLevel(extractedSpice);
+      setIngredients(finalItems);
+
+      // Execute search with overrides since state updates are async
+      executeSearch(finalItems, { diet: extractedDiet, timeMax: extractedTime });
+      
+      // Remove query param to prevent loops
+      navigate('/recommendations', { replace: true });
+    }
+  }, [location.search]);
 
   const handleReset = () => {
     setSearched(false);
@@ -308,6 +396,14 @@ function Recommendations() {
     setAiLoading(true);
     setAiData(null);
     setAiCardIdx(cardIdx);
+
+    // Scroll to the AI recipe panel
+    setTimeout(() => {
+      if (aiPanelRef.current) {
+        aiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+
     try {
       const res = await generateAIRecipe({
         ingredients: ingredients.join(', '),
@@ -375,6 +471,18 @@ function Recommendations() {
     });
 
     return createdRecipe.data._id || createdRecipe.data.id;
+  };
+
+  const handleRecipeClick = async (recipe, idx) => {
+    setNavigatingIdx(idx);
+    try {
+      const recipeId = await resolveRecipeId(recipe);
+      navigate(`/recipes/${recipeId}`);
+    } catch (err) {
+      setErrorMsg('Failed to open recipe details.');
+    } finally {
+      setNavigatingIdx(null);
+    }
   };
 
   const handleAddToSchedule = async (recipe, idx) => {
@@ -452,45 +560,28 @@ function Recommendations() {
   return (
     <div className="main-content recommendations-page">
       <section className="recommendations-hero page-hero page-hero--sub">
-        <UtensilsCrossed
-          size={44}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '30%', left: '4%', '--rotation': '-18deg' }}
-        />
-        <ChefHat
-          size={52}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '26%', left: '34%', '--rotation': '12deg', animationDelay: '0.8s' }}
-        />
-        <Flame
-          size={40}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '18%', left: '18%', '--rotation': '20deg', animationDelay: '1.5s' }}
-        />
-        <Leaf
-          size={48}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '28%', right: '6%', '--rotation': '-10deg', animationDelay: '2.3s' }}
-        />
-        <Star
-          size={56}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.04, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }}
-        />
-        <Wand2
-          size={48}
-          className="hero-sway"
-          style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '60%', right: '6%', '--rotation': '30deg', animationDelay: '0.4s' }}
-        />
+        {/* Premium Decorative Background Icons - Scattered Artistically */}
+        <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '5%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <ChefHat size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '75%', left: '25%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '20%', left: '10%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '10%', right: '15%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        
+        <Star size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <Wand2 size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <Sparkles size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '28%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <Lightbulb size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '35%', left: '22%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
-        <div className="recommendations-hero-badge">
-          <Sparkles size={16} />
-          Smart Matching
+        <Wand2 size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div className="recommendations-hero-badge" style={{ margin: '0 auto 1rem auto', display: 'flex', width: 'fit-content' }}>
+            <Sparkles size={16} />
+            Smart Matching
+          </div>
+          <h1 className="recommendations-title" style={{ textAlign: 'center' }}>Recipe Recommendations</h1>
+          <p className="recommendations-subtitle" style={{ textAlign: 'center', margin: '0.5rem auto 0 auto' }}>
+            Enter the ingredients you have, apply a few filters, and let SmartMeal surface the best matching recipes for your next meal.
+          </p>
         </div>
-        <h1 className="recommendations-title">Recipe Recommendations</h1>
-        <p className="recommendations-subtitle">
-          Enter the ingredients you have, apply a few filters, and let SmartMeal surface the best matching recipes for your next meal.
-        </p>
       </section>
 
       <section className="recommendations-search-card card">
@@ -691,7 +782,7 @@ function Recommendations() {
       )}
 
       {ingredients.length > 0 && !loading && (
-        <div style={{ marginBottom: '2.5rem', animation: 'slideUp 0.4s ease-out' }}>
+        <div ref={aiPanelRef} style={{ marginBottom: '2.5rem', animation: 'slideUp 0.4s ease-out' }}>
           {!aiLoading && !aiData && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
@@ -786,7 +877,9 @@ function Recommendations() {
 
                 return (
                   <article key={`${recipe.name}-${idx}`} className="recommendation-card card">
-                    <div className="recommendation-card-media">
+                    <div className="recommendation-card-media"
+                         onClick={() => handleRecipeClick(recipe, idx)}
+                         style={{ cursor: 'pointer', position: 'relative' }}>
                       {recipe.image_url && !imageFailed ? (
                         <img
                           src={getRecipeImageSrc(recipe.image_url)}
@@ -800,11 +893,17 @@ function Recommendations() {
                         </div>
                       )}
 
+                      {navigatingIdx === idx && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, borderRadius: '20px 20px 0 0' }}>
+                          <Sparkles size={24} color="var(--primary)" style={{ animation: 'spin 2s linear infinite' }} />
+                        </div>
+                      )}
+
                       {user && (
                         <button
                           type="button"
                           className={`recommendation-favorite ${isFavorited(recipeId) ? 'is-active' : ''}`}
-                          onClick={() => handleToggleFavorite(recipe, idx)}
+                          onClick={(e) => { e.stopPropagation(); handleToggleFavorite(recipe, idx); }}
                           disabled={form.favoriteLoading}
                         >
                           <Heart size={16} fill={isFavorited(recipeId) ? 'currentColor' : 'none'} />
@@ -815,8 +914,14 @@ function Recommendations() {
 
                     <div className="recommendation-card-body">
                       <div className="recommendation-card-header">
-                        <div className="recommendation-card-heading">
-                          <h3>{recipe.name}</h3>
+                        <div className="recommendation-card-heading"
+                             onClick={() => handleRecipeClick(recipe, idx)}
+                             style={{ cursor: 'pointer' }}>
+                          <h3 style={{ textDecoration: 'none' }}
+                              onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                              onMouseLeave={e => e.target.style.textDecoration = 'none'}>
+                            {recipe.name}
+                          </h3>
                           <p>Why it matches</p>
                         </div>
 

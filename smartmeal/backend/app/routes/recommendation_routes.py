@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 from app.services.recommendation import recommendRecipes
-from app.services.ai_recipe_generator import generate_ai_recipe, is_ai_available
+from app.services.ai_recipe_generator import generate_ai_recipe, is_ai_available, chat_about_recipe, general_app_chat
 from app.db.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import UserInDB
@@ -27,6 +27,17 @@ class GenerateRecipeRequest(BaseModel):
     expiring_ingredients: Optional[List[str]] = None  # items close to expiry
     cooking_time_max: Optional[int] = None   # minutes
     top_n: int = 5
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class RecipeChatRequest(BaseModel):
+    messages: List[ChatMessage]
+    recipe_context: dict
+
+class GeneralChatRequest(BaseModel):
+    messages: List[ChatMessage]
 
 async def get_optional_user(token: Optional[str] = Query(None)) -> Optional[UserInDB]:
     if not token:
@@ -184,3 +195,39 @@ async def generate_recipe(
         "shopping_list": generated_recipe.get("shopping_list", []),
         "alternatives": generated_recipe.get("alternatives", []),
     }
+
+@router.post("/chat")
+async def chat_recipe(
+    body: RecipeChatRequest,
+    current_user: Optional[UserInDB] = Depends(get_current_user),
+):
+    """
+    Continue a conversation with the AI chef about the currently generated recipe.
+    """
+    messages_dict = [{"role": msg.role, "content": msg.content} for msg in body.messages]
+    
+    reply = chat_about_recipe(
+        messages=messages_dict,
+        recipe_context=body.recipe_context
+    )
+    
+    return {"success": True, "reply": reply}
+
+@router.post("/general-chat")
+async def general_chat(
+    body: GeneralChatRequest,
+    current_user: Optional[UserInDB] = Depends(get_current_user),
+):
+    """
+    General app assistant chat endpoint.
+    """
+    messages_dict = [{"role": msg.role, "content": msg.content} for msg in body.messages]
+    
+    user_context = {"name": current_user.name if current_user else "Chef"}
+    
+    reply = general_app_chat(
+        messages=messages_dict,
+        user_context=user_context
+    )
+    
+    return {"success": True, "reply": reply}

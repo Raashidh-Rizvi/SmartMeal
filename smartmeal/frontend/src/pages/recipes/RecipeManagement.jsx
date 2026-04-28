@@ -10,9 +10,11 @@ import {
     uploadRecipeImage,
     toggleFavoriteRecipe,
     getFavoriteRecipes,
+    generateAIRecipe,
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
+import AIRecipePanel from '../../components/AIRecipePanel';
 import {
     Pencil,
     Trash2,
@@ -28,7 +30,8 @@ import {
     Heart,
     UtensilsCrossed,
     Flame,
-    Leaf
+    Leaf,
+    Sparkles
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -86,6 +89,11 @@ function RecipeManagement() {
     const [imageUploading, setImageUploading] = useState(false);
     const [availableIngredients, setAvailableIngredients] = useState([]);
     const stepTextareaRefs = useRef([]);
+
+    // AI state
+    const [aiData, setAiData] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const aiPanelRef = useRef(null);
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -239,6 +247,8 @@ function RecipeManagement() {
     // ── Open detail ──────────────────────────────────────────────────────────
     const openDetail = async (id) => {
         setError('');
+        setAiData(null);
+        setAiLoading(false);
         try {
             const res = await getRecipeById(id);
             setSelectedRecipe(res.data);
@@ -350,6 +360,33 @@ function RecipeManagement() {
             setFormError(typeof msg === 'string' ? msg : JSON.stringify(msg));
         } finally {
             setImageUploading(false);
+        }
+    };
+
+    // ── Generate AI Recipe ───────────────────────────────────────────────────
+    const handleGenerateAIRecipe = async () => {
+        if (!selectedRecipe) return;
+        setAiLoading(true);
+        setAiData(null);
+        
+        setTimeout(() => {
+            if (aiPanelRef.current) {
+                aiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+
+        try {
+            const ingredientString = selectedRecipe.ingredients.map(i => `${i.quantity} ${i.unit} ${i.name}`).join(', ');
+            const payload = {
+                ingredients: ingredientString,
+                cuisine: selectedRecipe.title,
+            };
+            const res = await generateAIRecipe(payload);
+            setAiData(res.data);
+        } catch (err) {
+            setAiData({ error: true, message: err.response?.data?.detail || 'AI generation failed.' });
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -491,13 +528,18 @@ function RecipeManagement() {
 
             {/* Header */}
             <div className="recipe-page-header page-hero page-hero--sub">
-                {/* Decorative Background Icons - Scattered */}
-                <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '35%', left: '5%', '--rotation': '-18deg' }} />
-                <ChefHat size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '30%', left: '35%', '--rotation': '12deg', animationDelay: '0.8s' }} />
-                <Flame size={44} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '18%', '--rotation': '22deg', animationDelay: '1.5s' }} />
-                <Leaf size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '7%', '--rotation': '-8deg', animationDelay: '2.3s' }} />
+                {/* Premium Decorative Background Icons - Scattered Artistically */}
+                <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '5%', '--rotation': '-15deg', animationDelay: '0s' }} />
+                <ChefHat size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '75%', left: '25%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+                <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '20%', left: '10%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+                <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '10%', right: '15%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+                
+                <BookOpen size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+                <Heart size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+                <Clock size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '28%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+                <Users size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '35%', left: '22%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
 
-                <BookOpen size={48} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+                <BookOpen size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
                 <div className="recipe-page-header-text" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
                     <h1 className="recipe-page-title" style={{ margin: 0 }}>Recipe Repository</h1>
                     <p className="recipe-page-subtitle" style={{ margin: '0.5rem 0 0 0' }}>Browse, search, and manage your recipes</p>
@@ -815,24 +857,43 @@ function RecipeManagement() {
                     </section>
 
                     {/* Action Buttons (Moved to Bottom) */}
-                    {isOwner(selectedRecipe) && (
-                        <div className="recipe-detail-actions-footer">
-                            <button
-                                className="action-edit detail-action-btn"
-                                onClick={() => openEdit(selectedRecipe)}
-                                id="edit-recipe-btn"
-                            >
-                                <Pencil size={18} /> Edit
-                            </button>
-                            <button
-                                className="action-delete detail-action-btn"
-                                onClick={() => handleDelete(selectedRecipe)}
-                                id="delete-recipe-btn"
-                            >
-                                <Trash2 size={18} /> Delete
-                            </button>
-                        </div>
-                    )}
+                    <div className="recipe-detail-actions-footer">
+                        <button
+                            className="action-edit detail-action-btn"
+                            onClick={handleGenerateAIRecipe}
+                            disabled={aiLoading}
+                            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none' }}
+                        >
+                            <Sparkles size={18} /> {aiLoading ? 'Generating...' : 'AI Recipe'}
+                        </button>
+                        {isOwner(selectedRecipe) && (
+                            <>
+                                <button
+                                    className="action-edit detail-action-btn"
+                                    onClick={() => openEdit(selectedRecipe)}
+                                    id="edit-recipe-btn"
+                                >
+                                    <Pencil size={18} /> Edit
+                                </button>
+                                <button
+                                    className="action-delete detail-action-btn"
+                                    onClick={() => handleDelete(selectedRecipe)}
+                                    id="delete-recipe-btn"
+                                >
+                                    <Trash2 size={18} /> Delete
+                                </button>
+                            </>
+                        )}
+                    </div>
+                    
+                    <div ref={aiPanelRef} style={{ marginTop: '2rem' }}>
+                        {(aiLoading || aiData) && (
+                            <AIRecipePanel
+                                data={aiData}
+                                loading={aiLoading}
+                            />
+                        )}
+                    </div>
                 </div>
             )}
 

@@ -8,6 +8,8 @@ Public API
 ----------
 generate_ai_recipe(user_ingredients, matched_recipe_names, preferences) -> dict
 is_ai_available() -> bool
+chat_about_recipe(messages, recipe_context) -> str
+general_app_chat(messages, user_context) -> str
 """
 
 import json
@@ -269,3 +271,126 @@ def generate_ai_recipe(
             matched_recipe_names,
             reason=f"Azure OpenAI call failed: {str(e)}",
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chat capabilities
+# ─────────────────────────────────────────────────────────────────────────────
+def chat_about_recipe(messages: List[Dict[str, str]], recipe_context: Dict[str, Any]) -> str:
+    """
+    Continue a conversation about a generated recipe.
+    """
+    client, deployment, init_error = _get_client()
+    if client is None:
+        return "I'm sorry, my AI features are currently offline."
+
+    # Build system prompt with recipe context
+    recipe_name = recipe_context.get("recipe_name", "the recipe")
+    ingredients = recipe_context.get("ingredients", [])
+    instructions = recipe_context.get("instructions", [])
+    servings = recipe_context.get("servings", "unknown servings")
+    
+    ing_list = []
+    for i in ingredients:
+        if isinstance(i, dict):
+            q = str(i.get("quantity", "")).strip()
+            item = str(i.get("item", "")).strip()
+            ing_list.append(f"- {q} {item}" if q else f"- {item}")
+            
+    ing_str = "\n".join(ing_list)
+    inst_str = "\n".join([f"- {step}" for step in instructions])
+
+    system_prompt = f"""You are a helpful, professional, and friendly chef AI assistant.
+The user is currently viewing a recipe you generated called "{recipe_name}".
+
+RECIPE CONTEXT:
+Original Servings: {servings}
+Ingredients:
+{ing_str}
+Instructions:
+{inst_str}
+
+Answer the user's questions about this recipe, suggest substitutions, or explain cooking techniques.
+Keep your answers concise, highly professional, but very friendly and welcoming. 
+Please sprinkle in relevant emojis to make the conversation engaging and fun!
+
+CRITICAL RULE: Return PLAIN TEXT ONLY (and emojis). DO NOT use any markdown formatting. No asterisks (*), no hashes (#), no dashes (-) for lists, no backticks. Just use regular paragraphs and punctuation.
+"""
+
+    api_messages = [{"role": "system", "content": system_prompt}]
+    
+    # Append user's conversation history
+    for msg in messages:
+        role = msg.get("role", "user")
+        if role not in ["user", "assistant"]:
+            role = "user"
+        api_messages.append({"role": role, "content": msg.get("content", "")})
+
+    try:
+        response = client.chat.completions.create(
+            model=deployment,
+            messages=api_messages,
+            temperature=0.7,
+            max_tokens=800,
+        )
+        return response.choices[0].message.content or "I'm not sure how to answer that."
+    except Exception as e:
+        logger.error(f"[AIRecipe] Chat completion failed: {e}", exc_info=True)
+        return "I'm sorry, I encountered an error while trying to think of a response."
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# General App Chat
+# ─────────────────────────────────────────────────────────────────────────────
+def general_app_chat(messages: List[Dict[str, str]], user_context: Dict[str, Any] = None) -> str:
+    """
+    General AI Assistant that guides users on how to use SmartMeal, navigation, and recipes.
+    """
+    client, deployment, init_error = _get_client()
+    if client is None:
+        return "I'm sorry, my AI features are currently offline."
+
+    user_name = user_context.get("name", "User") if user_context else "User"
+
+    system_prompt = f"""You are the friendly, intelligent AI assistant for the SmartMeal application.
+You are helping {user_name} with their kitchen management.
+
+SmartMeal App Features you should know about:
+- Dashboard: High-level summary of budget, inventory, upcoming meals.
+- Inventory: Tracks ingredients, their quantities, and expiry dates.
+- Budget: Manages weekly grocery spending limits and tracks expenses.
+- Meal Schedule: A calendar to plan breakfast, lunch, dinner, and snacks.
+- Recommendations: Suggests recipes based on what's in the inventory and filters.
+- Shopping List: Automatically adds missing ingredients from planned meals or recipes.
+- Recipe Repository: Where users can save, create, edit, and view recipes.
+- Leftover Tracker: Tracks cooked food or extra portions to reduce waste.
+- Profile: Settings and growth metrics (leveling up as a cook).
+
+When {user_name} asks about how to use the app, where to find something, or general cooking advice, give them a clear, friendly, and concise answer.
+If they ask for a recipe, you can provide a quick recipe right here in the chat, or direct them to the "Recommendations" or "Recipe Repository" page.
+
+Keep your answers highly professional, very friendly, engaging, and use relevant emojis.
+
+CRITICAL RULE: Return PLAIN TEXT ONLY (and emojis). DO NOT use any markdown formatting. No asterisks (*), no hashes (#), no dashes (-) for lists, no backticks. Just use regular paragraphs and punctuation.
+"""
+
+    api_messages = [{"role": "system", "content": system_prompt}]
+    
+    for msg in messages:
+        role = msg.get("role", "user")
+        if role not in ["user", "assistant"]:
+            role = "user"
+        api_messages.append({"role": role, "content": msg.get("content", "")})
+
+    try:
+        response = client.chat.completions.create(
+            model=deployment,
+            messages=api_messages,
+            temperature=0.7,
+            max_tokens=1000,
+        )
+        return response.choices[0].message.content or "I'm not sure how to answer that."
+    except Exception as e:
+        logger.error(f"[AIRecipe] General chat completion failed: {e}", exc_info=True)
+        return "I'm sorry, I encountered an error while processing your request."
+
