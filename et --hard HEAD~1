@@ -1,9 +1,0 @@
-*   [33m926be78[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge branch 'main' of https://github.com/Raashidh-Rizvi/SmartRecipe
-[31m|[m[32m\[m  
-[31m|[m *   [33m9d9d7c9[m Merge pull request #13 from Raashidh-Rizvi/meal_planner
-[31m|[m [33m|[m[34m\[m  
-[31m|[m [33m|[m * [33mdecba50[m[33m ([m[1;31morigin/meal_planner[m[33m)[m integrate meal schedule with inventory, shopping list, recipes, and ingredient tracking
-[31m|[m * [34m|[m   [33m46d7ccf[m Merge pull request #12 from Raashidh-Rizvi/New-Test
-[31m|[m [35m|[m[36m\[m [34m\[m  
-[31m|[m [35m|[m * [34m|[m [33m69c73e0[m[33m ([m[1;31morigin/New-Test[m[33m, [m[1;32mNew-Test[m[33m)[m update MongoDB URI for production environment; remove unused dataset zip file
-[31m|[m [35m|[m[35m/[m [34m/[m  
