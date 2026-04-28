@@ -190,6 +190,7 @@ function Recommendations() {
   const [scheduleForm, setScheduleForm] = useState({});
   const [imageFailures, setImageFailures] = useState({});
   const inputRef = useRef(null);
+  const aiPanelRef = useRef(null);
 
   // ── AI generation state ───────────────────────────────────────────────────
   const [aiData, setAiData]           = useState(null);
@@ -308,6 +309,14 @@ function Recommendations() {
     setAiLoading(true);
     setAiData(null);
     setAiCardIdx(cardIdx);
+
+    // Scroll to the AI recipe panel
+    setTimeout(() => {
+      if (aiPanelRef.current) {
+        aiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+
     try {
       const res = await generateAIRecipe({
         ingredients: ingredients.join(', '),
@@ -691,7 +700,7 @@ function Recommendations() {
       )}
 
       {ingredients.length > 0 && !loading && (
-        <div style={{ marginBottom: '2.5rem', animation: 'slideUp 0.4s ease-out' }}>
+        <div ref={aiPanelRef} style={{ marginBottom: '2.5rem', animation: 'slideUp 0.4s ease-out' }}>
           {!aiLoading && !aiData && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
