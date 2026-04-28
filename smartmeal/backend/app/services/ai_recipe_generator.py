@@ -80,8 +80,7 @@ def _build_prompt(
     pref_block = "\n".join(filter(None, [diet_line, cuisine_line, spice_line, expiry_line]))
     if not pref_block:
         pref_block = "No special preferences."
-
-	return f"""You are a professional chef AI integrated into a smart recipe management application.
+    return f"""You are a professional chef AI integrated into a smart recipe management application.
 
 USER'S CURRENT SEARCH / SELECTED INGREDIENTS:
 {ing_str}
