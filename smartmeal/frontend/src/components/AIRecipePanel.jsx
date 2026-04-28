@@ -19,10 +19,12 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput]       = useState('');
   const [chatLoading, setChatLoading]   = useState(false);
-  const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [chatMessages]);
 
   const handleChatSubmit = async (e) => {
@@ -310,7 +312,7 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
           <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)' }}>Chat with Chef AI</h3>
         </div>
         
-        <div style={{ padding: '1.25rem', maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div ref={chatContainerRef} style={{ padding: '1.25rem', maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {chatMessages.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', padding: '2rem 0' }}>
               Have questions about this recipe? Want to substitute an ingredient? Ask me anything!
@@ -341,7 +343,6 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--primary)',animation:'bounce 1.4s infinite ease-in-out both'}}></div>
             </div>
           )}
-          <div ref={chatEndRef} />
         </div>
 
         <form onSubmit={handleChatSubmit} style={{ display: 'flex', padding: '1rem', borderTop: '1px solid var(--card-border)', background: '#fff' }}>

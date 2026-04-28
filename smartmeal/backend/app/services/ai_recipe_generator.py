@@ -286,15 +286,25 @@ def chat_about_recipe(messages: List[Dict[str, str]], recipe_context: Dict[str, 
     recipe_name = recipe_context.get("recipe_name", "the recipe")
     ingredients = recipe_context.get("ingredients", [])
     instructions = recipe_context.get("instructions", [])
+    servings = recipe_context.get("servings", "unknown servings")
     
-    ing_str = ", ".join([i.get("item", "") for i in ingredients if isinstance(i, dict)])
+    ing_list = []
+    for i in ingredients:
+        if isinstance(i, dict):
+            q = str(i.get("quantity", "")).strip()
+            item = str(i.get("item", "")).strip()
+            ing_list.append(f"- {q} {item}" if q else f"- {item}")
+            
+    ing_str = "\n".join(ing_list)
     inst_str = "\n".join([f"- {step}" for step in instructions])
 
     system_prompt = f"""You are a helpful, professional chef AI assistant.
 The user is currently viewing a recipe you generated called "{recipe_name}".
 
 RECIPE CONTEXT:
-Ingredients: {ing_str}
+Original Servings: {servings}
+Ingredients:
+{ing_str}
 Instructions:
 {inst_str}
 
