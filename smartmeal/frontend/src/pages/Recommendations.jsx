@@ -1,8 +1,9 @@
 import React, { useState, useRef, useContext } from 'react';
-import { searchRecommendations, rateRecipe, getRecipes, createRecipe, toggleFavoriteRecipe } from '../api/recipes';
+import { searchRecommendations, rateRecipe, getRecipes, createRecipe, toggleFavoriteRecipe, generateAIRecipe } from '../api/recipes';
 import { createMeal } from '../services/mealService';
 import { AuthContext } from '../context/AuthContext';
 import { Heart, Star, Sparkles, Zap, Lightbulb, UtensilsCrossed, ChefHat, Flame, Leaf, Wand2 } from 'lucide-react';
+import AIRecipePanel from '../components/AIRecipePanel';
 
 const DIET_OPTIONS = [
   { value: '', label: 'Any Diet' },
@@ -25,6 +26,8 @@ function Recommendations() {
   const [inputVal, setInputVal]       = useState('');
   const [ingredients, setIngredients] = useState([]);
   const [diet, setDiet]               = useState('');
+  const [cuisine, setCuisine]         = useState('');
+  const [spiceLevel, setSpiceLevel]   = useState('');
   const [timeMax, setTimeMax]         = useState('');
   const [topN, setTopN]               = useState(5);
   const [recipes, setRecipes]         = useState([]);
@@ -33,6 +36,11 @@ function Recommendations() {
   const [errorMsg, setErrorMsg]       = useState('');
   const [expandedIdx, setExpandedIdx] = useState(null);
   const inputRef = useRef(null);
+
+  // ── AI generation state ───────────────────────────────────────────────────
+  const [aiData, setAiData]           = useState(null);
+  const [aiLoading, setAiLoading]     = useState(false);
+  const [aiCardIdx, setAiCardIdx]     = useState(null);
 
   // ── per-card schedule state: { [idx]: { open, date, meal_type, status, description, loading, done, error } }
   const [scheduleForm, setScheduleForm] = useState({});
@@ -86,7 +94,35 @@ function Recommendations() {
   const handleReset = () => {
     setSearched(false); setRecipes([]); setIngredients([]);
     setInputVal(''); setErrorMsg(''); setScheduleForm({});
+    setAiData(null); setAiCardIdx(null);
     setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  // ── AI generation handler ─────────────────────────────────────────────────
+  const handleGenerateRecipe = async (recipeNameHint, cardIdx) => {
+    if (ingredients.length === 0) return;
+    setAiLoading(true);
+    setAiData(null);
+    setAiCardIdx(cardIdx);
+    try {
+      const res = await generateAIRecipe({
+        ingredients: ingredients.join(', '),
+        diet: diet || undefined,
+        cuisine: cuisine || recipeNameHint || undefined,
+        spice_level: spiceLevel || undefined,
+        cooking_time_max: timeMax ? parseInt(timeMax) : undefined,
+        top_n: topN,
+      });
+      setAiData(res.data);
+    } catch (err) {
+      setAiData({ error: true, message: err.response?.data?.detail || 'AI generation failed.' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAlternativeClick = (altName) => {
+    handleGenerateRecipe(altName, null);
   };
 
   const handleRating = async (recipeId, rating, idx) => {
@@ -233,15 +269,12 @@ function Recommendations() {
       {/* Header */}
       <div className="page-hero page-hero--sub">
         {/* Premium Decorative Background Icons - Scattered Artistically */}
-        <UtensilsCrossed size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '10%', left: '10%', '--rotation': '-15deg', animationDelay: '0s' }} />
-        <ChefHat size={86} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '30%', left: '5%', '--rotation': '10deg', animationDelay: '1.2s' }} />
-        <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '15%', '--rotation': '25deg', animationDelay: '2.5s' }} />
-        <Leaf size={78} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '25%', right: '10%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
-        
-        {/* <Sparkles size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '60%', right: '8%', '--rotation': '18deg', animationDelay: '3.1s' }} /> */}
-        <Star size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '10%', right: '18%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
-        {/* <Zap size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '40%', right: '25%', '--rotation': '30deg', animationDelay: '4.2s' }} /> */}
-        <Wand2 size={54} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '40%', left: '30%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
+        <UtensilsCrossed size={64} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '25%', left: '8%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <ChefHat size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.04, color: '#10b981', pointerEvents: 'none', top: '65%', left: '4%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Flame size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '20%', left: '12%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <Leaf size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '20%', right: '8%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        <Star size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.04, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <Wand2 size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '60%', right: '6%', '--rotation': '30deg', animationDelay: '0.4s' }} />
 
         <h1 className="premium-gradient-text" style={{ position: 'relative', zIndex: 1, fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800 }}>
           AI Recipe Recommendations
@@ -311,7 +344,7 @@ function Recommendations() {
           </div>
 
           {/* Filters Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', alignItems: 'flex-end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1.25rem', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label>Dietary Preference</label>
               <select value={diet} onChange={e => setDiet(e.target.value)} style={{ borderRadius: '12px' }}>
@@ -319,7 +352,21 @@ function Recommendations() {
               </select>
             </div>
             <div className="form-group" style={{ margin: 0 }}>
-              <label>Max Preparation Time</label>
+              <label>Cuisine</label>
+              <input type="text" value={cuisine} onChange={e => setCuisine(e.target.value)}
+                placeholder="e.g. Indian, Italian" style={{ borderRadius: '12px' }} />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>Spice Level</label>
+              <select value={spiceLevel} onChange={e => setSpiceLevel(e.target.value)} style={{ borderRadius: '12px' }}>
+                <option value="">Any</option>
+                <option value="mild">🟢 Mild</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="hot">🔴 Hot</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>Max Prep Time</label>
               <div style={{ position: 'relative' }}>
                 <input type="number" min="1" value={timeMax} onChange={e => setTimeMax(e.target.value)} placeholder="e.g. 30" style={{ borderRadius: '12px', paddingRight: '3rem' }} />
                 <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>min</span>
@@ -333,13 +380,63 @@ function Recommendations() {
             </div>
             <button type="submit" disabled={loading} className="btn-primary"
               style={{ padding: '1.1rem 2rem', boxShadow: 'var(--shadow-premium)' }}>
-              {loading ? 'Searching…' : '✨ Find Perfect Recipes'}
+              {loading ? 'Searching…' : '✨ Find Recipes'}
             </button>
           </div>
         </form>
       </div>
 
       {loading && <p className="loading">Finding best matches for your ingredients…</p>}
+
+      {/* ── AI Generation CTA + Panel (always visible when ingredients exist) ── */}
+      {ingredients.length > 0 && !loading && (
+        <div style={{ marginBottom: '2.5rem', animation: 'slideUp 0.4s ease-out' }}>
+          {/* CTA Banner */}
+          {!aiLoading && !aiData && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)',
+              border: '1px solid rgba(16,185,129,0.25)',
+              borderRadius: '20px',
+              padding: '1.5rem 2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg,#10b981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(16,185,129,0.35)', flexShrink: 0 }}>
+                  <ChefHat size={24} color="#fff" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-main)' }}>Generate a Full AI Recipe</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>Get step-by-step instructions, missing ingredients &amp; a shopping list powered by Azure AI</div>
+                </div>
+              </div>
+              <button
+                onClick={() => handleGenerateRecipe(ingredients[0], null)}
+                style={{
+                  padding: '0.85rem 2rem', borderRadius: '50px', fontWeight: 800, fontSize: '0.95rem',
+                  background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', border: 'none',
+                  cursor: 'pointer', boxShadow: '0 4px 18px rgba(16,185,129,0.4)', transition: 'all 0.25s',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                ✨ Generate AI Recipe
+              </button>
+            </div>
+          )}
+
+          {/* AI Panel */}
+          <AIRecipePanel
+            data={aiData}
+            loading={aiLoading}
+            onAlternativeClick={handleAlternativeClick}
+          />
+        </div>
+      )}
 
       {/* Results */}
       {searched && !loading && (
@@ -497,6 +594,20 @@ function Recommendations() {
                         className={isExpanded ? 'btn-primary' : 'btn-secondary'}
                         style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '12px' }}>
                         {isExpanded ? '▲ Hide Info' : '🥘 View Ingredients'}
+                      </button>
+
+                      {/* ✨ AI Generate button */}
+                      <button
+                        onClick={() => handleGenerateRecipe(r.name, i)}
+                        disabled={aiLoading && aiCardIdx === i}
+                        style={{
+                          width: 'auto', padding: '0.5rem 1rem', fontSize: '0.85rem', borderRadius: '12px',
+                          background: aiCardIdx === i && (aiLoading || aiData) ? 'var(--primary-gradient)' : 'rgba(var(--primary-rgb),0.08)',
+                          color: aiCardIdx === i && (aiLoading || aiData) ? '#fff' : 'var(--primary)',
+                          border: '1px solid rgba(var(--primary-rgb),0.25)',
+                          fontWeight: 700, cursor: 'pointer', transition: 'all 0.25s'
+                        }}>
+                        {aiLoading && aiCardIdx === i ? '⏳ Generating…' : '✨ AI Recipe'}
                       </button>
 
                       {!form.done ? (

@@ -20,4 +20,10 @@ class Settings:
     EMAILS_FROM_NAME = os.getenv("EMAILS_FROM_NAME", "SmartMeal")
     EMAILS_FROM_EMAIL = os.getenv("EMAILS_FROM_EMAIL", "no-reply@smartmeal.com")
 
+    # Azure OpenAI
+    AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY", "")
+    AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+
 settings = Settings()

@@ -20,15 +20,35 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Add response interceptor to handle 401 errors (token expired/invalid)
+// Track whether we've already triggered a logout redirect to prevent duplicates
+let _isRedirectingToLogin = false;
+
+// Response interceptor — 401 handling
+// Strategy:
+//   • /api/auth/* endpoints returning 401 → always logout (bad credentials)
+//   • All other endpoints returning 401 → reject error, let the component handle it
+//     The user stays logged in. The component shows an inline error message.
+// This prevents the "click Add to Shopping List → gets logged out" bug.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.error('Authentication failed (401). Clearing token and redirecting to login.');
-      localStorage.removeItem('token');
-      // Redirect to login page
-      window.location.href = '/login';
+      const url      = error.config?.url || '';
+      const hasToken = !!localStorage.getItem('token');
+
+      // Only auto-logout for real auth failures on auth endpoints
+      // OR if there's no token at all and we're hitting a protected page load
+      const shouldLogout = url.includes('/api/auth/') && !_isRedirectingToLogin;
+
+      if (shouldLogout) {
+        console.error('[axios] Auth 401 on auth endpoint — logging out.');
+        _isRedirectingToLogin = true;
+        localStorage.removeItem('token');
+        setTimeout(() => { window.location.href = '/login'; }, 100);
+      } else {
+        // Non-auth 401: log for debugging, DO NOT redirect
+        console.warn(`[axios] 401 on ${url} — returning error to caller, NOT logging out.`);
+      }
     }
     return Promise.reject(error);
   }

@@ -83,3 +83,10 @@ export const toggleFavoriteRecipe = (recipeId) =>
  */
 export const getFavoriteRecipes = (params = {}) =>
     api.get('/api/recipes/user/favorites', { params });
+
+/**
+ * Full AI pipeline — TF-IDF match + Azure OpenAI recipe generation
+ * @param {Object} body - { ingredients, diet?, cuisine?, spice_level?, expiring_ingredients?, cooking_time_max?, top_n? }
+ */
+export const generateAIRecipe = (body = {}) =>
+    api.post('/api/recommendations/generate-recipe', body);
