@@ -2,7 +2,12 @@ import asyncio
 import bcrypt
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+from pathlib import Path
 import sys
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.db.database import connect_to_mongo, close_mongo_connection, get_db
 

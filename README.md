@@ -1,18 +1,26 @@
 # SmartMeal
 
-A full-stack meal planning and inventory management app built with **FastAPI + MongoDB** on the backend and **React + Vite** on the frontend. Features JWT authentication, Google Sign-In via Firebase, an admin dashboard, and a user-facing dashboard with inventory, meal planning, shopping lists, and recommendations.
+SmartMeal is a full-stack meal planning and inventory management application built with a FastAPI backend, a React + Vite frontend, and MongoDB.
 
-## Project Structure
+## Repository Structure
 
-```
+```text
+docs/
+|-- architecture/   # Feature and validation notes
+|-- reports/        # Evaluation and report artifacts
+infra/
+|-- docker/         # Docker Compose and local container orchestration files
+|-- railway/        # Railway deployment configuration
 smartmeal/
-├── backend/        # FastAPI server (Python 3.12+)
-└── frontend/       # React app (Vite)
+|-- backend/        # FastAPI service
+|   |-- app/        # Application code
+|   `-- scripts/    # Operational utilities such as data seeding
+`-- frontend/       # React + Vite application
 ```
 
 ## Quick Start
 
-### 1. Backend
+### Backend
 
 ```powershell
 cd smartmeal/backend
@@ -21,10 +29,10 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
-API runs at → `http://127.0.0.1:8001`  
-Swagger docs → `http://127.0.0.1:8001/docs`
+- API root: `http://127.0.0.1:8001`
+- Swagger docs: `http://127.0.0.1:8001/docs`
 
-### 2. Frontend
+### Frontend
 
 ```powershell
 cd smartmeal/frontend
@@ -32,13 +40,13 @@ npm install
 npm run dev
 ```
 
-App runs at → `http://localhost:7001`
+- App URL: `http://localhost:7001`
 
-> Make sure the backend is running on port **8001** before using the app.
+Make sure the backend is running on port `8001` before using the app.
 
 ## Environment
 
-The backend requires a `.env` file at `backend/.env`:
+Create `smartmeal/backend/.env` with values like:
 
 ```env
 MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority
@@ -47,23 +55,25 @@ SECRET_KEY=your-secret-key-change-in-production
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
-> **Atlas tips:**
->
-> - URL-encode special characters in your password (e.g. `P@ss` → `P%40ss`)
-> - Add your machine's IP to **Atlas → Network Access**
+## Deployment and Operations
+
+- Docker Compose: `infra/docker/docker-compose.yml`
+- Railway config: `infra/railway/railway.json`
+- Backend seed script: `smartmeal/backend/scripts/seed_all.py`
+- Project documentation index: `docs/README.md`
 
 ## Tech Stack
 
-| Layer    | Technology                                                        |
-| -------- | ----------------------------------------------------------------- |
-| Backend  | FastAPI, Motor (async MongoDB), Pydantic v2, passlib, python-jose |
-| Database | MongoDB Atlas                                                     |
-| Frontend | React 19, React Router v7, Axios, Firebase Auth                   |
-| Tooling  | Vite 7, ESLint 9                                                  |
+| Layer | Technology |
+| --- | --- |
+| Backend | FastAPI, Motor, Pydantic v2, passlib, python-jose |
+| Database | MongoDB Atlas |
+| Frontend | React 19, React Router v7, Axios, Firebase Auth |
+| Tooling | Vite 7, ESLint 9, Docker Compose |
 
 ## Key Features
 
-- **Auth**: JWT login/register + Google Sign-In (Firebase)
-- **User dashboard**: Inventory tracking, meal planning, shopping lists, recipe recommendations
-- **Admin dashboard**: User management, metrics, inventory overview, notifications
-- **Dark mode**: System-aware theme toggle
+- JWT login/register and Google Sign-In
+- Inventory, meal planning, shopping list, leftovers, and budget workflows
+- Recipe recommendations and AI-assisted recipe experiences
+- Admin dashboard for monitoring and management
