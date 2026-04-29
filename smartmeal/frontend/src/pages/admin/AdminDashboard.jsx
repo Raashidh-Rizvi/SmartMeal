@@ -147,6 +147,8 @@ function AdminDashboard() {
     },
     scales: {
       y: { 
+        min: 0,
+        suggestedMax: 5,
         border: { display: false },
         grid: { color: 'rgba(0, 0, 0, 0.06)', drawBorder: false }, 
         ticks: { 

@@ -13,6 +13,7 @@ import Register from './pages/authentication/Register';
 import ForgotPassword from './pages/authentication/ForgotPassword';
 import ResetPassword from './pages/authentication/ResetPassword';
 import Dashboard from './pages/users/Dashboard';
+import { AuthContext } from './context/AuthContext';
 import Profile from './pages/users/Profile';
 import ChangePassword from './pages/users/ChangePassword';
 import DeleteAccount from './pages/users/DeleteAccount';
@@ -44,6 +45,14 @@ import RecipeDetailsPage from './pages/recipes/RecipeDetailsPage';
 import Leftovers from './pages/Leftovers';
 import BudgetDashboard from './components/BudgetDashboard';
 import Notifications from './pages/Notifications';
+import { useContext } from 'react';
+
+const RootRedirect = () => {
+  const { user, loading } = useContext(AuthContext);
+  if (loading) return null;
+  if (user && user.role === 'ADMIN') return <Navigate to="/admin" replace />;
+  return <Navigate to="/dashboard" replace />;
+};
 
 function App() {
   return (
@@ -56,7 +65,7 @@ function App() {
             <div className="content-layout">
               <main className="main-content">
                 <Routes>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/" element={<RootRedirect />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />

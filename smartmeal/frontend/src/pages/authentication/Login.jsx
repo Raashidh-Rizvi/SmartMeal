@@ -15,8 +15,12 @@ function Login() {
   const handleGoogleLogin = async () => {
     try {
       setError('');
-      await loginWithGoogle();
-      navigate('/');
+      const data = await loginWithGoogle();
+      if (data?.user?.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch {
       setError('Google Sign-In failed. Please try again.');
     }
@@ -38,7 +42,11 @@ function Login() {
       
       const { accessToken, user } = response.data;
       login(user, accessToken);
-      navigate('/');
+      if (user?.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid email or password');
     }

