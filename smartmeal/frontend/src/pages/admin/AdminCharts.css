@@ -182,10 +182,14 @@
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--card-border);
-  padding: 2.5rem;
+  padding: 2rem;
   border-radius: 28px;
   box-shadow: var(--shadow-md);
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 480px;
 }
 
 .chart-container:hover {
@@ -240,15 +244,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 220px;
+  flex: 1;
+  min-height: 280px;
   gap: 0.5rem;
   color: var(--text-muted);
   text-align: center;
   background: rgba(148, 163, 184, 0.05);
-  border-radius: 16px;
-  border: 1.5px dashed rgba(148, 163, 184, 0.25);
+  border-radius: 20px;
+  border: 2px dashed rgba(148, 163, 184, 0.15);
   padding: 2rem;
+  margin-top: 1rem;
 }
 
 .empty-chart-state p {
