@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -27,10 +27,6 @@ class IngredientResponse(IngredientBase):
     createdAt: datetime
     updatedAt: datetime
 
-from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
-
 class InventoryItemBase(BaseModel):
     userId: str
     name: str
@@ -47,6 +43,16 @@ class InventoryItemCreate(BaseModel):
     expiryDate: Optional[datetime] = None
     notes: Optional[str] = None
 
+    @field_validator('expiryDate')
+    @classmethod
+    def expiry_not_past(cls, v):
+        if v is not None:
+            now = datetime.now(v.tzinfo) if v.tzinfo else datetime.now()
+            today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            if v < today:
+                raise ValueError('Expiry date cannot be in the past')
+        return v
+
 class InventoryItemUpdate(BaseModel):
     name: Optional[str] = None
     quantity: Optional[float] = None
@@ -54,6 +60,16 @@ class InventoryItemUpdate(BaseModel):
     category: Optional[str] = None
     expiryDate: Optional[datetime] = None
     notes: Optional[str] = None
+
+    @field_validator('expiryDate')
+    @classmethod
+    def expiry_not_past(cls, v):
+        if v is not None:
+            now = datetime.now(v.tzinfo) if v.tzinfo else datetime.now()
+            today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            if v < today:
+                raise ValueError('Expiry date cannot be in the past')
+        return v
 
 class InventoryItemInDB(InventoryItemBase):
     id: Optional[str] = Field(alias="_id", default=None)
