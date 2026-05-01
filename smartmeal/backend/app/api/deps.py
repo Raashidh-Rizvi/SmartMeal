@@ -1,31 +1,71 @@
-import logging
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Depends, HTTPException, status
+from typing import Optional
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from app.core.config import settings
-from app.core.security import decode_access_token
-from typing import Optional
+from app.models.user import TokenData, UserInDB
+from app.db.database import get_db
 
-reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl="/api/auth/login"
-)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
-# Robust dependency to get user ID from token
-async def get_current_user_id(authorization: Optional[str] = Header(None)) -> str:
-    # 1. Try to get token from Authorization header if present
-    token = None
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization.split(" ")[1]
-    
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     if not token:
-        # Fallback for unauthenticated dev use (can be disabled in production)
-        return "1"
-        
-    user_id = decode_access_token(token)
-    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return user_id
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        token_data = TokenData(email=email)
+    except JWTError:
+        raise credentials_exception
+        
+    db = get_db()
+    user_dict = await db["users"].find_one({"email": {"$regex": f"^{token_data.email}$", "$options": "i"}})
+    if user_dict is None:
+        raise credentials_exception
+        
+    user_dict["_id"] = str(user_dict["_id"])
+    return UserInDB(**user_dict)
+
+async def get_current_user_optional(token: Optional[str] = Depends(oauth2_scheme)) -> Optional[UserInDB]:
+    """Optional version of get_current_user that doesn't raise if token is missing."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return None
+        token_data = TokenData(email=email)
+    except JWTError:
+        return None
+        
+    db = get_db()
+    user_dict = await db["users"].find_one({"email": {"$regex": f"^{token_data.email}$", "$options": "i"}})
+    if user_dict is None:
+        return None
+        
+    user_dict["_id"] = str(user_dict["_id"])
+    return UserInDB(**user_dict)
+
+async def get_current_user_id(current_user: UserInDB = Depends(get_current_user)) -> str:
+    """Helper dependency to get just the user ID string."""
+    return str(current_user.id)
+
+async def require_admin(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
+    if current_user.role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
+    return current_user

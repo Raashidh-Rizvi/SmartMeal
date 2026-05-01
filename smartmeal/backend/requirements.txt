@@ -8,3 +8,8 @@ python-jose[cryptography]
 python-dotenv
 python-multipart
 certifi
+pandas
+numpy
+scikit-learn
+deep-translator
+openai

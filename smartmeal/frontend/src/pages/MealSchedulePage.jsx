@@ -1,15 +1,55 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useContext } from "react";
 import { useLocation } from "react-router-dom";
-import { getMeals, createMeal, updateMeal, deleteMeal, getMealIngredients, useIngredients } from "../services/mealService";
+import { getMeals, createMeal, updateMeal, deleteMeal, getMealIngredients, useIngredients as mealUseIngredients } from "../services/mealService";
 import { getRecipes } from "../api/recipes";
+import { AuthContext } from "../context/AuthContext";
 import ShoppingAPI from "../services/shoppingApi";
 import api from "../api/axios";
+import { 
+  Sun, 
+  Utensils, 
+  Moon, 
+  Cookie, 
+  Circle, 
+  AlertTriangle, 
+  CheckCircle, 
+  ShoppingCart, 
+  CookingPot, 
+  Check, 
+  X, 
+  BookOpen, 
+  ChefHat, 
+  Eye, 
+  Pencil, 
+  Trash2, 
+  Plus, 
+  Calendar, 
+  ChevronLeft, 
+  ChevronRight,
+  ChevronDown,
+  Info,
+  Clock,
+  LayoutList,
+  CalendarDays,
+  CalendarRange,
+  PlusCircle,
+  RefreshCw,
+  UtensilsCrossed,
+  Flame,
+  Leaf,
+  Timer
+} from "lucide-react";
 import "../styles/MealSchedule.css";
 
 const MEAL_TYPES  = ["breakfast", "lunch", "dinner", "snack"];
-const STATUS_OPTS = ["planned", "pending", "ready", "bought", "cooking", "completed", "skipped"];
+const STATUS_OPTS = ["planned", "completed", "skipped"];
 const EMPTY_FORM  = { meal_date: "", meal_type: "", recipe_id: "", status: "planned", description: "" };
-const ICONS = { breakfast: "🌅", lunch: "🍽️", dinner: "🌙", snack: "🎉" };
+const ICONS = { 
+    breakfast: <Sun size={18} color="#f59e0b" />, 
+    lunch: <Utensils size={18} color="#10b981" />, 
+    dinner: <Moon size={18} color="#6366f1" />, 
+    snack: <Cookie size={18} color="#8b5cf6" /> 
+};
 const round2 = v => Math.round((v ?? 0) * 100) / 100;
 
 
@@ -31,8 +71,14 @@ function Toast({ toasts, remove }) {
 function ConfirmModal({ message, onConfirm, onCancel }) {
     return (
         <div className="ms-overlay" onClick={onCancel}>
-            <div className="ms-modal" onClick={e => e.stopPropagation()}>
-                <p>{message}</p>
+            <div className="ms-modal ms-modal-small" onClick={e => e.stopPropagation()}>
+                <div className="ms-modal-header">
+                    <h3>🗑️ Delete Meal</h3>
+                    <button className="ms-modal-close" onClick={onCancel}>✕</button>
+                </div>
+                <div className="ms-modal-body">
+                    <p>{message}</p>
+                </div>
                 <div className="ms-modal-actions">
                     <button className="ms-btn ms-btn-secondary" onClick={onCancel}>Cancel</button>
                     <button className="ms-btn ms-btn-danger" onClick={onConfirm}>Delete</button>
@@ -69,112 +115,133 @@ function Tooltip({ text, children }) {
 // ✓✓ Status Badge ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 function StatusBadge({ status }) {
     const map = {
-        planned:   { color: "#3b82f6", label: "🔵 Planned" },
-        pending:   { color: "#f59e0b", label: "⚠️ Pending" },
-        ready:     { color: "#10b981", label: "🟢 Ready" },
-        bought:    { color: "#8b5cf6", label: "🛒 Bought" },
-        cooking:   { color: "#f97316", label: "🍳 Cooking" },
-        completed: { color: "#16a34a", label: "✅ Completed" },
-        skipped:   { color: "#ef4444", label: "❌ Skipped" },
+        planned:   { color: "#3b82f6", label: "Planned", icon: <Circle size={12} fill="#3b82f6" /> },
+        pending:   { color: "#f59e0b", label: "Pending", icon: <AlertTriangle size={12} /> },
+        ready:     { color: "#10b981", label: "Ready", icon: <CheckCircle size={12} /> },
+        bought:    { color: "#8b5cf6", label: "Bought", icon: <ShoppingCart size={12} /> },
+        cooking:   { color: "#f97316", label: "Cooking", icon: <CookingPot size={12} /> },
+        completed: { color: "#16a34a", label: "Completed", icon: <Check size={12} /> },
+        skipped:   { color: "#ef4444", label: "Skipped", icon: <X size={12} /> },
     };
     const s = map[status] || map.planned;
-    return <span className="ms-badge" style={{ background: s.color }}>{s.label}</span>;
+    return (
+        <span className="ms-badge" style={{ background: s.color, display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
+            {s.icon} {s.label}
+        </span>
+    );
 }
 // ✓✓ 📖 Recipe Details Modal ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
-function RecipeDetailsModal({ meal, recipe, onClose, ingredients, addedIng }) {
-    if (!recipe) {
-        return (
-            <div className="ms-overlay" onClick={onClose}>
-                <div className="ms-modal ms-modal-large" onClick={e => e.stopPropagation()}>
-                    <div className="ms-modal-header">
-                        <h3>📖 Recipe Details</h3>
-                        <button className="ms-modal-close" onClick={onClose}></button>
-                    </div>
-                    <div className="ms-modal-body">
-                        <p>Recipe details not available.</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
+function RecipeDetailsModal({ meal, recipe, onClose, ingredients, addedIng, addingIng, onAddToShopping }) {
+    const ings = ingredients?.[meal?._id] || [];
     return (
         <div className="ms-overlay" onClick={onClose}>
             <div className="ms-modal ms-modal-large" onClick={e => e.stopPropagation()}>
                 <div className="ms-modal-header">
-                    <h3>📖 {recipe.title}</h3>
+                    <h3>📖 {recipe?.title || "Recipe Details"}</h3>
                     <button className="ms-modal-close" onClick={onClose}>✕</button>
                 </div>
-                <div className="ms-modal-body">
-                    {recipe.description && <p className="ms-recipe-desc"><em>{recipe.description}</em></p>}
-                    
-                    <div className="ms-detail-grid">
-                        <div><strong>Category:</strong> {recipe.category}</div>
-                        <div><strong>Cook Time:</strong> {recipe.estimated_cooking_time ? `${recipe.estimated_cooking_time} min` : "N/A"}</div>
-                        <div><strong>Tags:</strong> {recipe.dietary_tags?.join(", ") || "None"}</div>
-                        {meal.total_calories_estimate && (
-                            <div><strong>Est. Calories:</strong> {meal.total_calories_estimate} kcal</div>
+                {!recipe ? (
+                    <div className="ms-modal-body"><p className="ms-muted">Recipe details not available.</p></div>
+                ) : (
+                    <div className="ms-modal-body">
+                        {recipe.image_url && (
+                            <img src={recipe.image_url} alt={recipe.title}
+                                style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 10, marginBottom: "1rem" }} />
                         )}
-                    </div>
-
-                    <div className="ms-detail-sections">
-                        {/* 🥘 Ingredients */}
-                        <div className="ms-detail-section">
-                            <h4 className="ms-section-title">🥘 Ingredients</h4>
-                            {recipe.ingredients?.length > 0 ? (
-                                <ul className="ms-ing-list">
-                                    {recipe.ingredients.map((ing, i) => (
-                                        <li key={i}>
-                                            <span className="ms-ing-qty">{ing.quantity} {ing.unit}</span>
-                                            <span className="ms-ing-name">{ing.name}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : <p className="ms-muted">No ingredients listed.</p>}
+                        {recipe.description && <p className="ms-recipe-desc"><em>{recipe.description}</em></p>}
+                        <div className="ms-rdm-meta">
+                            <span className="ms-rdm-chip ms-rdm-chip-cat">🍽️ {recipe.category?.charAt(0).toUpperCase() + recipe.category?.slice(1)}</span>
+                            {recipe.estimated_cooking_time && <span className="ms-rdm-chip ms-rdm-chip-time">⏱️ {recipe.estimated_cooking_time} min</span>}
+                            {meal?.total_calories_estimate && <span className="ms-rdm-chip ms-rdm-chip-cal">🔥 {meal.total_calories_estimate} kcal</span>}
+                            {recipe.average_rating != null && <span className="ms-rdm-chip ms-rdm-chip-rating">⭐ {recipe.average_rating.toFixed(1)}</span>}
                         </div>
-
-                        {/* 👨‍🍳 Preparation Steps */}
-                        <div className="ms-detail-section">
-                            <h4 className="ms-section-title">👨‍🍳 Preparation Steps</h4>
-                            {recipe.preparation_steps?.length > 0 ? (
-                                <ol className="ms-steps-list">
-                                    {recipe.preparation_steps.map((step, i) => (
-                                        <li key={i} className="ms-step-item">{step}</li>
-                                    ))}
-                                </ol>
-                            ) : <p className="ms-muted">No preparation steps listed.</p>}
-                        </div>
-                    </div>
-
-                    {(() => {
-                        const ings = ingredients?.[meal._id];
-                        const activeWarnings = meal.warnings?.filter(w => {
-                            if (!ings) return true;
-                            // hide warning if the ingredient was added to shopping list
-                            return !ings.some(ing =>
-                                w.toLowerCase().includes(ing.name.toLowerCase()) &&
-                                (ing.addedToList || addedIng?.[`${meal._id}_${ing.name}`])
-                            );
-                        });
-                        return activeWarnings?.length > 0 ? (
-                            <div className="ms-warn-list">
-                                <strong>⚠️ Inventory Warnings:</strong>
-                                <ul>{activeWarnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+                        {recipe.dietary_tags?.length > 0 && (
+                            <div className="ms-rdm-tags">
+                                {recipe.dietary_tags.map(tag => <span key={tag} className="ms-rdm-tag">🏷️ {tag}</span>)}
                             </div>
-                        ) : null;
-                    })()}
-                </div>
+                        )}
+                        <div className="ms-detail-sections">
+                            <div className="ms-detail-section">
+                                <h4 className="ms-section-title">🥘 Ingredients</h4>
+                                {ings.length > 0 ? (
+                                    <ul className="ms-ing-list" style={{ gap: ".5rem" }}>
+                                        {ings.map((ing, i) => {
+                                            const key = `${ing.meal_id}_${ing.name}`;
+                                            const isAdded = ing.addedToList || addedIng?.[key];
+                                            const isMissing = ing.missing && !isAdded;
+                                            return (
+                                                <li key={i} className={`ms-ing-row ${isMissing ? "ms-ing-row-missing" : isAdded ? "ms-ing-row-added" : "ms-ing-row-ok"}`}>
+                                                    <div className="ms-ing-left">
+                                                        <span className="ms-ing-qty">{ing.quantity} {ing.unit}</span>
+                                                        <span className="ms-ing-name">{ing.name}</span>
+                                                        {isMissing && ing.missing_quantity < ing.quantity && (
+                                                            <span className="ms-ing-have">(have {round2(ing.inventory_quantity)} {ing.unit})</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="ms-ing-right">
+                                                        {isMissing && (
+                                                            <>
+                                                                <span className="ms-ing-badge ms-ing-badge-missing">⚠️ Need {round2(ing.missing_quantity)} {ing.unit}</span>
+                                                                {onAddToShopping && (
+                                                                    <button className="ms-btn ms-btn-sm ms-btn-shopping"
+                                                                        disabled={addingIng?.[key]}
+                                                                        onClick={() => onAddToShopping(ing)}>
+                                                                        {addingIng?.[key] ? "⏳" : "✚ Add"}
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                        {isAdded && <span className="ms-ing-badge ms-ing-badge-added">✓ In Shopping List</span>}
+                                                        {!isMissing && !isAdded && <span className="ms-ing-badge ms-ing-badge-ok">✓ Available</span>}
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                ) : recipe.ingredients?.length > 0 ? (
+                                    <ul className="ms-ing-list">
+                                        {recipe.ingredients.map((ing, i) => (
+                                            <li key={i} className="ms-ing-row ms-ing-row-ok">
+                                                <div className="ms-ing-left">
+                                                    <span className="ms-ing-qty">{ing.quantity} {ing.unit}</span>
+                                                    <span className="ms-ing-name">{ing.name}</span>
+                                                </div>
+                                                <div className="ms-ing-right">
+                                                    <span className="ms-ing-badge ms-ing-badge-ok">✓ Available</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : <p className="ms-muted">No ingredients listed.</p>}
+                            </div>
+                            <div className="ms-detail-section">
+                                <h4 className="ms-section-title">👨🍳 Preparation Steps</h4>
+                                {recipe.preparation_steps?.length > 0 ? (
+                                    <ol className="ms-steps-list">
+                                        {recipe.preparation_steps.map((step, i) => (
+                                            <li key={i} className="ms-step-item">{step}</li>
+                                        ))}
+                                    </ol>
+                                ) : <p className="ms-muted">No preparation steps listed.</p>}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
-// ✓✓ Meal Alert Badge ✓ shared helper ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 function MealAlertBadge({ meal, ingredients }) {
     const ings = ingredients[meal._id];
-    const unresolved = ings ? ings.filter(i => i.missing).length : (meal.warnings?.length || 0);
-    if (unresolved > 0) return <span className="ms-cal-warn">⚠️ {unresolved} missing</span>;
-    if (ings) return <span className="ms-cal-ok">✅ OK</span>;
-    return null;
+    if (ings) {
+        const unresolved = ings.filter(i => i.missing).length;
+        if (unresolved > 0) return <span className="ms-cal-warn">⚠️ {unresolved} missing</span>;
+        return <span className="ms-cal-ok">✅ OK</span>;
+    }
+    // not loaded yet — use DB warnings_snapshot
+    const dbWarnings = meal.warnings || [];
+    if (dbWarnings.length > 0) return <span className="ms-cal-warn">⚠️ {dbWarnings.length} missing</span>;
+    return <span className="ms-cal-ok">✅ OK</span>;
 }
 
 // ✓✓ Ingredient Popover ✓ shared inline ingredient list ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
@@ -183,7 +250,9 @@ function IngredientPopover({ meal, ingredients, addingIng, addedIng, onAddToShop
     if (!ings || ings.length === 0) return null;
     return (
         <div className="ms-ing-popover">
-            <p className="ms-ing-popover-title"> 🥘 Ingredients</p>
+            <p className="ms-ing-popover-title" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <Utensils size={14} /> Ingredients
+            </p>
             {ings.map(ing => {
                 const key = `${ing.meal_id}_${ing.name}`;
                 const isAdded = ing.addedToList || addedIng[key];
@@ -197,11 +266,11 @@ function IngredientPopover({ meal, ingredients, addingIng, addedIng, onAddToShop
                                 disabled={addingIng[key]}
                                 onClick={() => onAddToShopping(ing)}
                             >
-                                {addingIng[key] ? "⏳" : "➕ Add"}
+                                {addingIng[key] ? <Clock size={12} className="spinner" /> : <Plus size={12} />} Add
                             </button>
                         )}
-                        {isAdded && <span className="ms-ing-badge ms-ing-badge-added">✅ Added</span>}
-                        {!isMissing && !isAdded && <span className="ms-ing-badge ms-ing-badge-ok">✅</span>}
+                        {isAdded && <span className="ms-ing-badge ms-ing-badge-added" style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem" }}><Check size={10} /> Added</span>}
+                        {!isMissing && !isAdded && <span className="ms-ing-badge ms-ing-badge-ok"><Check size={10} /></span>}
                     </div>
                 );
             })}
@@ -219,9 +288,11 @@ function DailyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, i
     return (
         <div className="ms-card">
             <div className="ms-view-header">
-                <h2>📅 Daily View</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <CalendarDays size={20} /> Daily View
+                </h2>
                 <input type="date" className="ms-input" style={{ maxWidth: 180 }}
-                    value={date} onChange={e => setDate(e.target.value)} />
+                    value={date} onChange={e => setDate(e.target.value)} min={today} />
             </div>
             <div className="ms-cal-slots">
                 {MEAL_TYPES.map(type => {
@@ -242,28 +313,31 @@ function DailyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, i
                                         <IngredientPopover meal={meal} ingredients={ingredients} addingIng={addingIng} addedIng={addedIng} onAddToShopping={onAddToShopping} />
                                         <div className="ms-cal-actions">
                                             {(() => {
-                                                const missingIngs = (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList);
+                                                const missingIngs = (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`]));
                                                 return missingIngs.length > 0 ? (
                                                     <button
                                                         className="ms-btn ms-btn-sm ms-btn-shopping"
                                                         disabled={missingIngs.some(i => addingIng[`${i.meal_id}_${i.name}`])}
                                                         onClick={() => missingIngs.forEach(i => onAddToShopping(i))}
+                                                        style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                                                     >
-                                                        ✓ Add to Shopping List
+                                                        <ShoppingCart size={14} /> Add to Shopping List
                                                     </button>
                                                 ) : null;
                                             })()}
-                                            <button className="ms-btn ms-btn-sm ms-btn-info" onClick={() => onViewRecipe(meal)}>👁️ View</button>
-                                            <button className="ms-btn ms-btn-sm ms-btn-edit" onClick={() => onEdit(meal)}>✏️ Edit</button>
-                                            <button className="ms-btn ms-btn-sm ms-btn-danger" onClick={() => onDelete(meal._id)}>🗑️</button>
+                                            <button className="ms-btn ms-btn-sm ms-btn-info" onClick={() => onViewRecipe(meal)} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}><Eye size={14} /> View</button>
+                                            <button className="ms-btn ms-btn-sm ms-btn-edit" onClick={() => onEdit(meal)} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}><Pencil size={14} /> Edit</button>
+                                            <button className="ms-btn ms-btn-sm ms-btn-danger" onClick={() => onDelete(meal._id)} style={{ display: "inline-flex", alignItems: "center" }}><Trash2 size={14} /></button>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="ms-cal-empty-body">
                                         <p className="ms-cal-no-meal">No {type} planned</p>
-                                        <button className="ms-btn ms-btn-sm ms-btn-primary" onClick={() => onAdd(date, type)}>
-                                            + Add {type.charAt(0).toUpperCase() + type.slice(1)}
-                                        </button>
+                                        {date >= today && (
+                                            <button className="ms-btn ms-btn-sm ms-btn-primary" onClick={() => onAdd(date, type)}>
+                                                + Add {type.charAt(0).toUpperCase() + type.slice(1)}
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -298,13 +372,15 @@ function WeeklyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, 
     return (
         <div className="ms-card">
             <div className="ms-view-header">
-                <h2>📋 Weekly View</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <CalendarRange size={20} /> Weekly View
+                </h2>
                 <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={prevWeek}>◀ Prev</button>
+                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={prevWeek} style={{ display: "inline-flex", alignItems: "center" }}><ChevronLeft size={16} /></button>
                     <span style={{ fontSize: ".88rem", fontWeight: 600, color: "#374151" }}>
                         {fmt(days[0])} — {fmt(days[6])}
                     </span>
-                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={nextWeek}>Next ▶</button>
+                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={nextWeek} style={{ display: "inline-flex", alignItems: "center" }}><ChevronRight size={16} /></button>
                 </div>
             </div>
             <div className="ms-week-grid">
@@ -320,7 +396,7 @@ function WeeklyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, 
                             <div className="ms-week-day-body">
                                 {MEAL_TYPES.map(type => {
                                     const meal = dayMeals.find(m => m.meal_type === type);
-                                    const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList) : [];
+                                    const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`])) : [];
                                     return meal ? (
                                         <div key={type} className={`ms-week-meal-card ms-week-meal-card-${type}`}>
                                             <div className="ms-week-meal-top">
@@ -336,17 +412,18 @@ function WeeklyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, 
                                                         disabled={missingIngs.some(i => addingIng[`${i.meal_id}_${i.name}`])}
                                                         onClick={() => missingIngs.forEach(i => onAddToShopping(i))}
                                                         title="Add missing to Shopping List"
-                                                    >🛒 Shopping</button>
+                                                        style={{ display: "inline-flex", alignItems: "center" }}
+                                                    ><ShoppingCart size={14} /></button>
                                                 )}
-                                                <button className="ms-week-action-btn ms-week-action-view" onClick={() => onViewRecipe(meal)} title="View Recipe">👁️ View</button>
-                                                <button className="ms-week-action-btn ms-week-action-edit" onClick={() => onEdit(meal)} title="Edit">✏️ Edit</button>
-                                                <button className="ms-week-action-btn ms-week-action-delete" onClick={() => onDelete(meal._id)} title="Delete">🗑️ Delete</button>
+                                                <button className="ms-week-action-btn ms-week-action-view" onClick={() => onViewRecipe(meal)} title="View Recipe" style={{ display: "inline-flex", alignItems: "center" }}><Eye size={14} /></button>
+                                                <button className="ms-week-action-btn ms-week-action-edit" onClick={() => onEdit(meal)} title="Edit" style={{ display: "inline-flex", alignItems: "center" }}><Pencil size={14} /></button>
+                                                <button className="ms-week-action-btn ms-week-action-delete" onClick={() => onDelete(meal._id)} title="Delete" style={{ display: "inline-flex", alignItems: "center" }}><Trash2 size={14} /></button>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div key={type} className="ms-week-empty-slot" onClick={() => onAdd(day, type)}>
+                                        <div key={type} className={`ms-week-empty-slot ${day < today ? "ms-week-empty-slot-disabled" : ""}`} onClick={day >= today ? () => onAdd(day, type) : undefined}>
                                             <span>{ICONS[type]}</span>
-                                            <span className="ms-week-empty-label">+ {type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                                            <span className="ms-week-empty-label" style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem" }}><Plus size={10} /> {type.charAt(0).toUpperCase() + type.slice(1)}</span>
                                         </div>
                                     );
                                 })}
@@ -410,11 +487,13 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
     return (
         <div className="ms-card">
             <div className="ms-view-header">
-                <h2>📆 Monthly View</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <CalendarDays size={20} /> Monthly View
+                </h2>
                 <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={prevMonth}>◀ Prev</button>
+                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={prevMonth} style={{ display: "inline-flex", alignItems: "center" }}><ChevronLeft size={16} /></button>
                     <span style={{ fontWeight: 600, minWidth: 130, textAlign: "center" }}>{monthNames[month]} {year}</span>
-                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={nextMonth}>Next ▶</button>
+                    <button className="ms-btn ms-btn-ghost ms-btn-sm" onClick={nextMonth} style={{ display: "inline-flex", alignItems: "center" }}><ChevronRight size={16} /></button>
                 </div>
             </div>
             
@@ -437,7 +516,7 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
                                 <div className="ms-month-day-body">
                                     {MEAL_TYPES.map(type => {
                                         const meal = dayMeals.find(m => m.meal_type === type);
-                                        const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !i.addedToList) : [];
+                                        const missingIngs = meal ? (ingredients[meal._id] || []).filter(i => i.missing && !(i.addedToList || addedIng[`${meal._id}_${i.name}`])) : [];
                                         return meal ? (
                                             <div key={type} className={`ms-month-meal-card ms-month-meal-card-${type}`}>
                                                 <div className="ms-month-meal-top">
@@ -461,9 +540,9 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div key={type} className="ms-month-empty-slot" onClick={() => onAdd(dateStr, type)}>
+                                            <div key={type} className={`ms-month-empty-slot ${dateStr < today ? "ms-month-empty-slot-disabled" : ""}`} onClick={dateStr >= today ? () => onAdd(dateStr, type) : undefined}>
                                                 <span>{ICONS[type]}</span>
-                                                <span className="ms-month-empty-label">+ {type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                                                <span className="ms-month-empty-label" style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem" }}><Plus size={10} /> {type.charAt(0).toUpperCase() + type.slice(1)}</span>
                                             </div>
                                         );
                                     })}
@@ -480,8 +559,9 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
 
 // ✓✓ Main Page ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
 export default function MealSchedulePage() {
-    const userId = "1";
-    
+    const { user } = useContext(AuthContext);
+    const userId = user?.id || user?._id || "1";
+
     const [meals,        setMeals]        = useState([]);
     const [allRecipes,   setAllRecipes]   = useState([]);
     const [typeRecipes,  setTypeRecipes]  = useState([]);
@@ -515,42 +595,15 @@ export default function MealSchedulePage() {
         setLoading(true);
         try {
             const [mRes, rRes] = await Promise.all([
-                getMeals(userId),
+                getMeals(),
                 getRecipes({ limit: 200 }),
             ]);
             const loadedMeals = Array.isArray(mRes.data) ? mRes.data : [];
             setMeals(loadedMeals);
             setAllRecipes(Array.isArray(rRes.data) ? rRes.data : []);
-
-            // Load ingredients for all meals and cross-check with shopping list
-            const [ingResults, shoppingRes] = await Promise.all([
-                Promise.allSettled(loadedMeals.map(m => getMealIngredients(m._id))),
-                ShoppingAPI.getItems(userId).catch(() => [])
-            ]);
-            const ingMap = {};
-            const addedMap = {};
-            loadedMeals.forEach((m, idx) => {
-                if (ingResults[idx].status !== "fulfilled") return;
-                const ings = ingResults[idx].value.data || [];
-                const resolvedNames = new Set(
-                    (shoppingRes || [])
-                        .filter(s => s.meal_id === m._id)
-                        .map(s => (s.name || "").toLowerCase())
-                );
-                ingMap[m._id] = ings.map(ing => ({
-                    ...ing,
-                    addedToList: resolvedNames.has(ing.name.toLowerCase()),
-                }));
-                ings.forEach(ing => {
-                    if (resolvedNames.has(ing.name.toLowerCase()))
-                        addedMap[`${m._id}_${ing.name}`] = true;
-                });
-            });
-            setIngredients(ingMap);
-            setAddedIng(addedMap);
         } catch (err) {
             console.error("Load error:", err?.response?.data || err?.message);
-            try { const r = await getMeals(userId); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
+            try { const r = await getMeals(); setMeals(Array.isArray(r.data) ? r.data : []); } catch { setMeals([]); }
             try { const r = await getRecipes({ limit: 200 }); setAllRecipes(Array.isArray(r.data) ? r.data : []); } catch { setAllRecipes([]); }
         } finally {
             setLoading(false);
@@ -563,7 +616,7 @@ export default function MealSchedulePage() {
     // Show success toast when navigated from AddMealPage
     useEffect(() => {
         if (location.state?.created) {
-            toast("✅ Meal created successfully!", "success");
+            toast("Meal created successfully!", "success");
             window.history.replaceState({}, "");
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -596,6 +649,8 @@ export default function MealSchedulePage() {
         if (!form.meal_date) e.meal_date = "Date is required";
         if (!form.meal_type) e.meal_type = "Meal type is required";
         if (!form.recipe_id) e.recipe_id = "Recipe is required";
+        const today = new Date().toISOString().slice(0, 10);
+        if (form.meal_date < today) e.meal_date = "Cannot create meal plans for past dates. Please select today or a future date.";
         const dup = meals.some(m =>
             m.meal_date === form.meal_date &&
             m.meal_type === form.meal_type &&
@@ -620,11 +675,12 @@ export default function MealSchedulePage() {
                 description: form.description || null,
             };
             if (editingId) {
-                await updateMeal(editingId, payload);
+                const updateRes = await updateMeal(editingId, payload);
+                const updatedMeal = updateRes.data;
                 // if marked done, subtract ingredients from inventory with feedback
                 if (payload.status === "completed") {
                     try {
-                        const deductRes = await useIngredients(editingId);
+                        const deductRes = await mealUseIngredients(editingId);
                         const deductData = deductRes.data || {};
                         const results = deductData.updated || [];
                         
@@ -634,31 +690,63 @@ export default function MealSchedulePage() {
                         
                         let feedbackMsg = "Meal marked done";
                         if (updated.length > 0) {
-                            feedbackMsg = `✓ Deducted ${updated.length} ingredient${updated.length !== 1 ? 's' : ''} from inventory`;
+                            feedbackMsg = `Deducted ${updated.length} ingredient${updated.length !== 1 ? 's' : ''} from inventory`;
                             if (notFound.length > 0) {
                                 feedbackMsg += ` (${notFound.length} not found)`;
                             }
                         } else if (notFound.length > 0) {
-                            feedbackMsg = `⚠️ Ingredients not in inventory: ${notFound.map(r => r.name).join(", ")}`;
+                            feedbackMsg = `Ingredients not in inventory: ${notFound.map(r => r.name).join(", ")}`;
                         }
                         
                         toast(feedbackMsg, updated.length > 0 ? "success" : "warning");
-                    } catch (err) {
+                    } catch {
                         toast("⚠️ Could not deduct ingredients from inventory", "warning");
                     }
                 }
                 toast("Meal updated ✓", "success");
+                if (updatedMeal) setMeals(prev => prev.map(m => m._id === editingId ? updatedMeal : m));
             } else {
-                await createMeal(payload);
+                const createRes = await createMeal(payload);
+                const newMeal = createRes.data;
                 toast("Meal created ✓", "success");
-                // Add a small delay before refreshing to ensure DB sync
-                await new Promise(r => setTimeout(r, 300));
+                // Append new meal directly — no full reload needed
+                if (newMeal) setMeals(prev => [...prev, newMeal]);
+                // Prompt to add missing ingredients to shopping list
+                if (newMeal?._id) {
+                    try {
+                        const ingRes = await getMealIngredients(newMeal._id);
+                        const missing = (ingRes.data || []).filter(i => i.missing);
+                        if (missing.length > 0) {
+                            const names = missing.map(i => i.name).join(", ");
+                            if (window.confirm(`⚠️ Missing ingredients for this meal:\n${names}\n\nAdd them to your Shopping List?`)) {
+                                await Promise.all(missing.map(ing =>
+                                    ShoppingAPI.addItem({
+                                        user_id: userId,
+                                        name: ing.name,
+                                        quantity: ing.missing_quantity ?? ing.quantity ?? 1,
+                                        unit: ing.unit || "",
+                                        category: "meal-plan",
+                                        source: "meal-plan",
+                                        meal_id: newMeal._id,
+                                        notes: `From Meal: ${ing.recipe_title} (${payload.meal_date})`,
+                                        status: "pending",
+                                    })
+                                ));
+                                toast(`✓ ${missing.length} missing ingredient${missing.length !== 1 ? "s" : ""} added to Shopping List`, "success");
+                            }
+                        }
+                    } catch { /* non-critical */ }
+                }
+                setForm(EMPTY_FORM);
+                setErrors({});
+                setEditingId(null);
+                setTypeRecipes([]);
+                return;
             }
             setForm(EMPTY_FORM);
             setErrors({});
             setEditingId(null);
             setTypeRecipes([]);
-            await load();
         } catch (err) {
             const msg = err?.response?.data?.detail || "Operation failed";
             toast(typeof msg === "string" ? msg : JSON.stringify(msg), "error");
@@ -681,13 +769,16 @@ export default function MealSchedulePage() {
 
     // ✓✓ Delete ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
     const handleDelete = async () => {
+        const idToDelete = deleteId;
+        setDeleteId(null);
         try {
-            await deleteMeal(deleteId);
+            await deleteMeal(idToDelete);
+            setMeals(prev => prev.filter(m => m._id !== idToDelete));
+            setIngredients(prev => { const n = { ...prev }; delete n[idToDelete]; return n; });
             toast("Meal deleted", "success");
-            setDeleteId(null);
-            load();
         } catch {
             toast("Failed to delete meal", "error");
+            load();
         }
     };
 
@@ -717,7 +808,7 @@ export default function MealSchedulePage() {
             try {
                 const [ingRes, shoppingRes] = await Promise.all([
                     getMealIngredients(mealId),
-                    ShoppingAPI.getItems("1")
+                    ShoppingAPI.getItems(userId)
                 ]);
                 const ings = ingRes.data || [];
                 // Match by dedicated meal_id field ✓ reliable across refreshes
@@ -758,7 +849,8 @@ export default function MealSchedulePage() {
                 name: ing.name,
                 quantity: ing.missing_quantity ?? ing.quantity ?? 1,
                 unit: ing.unit || "",
-                category: "meal-ingredient",
+                category: "meal-plan",
+                source: "meal-plan",
                 meal_id: ing.meal_id,
                 notes: meal ? `From Meal: ${ing.recipe_title} (${meal.meal_date})` : `From Recipe: ${ing.recipe_title}`,
                 status: "pending",
@@ -771,7 +863,7 @@ export default function MealSchedulePage() {
                     i.name === ing.name ? { ...i, addedToList: true } : i
                 )
             }));
-            toast(`✓ "${ing.name}" added to Shopping List`, "success");
+            toast(`"${ing.name}" added to Shopping List`, "success");
         } catch (err) {
             toast(`Failed to add "${ing.name}": ${err?.message || "Unknown error"}`, "error");
         } finally {
@@ -816,12 +908,25 @@ export default function MealSchedulePage() {
             )}
 
             {/* Header */}
-            <div className="ms-header">
-                <div className="ms-header-title">
-                    <h1>🍽️ Meal Schedule</h1>
+            <div className="ms-header page-hero page-hero--sub">
+                {/* Premium Decorative Background Icons - Scattered Artistically */}
+                <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '4%', '--rotation': '-15deg', animationDelay: '0s' }} />
+                <ChefHat size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '12%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+                <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '20%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+                <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '12%', right: '12%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+                
+                <Calendar size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+                <Clock size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '10%', right: '18%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+                <CalendarDays size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '30%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+                <Timer size={54} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '40%', left: '32%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
+
+                <div className="ms-header-title" style={{ position: 'relative', zIndex: 2 }}>
+                    <h1 style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <Utensils size={32} color="#10b981" /> Meal Schedule
+                    </h1>
                     <p>Plan and manage your daily meals</p>
                 </div>
-                <div className="ms-header-filters">
+                <div className="ms-header-filters" style={{ position: 'relative', zIndex: 2 }}>
                     <input className="ms-input" placeholder="🔍 Search by recipe..."
                         value={search} onChange={e => setSearch(e.target.value)} />
                     <select className="ms-input" value={filterType} onChange={e => setFilterType(e.target.value)}>
@@ -834,8 +939,9 @@ export default function MealSchedulePage() {
                     </select>
                     {isFiltering && (
                         <button className="ms-btn ms-btn-ghost ms-btn-reset"
-                            onClick={() => { setSearch(""); setFilterType(""); setFilterStatus(""); }}>
-                            🔄 Reset
+                            onClick={() => { setSearch(""); setFilterType(""); setFilterStatus(""); }}
+                            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                            <RefreshCw size={14} /> Reset
                         </button>
                     )}
                 </div>
@@ -844,7 +950,10 @@ export default function MealSchedulePage() {
             {/* Form ✓ hidden when filtering */}
             {!isFiltering && (
             <div className="ms-card">
-                <h2>{editingId ? "✏️ Edit Meal" : "🆕 New Meal"}</h2>
+                <h2 style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    {editingId ? <Pencil size={20} /> : <PlusCircle size={20} />}
+                    {editingId ? "Edit Meal" : "New Meal"}
+                </h2>
                 <form onSubmit={handleSubmit} noValidate>
                     <div className="ms-form-grid">
 
@@ -927,7 +1036,9 @@ export default function MealSchedulePage() {
                     </div>
 
                     {errors.duplicate && (
-                        <div className="ms-alert ms-alert-warning">✓️ {errors.duplicate}</div>
+                        <div className="ms-alert ms-alert-warning" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <AlertTriangle size={18} /> {errors.duplicate}
+                        </div>
                     )}
 
                     <div className="ms-form-actions">
@@ -947,8 +1058,20 @@ export default function MealSchedulePage() {
             {/* View Tabs ✓ hidden when filtering */}
             {!isFiltering && (
                 <div className="ms-view-tabs">
-                    {[["list","📋 List"],["daily","📅 Daily"],["weekly","� Weekly"],["monthly","📆 Monthly"]].map(([v,l]) => (
-                        <button key={v} className={`ms-tab ${viewMode===v ? "ms-tab-active" : ""}`} onClick={() => setViewMode(v)}>{l}</button>
+                    {[
+                        ["list", <LayoutList size={16} />, "List"],
+                        ["daily", <CalendarDays size={16} />, "Daily"],
+                        ["weekly", <CalendarRange size={16} />, "Weekly"],
+                        ["monthly", <Calendar size={16} />, "Monthly"]
+                    ].map(([v, i, l]) => (
+                        <button 
+                            key={v} 
+                            className={`ms-tab ${viewMode === v ? "ms-tab-active" : ""}`} 
+                            onClick={() => setViewMode(v)}
+                            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+                        >
+                            {i} {l}
+                        </button>
                     ))}
                 </div>
             )}
@@ -961,8 +1084,8 @@ export default function MealSchedulePage() {
             {(isFiltering || viewMode === "list") && (
             <div className="ms-card ms-table-card">
                 {filtered.length === 0 && !loading ? (
-                    <div className="ms-empty">
-                        <div style={{ fontSize: "3rem" }}>🍽️</div>
+                    <div className="ms-empty" style={{ padding: "4rem 2rem", textAlign: "center" }}>
+                        <Utensils size={48} color="#e2e8f0" style={{ marginBottom: "1rem" }} />
                         <p>No meals found. Create your first meal above!</p>
                     </div>
                 ) : (
@@ -970,12 +1093,12 @@ export default function MealSchedulePage() {
                         <table className="ms-table">
                             <thead>
                                 <tr>
-                                    <th>📅 Date</th>
-                                    <th>🍽️ Type</th>
-                                    <th>📖 Recipe</th>
-                                    <th>📝 Description</th>
+                                    <th style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}><Calendar size={14} /> Date</th>
+                                    <th>Type</th>
+                                    <th style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}><BookOpen size={14} /> Recipe</th>
+                                    <th>Description</th>
                                     <th>Status</th>
-                                    <th>⚠️ Alerts</th>
+                                    <th>Alerts</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -997,9 +1120,10 @@ export default function MealSchedulePage() {
                                                     </td>
                                                     <td>
                                                         <button className="ms-link"
-                                                            onClick={() => handleExpandRow(m._id)}>
+                                                            onClick={() => handleExpandRow(m._id)}
+                                                            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                                                             {m.recipe_title || recipe?.title || m.recipe_id}
-                                                            <span style={{ marginLeft: 4 }}>{isOpen ? "▼" : "▶"}</span>
+                                                            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                                         </button>
                                                     </td>
                                                     <td className="ms-desc-cell">
@@ -1013,17 +1137,23 @@ export default function MealSchedulePage() {
                                                     <td>
                                                         {(() => {
                                                             const ings = ingredients[m._id];
-                                                            const unresolvedCount = ings
-                                                                ? ings.filter(i => i.missing).length
-                                                                : (m.warnings?.length || 0);
-                                                            return unresolvedCount > 0 ? (
-                                                                <Tooltip text={ings ? ings.filter(i => i.missing).map(i => i.name).join(", ") : m.warnings?.join(" | ")}>
-                                                                    <span className="ms-warn-badge">
-                                                                        ⚠️ {unresolvedCount} missing
-                                                                    </span>
+                                                            if (ings) {
+                                                                const unresolved = ings.filter(i => i.missing);
+                                                                return unresolved.length > 0 ? (
+                                                                    <Tooltip text={unresolved.map(i => i.name).join(", ")}>
+                                                                        <span className="ms-warn-badge">⚠️ {unresolved.length} missing</span>
+                                                                    </Tooltip>
+                                                                ) : (
+                                                                    <span className="ms-ok-badge">✅ OK</span>
+                                                                );
+                                                            }
+                                                            const dbWarnings = m.warnings || [];
+                                                            return dbWarnings.length > 0 ? (
+                                                                <Tooltip text={dbWarnings.join(" | ")}>
+                                                                    <span className="ms-warn-badge">⚠️ {dbWarnings.length} missing</span>
                                                                 </Tooltip>
                                                             ) : (
-                                                                <span className="ms-ok-badge">✅ OK</span>
+                                                                <span className="ms-ok-badge" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}><Check size={12} /> OK</span>
                                                             );
                                                         })()}
                                                     </td>
@@ -1043,11 +1173,11 @@ export default function MealSchedulePage() {
                                                         })()}
                                                         <div className="ms-actions-row">
                                                             <button className="ms-btn-action ms-btn-action-view"
-                                                                onClick={() => handleViewRecipe(m)}>👁️ View</button>
+                                                                onClick={() => handleViewRecipe(m)} style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}><Eye size={14} /> View</button>
                                                             <button className="ms-btn-action ms-btn-action-edit"
-                                                                onClick={() => handleEdit(m)}>✏️ Edit</button>
+                                                                onClick={() => handleEdit(m)} style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}><Pencil size={14} /> Edit</button>
                                                             <button className="ms-btn-action ms-btn-action-delete"
-                                                                onClick={() => setDeleteId(m._id)}>🗑️ Delete</button>
+                                                                onClick={() => setDeleteId(m._id)} style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}><Trash2 size={14} /> Delete</button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -1069,12 +1199,14 @@ export default function MealSchedulePage() {
                                                                         </div>
 
                                                                         <div className="ms-detail-sections">
-                                                                            {/* 🥘 Ingredients with Missing Status */}
+                                                                            {/* Ingredients with Missing Status */}
                                                                             <div className="ms-detail-section">
-                                                                                <h4 className="ms-section-title">🥘 Ingredients</h4>
+                                                                                <h4 className="ms-section-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                                                                    <Utensils size={18} /> Ingredients
+                                                                                </h4>
                                                                                 {ingredients[m._id]?.length > 0 ? (
                                                                                     <ul className="ms-ing-list">
-                                                                                        {ingredients[m._id].map((ing, i) => {
+                                                                                        {ingredients[m._id].map((ing) => {
                                                                                             const key = `${ing.meal_id}_${ing.name}`;
                                                                                             const isAdding = addingIng[key];
                                                                                             const isAdded = ing.addedToList || addedIng[key];
@@ -1091,21 +1223,29 @@ export default function MealSchedulePage() {
                                                                                                     <div className="ms-ing-right">
                                                                                                         {isMissing && (
                                                                                                             <>
-                                                                                                                <span className="ms-ing-badge ms-ing-badge-missing">⚠️ Need {round2(ing.missing_quantity)} {ing.unit}</span>
+                                                                                                                <span className="ms-ing-badge ms-ing-badge-missing" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                                                                                                                    <AlertTriangle size={10} /> Need {round2(ing.missing_quantity)} {ing.unit}
+                                                                                                                </span>
                                                                                                                 <button
                                                                                                                     className="ms-btn ms-btn-sm ms-btn-shopping"
                                                                                                                     onClick={() => handleAddToShopping(ing)}
                                                                                                                     disabled={isAdding}
+                                                                                                                    style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                                                                                                                 >
-                                                                                                                    {isAdding ? "⏳ Adding..." : `✚ Add ${round2(ing.missing_quantity)} ${ing.unit}`}
+                                                                                                                    {isAdding ? <RefreshCw size={10} className="spinner" /> : <Plus size={10} />}
+                                                                                                                    {isAdding ? "Adding..." : `Add ${round2(ing.missing_quantity)} ${ing.unit}`}
                                                                                                                 </button>
                                                                                                             </>
                                                                                                         )}
                                                                                                         {isAdded && (
-                                                                                                            <span className="ms-ing-badge ms-ing-badge-added">✓ Added to Shopping List</span>
+                                                                                                            <span className="ms-ing-badge ms-ing-badge-added" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                                                                                                                <Check size={10} /> Added to Shopping List
+                                                                                                            </span>
                                                                                                         )}
                                                                                                         {!isMissing && !isAdded && (
-                                                                                                            <span className="ms-ing-badge ms-ing-badge-ok">✓ Available</span>
+                                                                                                            <span className="ms-ing-badge ms-ing-badge-ok" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                                                                                                                <Check size={10} /> Available
+                                                                                                            </span>
                                                                                                         )}
                                                                                                     </div>
                                                                                                 </li>
@@ -1117,9 +1257,11 @@ export default function MealSchedulePage() {
                                                                                 )}
                                                                             </div>
 
-                                                                            {/* 👨‍🍳 Preparation Steps */}
+                                                                            {/* Preparation Steps */}
                                                                             <div className="ms-detail-section">
-                                                                                <h4 className="ms-section-title">👨‍🍳 Preparation Steps</h4>
+                                                                                <h4 className="ms-section-title" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                                                                    <ChefHat size={18} /> Preparation Steps
+                                                                                </h4>
                                                                                 {recipe.preparation_steps?.length > 0 ? (
                                                                                     <ol className="ms-steps-list">
                                                                                         {recipe.preparation_steps.map((step, i) => (

@@ -310,3 +310,168 @@
     width: 100%;
   }
 }
+/* Admin Notifications Premium Styles */
+.admin-notifications-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.notification-grid-premium {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.notification-card-premium {
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.notification-card-premium:hover {
+  transform: translateX(8px);
+  border-color: rgba(var(--primary-rgb), 0.3);
+  box-shadow: var(--shadow-md);
+}
+
+.notification-card-premium.unread {
+  border-left: 4px solid var(--primary);
+  background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.05) 0%, var(--card-bg) 100%);
+}
+
+.notification-card-premium.read {
+  opacity: 0.85;
+}
+
+.notification-main {
+  display: flex;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.notification-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+}
+
+.notification-details {
+  flex: 1;
+}
+
+.notification-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.notification-type-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50px;
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+}
+
+.notification-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.notification-message {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.notification-footer {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.notification-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.notification-actions-premium {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empty-notifications {
+  padding: 4rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(var(--primary-rgb), 0.02);
+  border: 2px dashed var(--card-border);
+  border-radius: 28px;
+}
+
+.empty-notifications-icon {
+  color: var(--text-muted);
+  opacity: 0.3;
+  margin-bottom: 0.5rem;
+}
+
+/* Form Styles for Admin */
+.admin-form-premium {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-row-premium {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .form-row-premium {
+    grid-template-columns: 1fr;
+  }
+  
+  .notification-card-premium {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .notification-actions-premium {
+    justify-content: flex-end;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--card-border);
+  }
+}

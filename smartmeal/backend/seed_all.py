@@ -22,53 +22,36 @@ async def seed_data():
 
     now = datetime.now(timezone.utc)
     
-    # EXACT 25-char ID as previously found
-    target_user_id = "69cb80e6ad637466cf07999a8"
-    guest_user_id = "000000000000000000000001"
-    
+    # EXACT 24-char ID
+    target_user_id = "69cb80e6ad637466cf07999a"
     print(f"Seeding Users: target={target_user_id}")
     hashed_password = bcrypt.hashpw("password123".encode(), bcrypt.gensalt()).decode()
     
-    # 1. Create the specific user using STRING ID (no ObjectId wrap)
+    # 1. Create the admin user
     await db.users.insert_one({
         "_id": target_user_id,
         "name": "Raashidh Rizvi",
         "email": "raashidh24@gmail.com",
-        "hashed_password": hashed_password,
-        "role": "USER",
+        "password_hash": hashed_password,
+        "role": "ADMIN",
         "is_active": True,
-        "created_at": now
-    })
-    
-    # 2. Create the Guest user
-    await db.users.insert_one({
-        "_id": guest_user_id,
-        "name": "Guest User",
-        "email": "guest@example.com",
-        "role": "USER",
-        "is_active": True,
-        "created_at": now
+        "createdAt": now,
+        "updatedAt": now
     })
         
-    all_user_ids = [target_user_id, guest_user_id]
+    all_user_ids = [target_user_id]
 
-    # ... remaining seeding logic using target_user_id string ...
-    print("Seeding Recipes...")
-    recipe_names = ["Pasta", "Taco", "Salad", "Soup", "Pizza", "Stir Fry", "Risotto", "Burger", "Curry", "Sushi"]
-    categories = ["breakfast", "lunch", "dinner", "snack"]
-    recipe_ids = []
-    for i in range(10):
-        res = await db.recipes.insert_one({
-            "title": recipe_names[i],
-            "description": f"Best {recipe_names[i]}",
-            "ingredients": [{"name": "Ingredient A", "quantity": 1, "unit": "unit"}],
-            "preparation_steps": ["Cook"],
-            "estimated_cooking_time": 30,
-            "category": categories[i % 4],
-            "created_by": target_user_id,
-            "created_at": now
-        })
-        recipe_ids.append(str(res.inserted_id))
+    # NOTE: Recipe seeding disabled - users should create recipes manually
+    # If you want to restore seeding later, uncomment the section below:
+    # print("Seeding Recipes...")
+    # recipe_names = ["Pasta", "Taco", "Salad", "Soup", "Pizza", "Stir Fry", "Risotto", "Burger", "Curry", "Sushi"]
+    # categories = ["breakfast", "lunch", "dinner", "snack"]
+    # recipe_ids = []
+    # for i in range(10):
+    #     res = await db.recipes.insert_one({...})
+    #     recipe_ids.append(str(res.inserted_id))
+    
+    recipe_ids = []  # Empty list for any downstream reference
 
     print("Seeding Inventory...")
     inventory_items = ["Milk", "Eggs", "Bread", "Butter", "Cheese", "Apples", "Chicken", "Rice", "Tomato", "Onion"]

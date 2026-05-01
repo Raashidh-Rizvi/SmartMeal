@@ -12,10 +12,12 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (token && !user) {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken && !user) {
         try {
           const response = await api.get('/api/auth/me');
           setUser(response.data.user);
+          setToken(currentToken);
         } catch (error) {
           console.error("Failed to fetch user profile", error);
           setToken(null);
@@ -28,12 +30,17 @@ export const AuthProvider = ({ children }) => {
     // Always resolve loading within 5 seconds even if backend is down
     const timeout = setTimeout(() => setLoading(false), 5000);
     fetchUser().finally(() => clearTimeout(timeout));
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const login = (userData, jwtToken) => {
-    setUser(userData);
-    setToken(jwtToken);
+    if (!jwtToken) {
+      console.error('Cannot login: jwtToken is missing');
+      return;
+    }
+    console.log('Setting token in localStorage and context:', jwtToken.substring(0, 20) + '...');
     localStorage.setItem('token', jwtToken);
+    setToken(jwtToken);
+    setUser(userData);
   };
 
   const logout = () => {

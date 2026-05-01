@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import {
@@ -8,9 +8,31 @@ import {
     updateRecipe,
     deleteRecipe,
     uploadRecipeImage,
+    toggleFavoriteRecipe,
+    getFavoriteRecipes,
+    generateAIRecipe,
 } from '../../api/recipes';
 import api from '../../api/axios';
 import './recipes.css';
+import AIRecipePanel from '../../components/AIRecipePanel';
+import {
+    Pencil,
+    Trash2,
+    ArrowLeft,
+    Plus,
+    Search,
+    Clock,
+    Users,
+    ChefHat,
+    BookOpen,
+    User,
+    Check,
+    Heart,
+    UtensilsCrossed,
+    Flame,
+    Leaf,
+    Sparkles
+} from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -27,14 +49,23 @@ const EMPTY_FORM = {
     estimated_cooking_time: '',
     image_url: '',
 };
+const INGREDIENT_FETCH_LIMIT = 500;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const STEP_TEXTAREA_MIN_HEIGHT = 88;
+
+const normalizeIngredientName = (name) => String(name || '').trim().toLowerCase();
 
 // ─── View Enum ────────────────────────────────────────────────────────────────
 const VIEW = { LIST: 'list', DETAIL: 'detail', FORM: 'form' };
 
 // ─────────────────────────────────────────────────────────────────────────────
 function RecipeManagement() {
-    const { user } = useContext(AuthContext);
+    const { user, setUser } = useContext(AuthContext);
     const location = useLocation();
+    const currentUserId = useMemo(() => {
+        const rawId = user?._id ?? user?.id;
+        return rawId ? String(rawId) : '';
+    }, [user]);
 
     // UI state
     const [view, setView] = useState(VIEW.LIST);
@@ -47,7 +78,7 @@ function RecipeManagement() {
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
-    const [activeTab, setActiveTab] = useState('all'); // 'all' or 'mine'
+    const [activeTab, setActiveTab] = useState('all'); // 'all', 'mine', or 'favorites'
     const [skip, setSkip] = useState(0);
     const LIMIT = 12;
 
@@ -56,7 +87,13 @@ function RecipeManagement() {
     const [formError, setFormError] = useState('');
     const [formLoading, setFormLoading] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
-    const [inventoryItems, setInventoryItems] = useState([]);
+    const [availableIngredients, setAvailableIngredients] = useState([]);
+    const stepTextareaRefs = useRef([]);
+
+    // AI state
+    const [aiData, setAiData] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const aiPanelRef = useRef(null);
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -68,11 +105,23 @@ function RecipeManagement() {
         return () => clearTimeout(t);
     }, [searchInput]);
 
-    // Check for ?tab=mine from Navbar link or existing parameters
+    // Check for URL parameters
     useEffect(() => {
         const params = new URLSearchParams(location.search);
+
+        // Tab/Filter parameters
         if (params.get('tab') === 'mine' || params.get('created_by_me') === '1') {
             setActiveTab('mine');
+        } else if (params.get('tab') === 'favorites') {
+            setActiveTab('favorites');
+        }
+
+        // Search parameter
+        const searchParam = params.get('search');
+        if (searchParam) {
+            setSearchInput(searchParam);
+            setSearch(searchParam);
+            setSkip(0);
         }
     }, [location.search]);
 
@@ -87,13 +136,50 @@ function RecipeManagement() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Fetch inventory for ingredient dropdown ──────────────────────────────
-    useEffect(() => {
-        if (view === VIEW.FORM) {
-            api.get('/api/inventory', { params: { page: 1, limit: 100 } })
-                .then(res => setInventoryItems(res.data.items || []))
-                .catch(() => setInventoryItems([]));
+    const ingredientOptions = useMemo(() => {
+        const byName = new Map();
+        for (const item of availableIngredients) {
+            const name = String(item?.name || '').trim();
+            if (!name) continue;
+
+            const key = normalizeIngredientName(name);
+            if (!byName.has(key)) {
+                byName.set(key, {
+                    ...item,
+                    name,
+                    unit: String(item?.unit || '').trim(),
+                    category: String(item?.category || '').trim(),
+                });
+            }
         }
+
+        return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }, [availableIngredients]);
+
+    const findIngredientOption = useCallback((name) => {
+        const key = normalizeIngredientName(name);
+        return ingredientOptions.find(item => normalizeIngredientName(item.name) === key);
+    }, [ingredientOptions]);
+
+    // ── Fetch Ingredient Management items for recipe ingredient suggestions ──
+    useEffect(() => {
+        if (view !== VIEW.FORM) return;
+
+        let cancelled = false;
+
+        api.get('/api/admin/ingredients', { params: { page: 1, limit: INGREDIENT_FETCH_LIMIT } })
+            .then(res => {
+                if (!cancelled) {
+                    setAvailableIngredients(Array.isArray(res.data?.items) ? res.data.items : []);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setAvailableIngredients([]);
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, [view]);
 
     // ── Fetch recipes list ───────────────────────────────────────────────────
@@ -101,20 +187,58 @@ function RecipeManagement() {
         setLoading(true);
         setError('');
         try {
+            const normalizedSearch = search.trim();
+
+            if (activeTab === 'favorites') {
+                if (!user) {
+                    setRecipes([]);
+                    return;
+                }
+
+                const res = await getFavoriteRecipes();
+                const favoriteRecipes = Array.isArray(res.data) ? res.data : [];
+                const normalizedFavoriteSearch = normalizedSearch.toLowerCase();
+
+                const filteredFavorites = favoriteRecipes.filter(recipe => {
+                    const matchesCategory = !categoryFilter || recipe.category === categoryFilter;
+                    if (!matchesCategory) return false;
+
+                    if (!normalizedFavoriteSearch) return true;
+
+                    const haystacks = [
+                        recipe.title,
+                        recipe.description,
+                        ...(Array.isArray(recipe.ingredients) ? recipe.ingredients.map(ingredient => ingredient?.name) : []),
+                    ];
+
+                    return haystacks.some(value =>
+                        String(value || '').toLowerCase().includes(normalizedFavoriteSearch)
+                    );
+                });
+
+                setRecipes(filteredFavorites);
+                return;
+            }
+
+            if (activeTab === 'mine' && !currentUserId) {
+                setRecipes([]);
+                return;
+            }
+
             const params = { skip, limit: LIMIT };
-            if (search) params.search = search;
+            if (normalizedSearch) params.search = normalizedSearch;
             if (categoryFilter) params.category = categoryFilter;
-            if (activeTab === 'mine' && user) params.created_by = user.id || user._id;
+            if (activeTab === 'mine') params.created_by = currentUserId;
 
             const res = await getRecipes(params);
-            setRecipes(res.data);
+            setRecipes(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error('Fetch recipes error:', err);
             setError('Failed to load recipes. Please try again.');
         } finally {
             setLoading(false);
         }
-    }, [search, categoryFilter, activeTab, skip, user]);
+    }, [search, categoryFilter, activeTab, skip, currentUserId, user]);
 
     useEffect(() => {
         if (view === VIEW.LIST) fetchRecipes();
@@ -123,6 +247,8 @@ function RecipeManagement() {
     // ── Open detail ──────────────────────────────────────────────────────────
     const openDetail = async (id) => {
         setError('');
+        setAiData(null);
+        setAiLoading(false);
         try {
             const res = await getRecipeById(id);
             setSelectedRecipe(res.data);
@@ -140,8 +266,43 @@ function RecipeManagement() {
         setView(VIEW.FORM);
     };
 
+    const isOwner = useCallback((recipe) => (
+        Boolean(recipe?.created_by && currentUserId && String(recipe.created_by) === currentUserId)
+    ), [currentUserId]);
+
+    const isFavorited = (recipeId) => (
+        Array.isArray(user?.favoriteRecipes)
+            ? user.favoriteRecipes.some(id => String(id) === String(recipeId))
+            : false
+    );
+
+    const handleToggleFavorite = async (recipeId, e) => {
+        if (e) e.stopPropagation();
+        if (!user) return;
+
+        try {
+            const res = await toggleFavoriteRecipe(recipeId);
+            const newFavorites = Array.isArray(res.data?.favorites) ? res.data.favorites : [];
+
+            if (typeof setUser === 'function') {
+                setUser(prev => (prev ? { ...prev, favoriteRecipes: newFavorites } : prev));
+            }
+
+            if (activeTab === 'favorites') {
+                fetchRecipes();
+            }
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
+        }
+    };
+
     // ── Open edit form ───────────────────────────────────────────────────────
     const openEdit = (recipe) => {
+        if (!isOwner(recipe)) {
+            setError('You can only edit recipes you created.');
+            return;
+        }
+
         setForm({
             title: recipe.title,
             description: recipe.description || '',
@@ -166,6 +327,10 @@ function RecipeManagement() {
     // ── Delete recipe ────────────────────────────────────────────────────────
     const handleDelete = async (recipe, e) => {
         if (e) e.stopPropagation(); // prevent opening details when clicked from list view
+        if (!isOwner(recipe)) {
+            setError('You can only delete recipes you created.');
+            return;
+        }
         if (!window.confirm(`Delete "${recipe.title}"? This cannot be undone.`)) return;
         try {
             await deleteRecipe(recipe._id);
@@ -198,6 +363,33 @@ function RecipeManagement() {
         }
     };
 
+    // ── Generate AI Recipe ───────────────────────────────────────────────────
+    const handleGenerateAIRecipe = async () => {
+        if (!selectedRecipe) return;
+        setAiLoading(true);
+        setAiData(null);
+        
+        setTimeout(() => {
+            if (aiPanelRef.current) {
+                aiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+
+        try {
+            const ingredientString = selectedRecipe.ingredients.map(i => `${i.quantity} ${i.unit} ${i.name}`).join(', ');
+            const payload = {
+                ingredients: ingredientString,
+                cuisine: selectedRecipe.title,
+            };
+            const res = await generateAIRecipe(payload);
+            setAiData(res.data);
+        } catch (err) {
+            setAiData({ error: true, message: err.response?.data?.detail || 'AI generation failed.' });
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
     // ── Form field helpers ───────────────────────────────────────────────────
     const setFormField = (field, value) =>
         setForm(prev => ({ ...prev, [field]: value }));
@@ -209,15 +401,15 @@ function RecipeManagement() {
             return { ...prev, ingredients };
         });
 
-    // When user picks an inventory item, lock unit to what's stored in inventory
+    // Suggestions come from Ingredient Management, but free-typed ingredients stay valid.
     const handleIngredientNameChange = (idx, name) => {
-        const match = inventoryItems.find(i => i.name === name);
+        const match = findIngredientOption(name);
         setForm(prev => {
             const ingredients = [...prev.ingredients];
             ingredients[idx] = {
                 ...ingredients[idx],
                 name,
-                unit: match?.unit || '',
+                unit: match?.unit || ingredients[idx].unit,
             };
             return { ...prev, ingredients };
         });
@@ -239,6 +431,13 @@ function RecipeManagement() {
             return { ...prev, preparation_steps };
         });
 
+    const resizeStepTextarea = useCallback((element) => {
+        if (!element) return;
+
+        element.style.height = 'auto';
+        element.style.height = `${Math.max(element.scrollHeight, STEP_TEXTAREA_MIN_HEIGHT)}px`;
+    }, []);
+
     const addStep = () =>
         setForm(prev => ({ ...prev, preparation_steps: [...prev.preparation_steps, ''] }));
 
@@ -247,6 +446,13 @@ function RecipeManagement() {
             ...prev,
             preparation_steps: prev.preparation_steps.filter((_, i) => i !== idx),
         }));
+
+    useEffect(() => {
+        stepTextareaRefs.current = stepTextareaRefs.current.slice(0, form.preparation_steps.length);
+        if (view !== VIEW.FORM) return;
+
+        stepTextareaRefs.current.forEach(resizeStepTextarea);
+    }, [form.preparation_steps, resizeStepTextarea, view]);
 
     // ── Submit form ──────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
@@ -305,38 +511,64 @@ function RecipeManagement() {
         }
     };
 
-    const isOwner = (recipe) =>
-        user && recipe && (recipe.created_by === user._id || recipe.created_by === user.id);
-
     // ── Render ───────────────────────────────────────────────────────────────
+    const recipeTabCount =
+        1 +
+        (user ? 2 : 0) +
+        (user && view === VIEW.LIST ? 1 : 0) +
+        (view !== VIEW.LIST ? 1 : 0);
+
+    const recipeTabsClassName = `recipe-tabs align-side-by-side${recipeTabCount >= 4 ? ' recipe-tabs--distributed' : ''}`;
+    const FormHeadingIcon = editMode ? Pencil : Plus;
+    const formHeading = editMode ? 'Edit Recipe' : 'Create Recipe';
+    const recipeGridClassName = `recipe-grid${recipes.length === 1 ? ' recipe-grid--single' : ''}`;
+
     return (
         <div className="recipe-page">
 
             {/* Header */}
-            <div className="recipe-page-header" style={{ justifyContent: 'center' }}>
-                <div className="recipe-page-header-text" style={{ textAlign: 'center' }}>
-                    <h1 className="recipe-page-title">Recipe Repository</h1>
-                    <p className="recipe-page-subtitle">Browse, search, and manage your recipes</p>
+            <div className="recipe-page-header page-hero page-hero--sub">
+                {/* Premium Decorative Background Icons - Scattered Artistically */}
+                <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '5%', '--rotation': '-15deg', animationDelay: '0s' }} />
+                <ChefHat size={82} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '75%', left: '25%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+                <Flame size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '20%', left: '10%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+                <Leaf size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '10%', right: '15%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+                
+                <BookOpen size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+                <Heart size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '15%', right: '12%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+                <Clock size={72} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '35%', right: '28%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+                <Users size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '35%', left: '22%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
+
+                <BookOpen size={48} color="#10b981" strokeWidth={1.75} style={{ position: 'relative', zIndex: 1 }} />
+                <div className="recipe-page-header-text" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+                    <h1 className="recipe-page-title" style={{ margin: 0 }}>Recipe Repository</h1>
+                    <p className="recipe-page-subtitle" style={{ margin: '0.5rem 0 0 0' }}>Browse, search, and manage your recipes</p>
                 </div>
             </div>
 
             {/* Top Navigation */}
             <div className="recipe-tabs-container premium-nav-bar">
-                <div className="recipe-tabs align-side-by-side" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', padding: '0.5rem', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                <div className={recipeTabsClassName}>
                     <button
                         className={`recipe-tab ${view === VIEW.LIST && activeTab === 'all' ? 'active' : ''}`}
                         onClick={() => { setView(VIEW.LIST); setActiveTab('all'); setSkip(0); }}
-                        style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                     >
-                        View Recipes
+                        <Search size={18} /> View Recipes
                     </button>
                     {user && (
                         <button
                             className={`recipe-tab ${view === VIEW.LIST && activeTab === 'mine' ? 'active' : ''}`}
                             onClick={() => { setView(VIEW.LIST); setActiveTab('mine'); setSkip(0); }}
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
-                            My Recipes
+                            <User size={18} /> My Recipes
+                        </button>
+                    )}
+                    {user && (
+                        <button
+                            className={`recipe-tab ${view === VIEW.LIST && activeTab === 'favorites' ? 'active' : ''}`}
+                            onClick={() => { setView(VIEW.LIST); setActiveTab('favorites'); setSkip(0); }}
+                        >
+                            <Heart size={18} fill={activeTab === 'favorites' ? 'currentColor' : 'none'} /> Favorites
                         </button>
                     )}
                     {user && view === VIEW.LIST && (
@@ -344,18 +576,16 @@ function RecipeManagement() {
                             className="recipe-tab"
                             onClick={openCreate}
                             id="add-recipe-btn"
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
-                            <span className="add-icon" style={{ fontWeight: 'bold' }}>+</span> Add Recipe
+                            <Plus size={18} /> Add Recipe
                         </button>
                     )}
                     {view !== VIEW.LIST && (
                         <button
                             className="recipe-tab"
                             onClick={() => setView(editMode && view === VIEW.FORM ? VIEW.DETAIL : VIEW.LIST)}
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
                         >
-                            <span>←</span> Back
+                            <ArrowLeft size={18} /> Back
                         </button>
                     )}
                 </div>
@@ -368,12 +598,12 @@ function RecipeManagement() {
                     {/* Filter Bar */}
                     <div className="filter-bar unified-filter-bar">
                         <div className="search-input-wrapper">
-                            <span className="search-icon"></span>
+                            <Search className="search-icon" size={18} />
                             <input
                                 id="recipe-search"
                                 className="filter-search premium-input"
                                 type="text"
-                                placeholder={`Search ${activeTab === 'mine' ? 'your' : 'all'} recipes...`}
+                                placeholder={`Search ${activeTab === 'mine' ? 'your' : activeTab === 'favorites' ? 'favorite' : 'all'} recipes...`}
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
                             />
@@ -395,87 +625,119 @@ function RecipeManagement() {
 
                     {/* Grid */}
                     {loading ? (
-                        <div className="loading-state">Loading recipes...</div>
+                        <div className="loading-state">
+                            <div className="spinner"></div>
+                            <p>Loading recipes...</p>
+                        </div>
                     ) : recipes.length === 0 ? (
                         <div className="empty-state">
-                            <p className="empty-icon">—</p>
-                            <p>No recipes found.</p>
+                            <Search size={48} color="#cbd5e1" className="empty-state-icon" />
+                            <p className="empty-state-title">
+                                {activeTab === 'favorites' ? 'No favorite recipes found.' : 'No recipes found.'}
+                            </p>
                             {user && (
-                                <button className="btn-primary" onClick={openCreate}>Create your first recipe</button>
+                                <button className="btn-primary empty-state-action" onClick={openCreate}>Create your first recipe</button>
                             )}
                         </div>
                     ) : (
-                        <div className="recipe-grid">
-                            {recipes.map(recipe => (
-                                <div
-                                    key={recipe._id}
-                                    className="recipe-card"
-                                    onClick={() => openDetail(recipe._id)}
-                                    id={`recipe-card-${recipe._id}`}
-                                >
-                                    {/* Action Buttons Moved to Bottom */}
+                        <div className={recipeGridClassName}>
+                            {recipes.map(recipe => {
+                                const ownsRecipe = isOwner(recipe);
 
-                                    {/* Recipe Image */}
-                                    <div className="recipe-card-img-wrapper">
-                                        {recipe.image_url ? (
-                                            <img
-                                                src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
-                                                alt={recipe.title}
-                                                className="recipe-card-img"
-                                                onError={e => { e.target.parentElement.innerHTML = '<div class="recipe-card-placeholder"></div>'; }}
-                                            />
-                                        ) : (
-                                            <div className="recipe-card-placeholder"></div>
-                                        )}
-                                    </div>
+                                return (
+                                    <div
+                                        key={recipe._id}
+                                        className="recipe-card"
+                                        onClick={() => openDetail(recipe._id)}
+                                        id={`recipe-card-${recipe._id}`}
+                                    >
+                                        <div className="recipe-card-img-wrapper">
+                                            {user && (
+                                                <button
+                                                    className={`favorite-btn ${isFavorited(recipe._id) ? 'favorited' : ''}`}
+                                                    onClick={(e) => handleToggleFavorite(recipe._id, e)}
+                                                    title={isFavorited(recipe._id) ? 'Remove from Favorites' : 'Add to Favorites'}
+                                                    aria-label={isFavorited(recipe._id) ? `Remove ${recipe.title} from favorites` : `Add ${recipe.title} to favorites`}
+                                                >
+                                                    <Heart size={18} fill={isFavorited(recipe._id) ? 'currentColor' : 'none'} />
+                                                </button>
+                                            )}
 
-                                    {/* Card Content */}
-                                    <div className="recipe-card-body">
-                                        <div className="recipe-card-category">
-                                            <span className={`badge badge-${recipe.category}`}>
-                                                {recipe.category}
-                                            </span>
-                                        </div>
-
-                                        <h3 className="recipe-card-title">{recipe.title}</h3>
-                                        
-                                        {recipe.description && (
-                                            <p className="recipe-card-desc">
-                                                {recipe.description}
-                                            </p>
-                                        )}
-
-                                        <div className="recipe-card-meta">
-                                            {recipe.estimated_cooking_time && (
-                                                <div className="meta-item">
-                                                    <span>{recipe.estimated_cooking_time} min</span>
+                                            {ownsRecipe && (
+                                                <div
+                                                    className="recipe-card-overlay-actions"
+                                                    onClick={e => e.stopPropagation()}
+                                                >
+                                                    <button
+                                                        className="recipe-card-icon-action action-edit-icon"
+                                                        onClick={() => openEdit(recipe)}
+                                                        title="Edit Recipe"
+                                                        aria-label={`Edit ${recipe.title}`}
+                                                    >
+                                                        <Pencil size={15} />
+                                                    </button>
+                                                    <button
+                                                        className="recipe-card-icon-action action-delete-icon"
+                                                        onClick={(e) => handleDelete(recipe, e)}
+                                                        title="Delete Recipe"
+                                                        aria-label={`Delete ${recipe.title}`}
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
                                                 </div>
                                             )}
-                                            <div className="meta-item">
-                                                <span>{recipe.ingredients.length} Ingred.</span>
+
+                                            {recipe.image_url ? (
+                                                <img
+                                                    src={recipe.image_url.startsWith('/') ? `${API_BASE_URL}${recipe.image_url}` : recipe.image_url}
+                                                    alt={recipe.title}
+                                                    className="recipe-card-img"
+                                                    onError={e => {
+                                                        e.target.style.display = 'none';
+                                                        const placeholder = e.target.nextElementSibling;
+                                                        if (placeholder) placeholder.style.display = 'flex';
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <div
+                                                className="recipe-card-placeholder"
+                                                style={{ display: recipe.image_url ? 'none' : 'flex' }}
+                                            >
+                                                <BookOpen size={48} color="#e2e8f0" />
                                             </div>
                                         </div>
 
-                                        {/* Action Buttons */}
-                                        <div className="recipe-card-actions-bottom" onClick={e => e.stopPropagation()}>
-                                            <button 
-                                                className="action-edit" 
-                                                onClick={() => openEdit(recipe)}
-                                                title="Edit Recipe"
-                                            >
-                                                ✏️ Edit
-                                            </button>
-                                            <button 
-                                                className="action-delete" 
-                                                onClick={(e) => handleDelete(recipe, e)}
-                                                title="Delete Recipe"
-                                            >
-                                                🗑️ Delete
-                                            </button>
+                                        <div className="recipe-card-body">
+                                            <div className="recipe-card-category">
+                                                <span className={`badge badge-${recipe.category}`}>
+                                                    {recipe.category}
+                                                </span>
+                                            </div>
+
+                                            <h3 className="recipe-card-title">{recipe.title}</h3>
+
+                                            {recipe.description && (
+                                                <p className="recipe-card-desc">
+                                                    {recipe.description}
+                                                </p>
+                                            )}
+
+                                            <div className="recipe-card-meta">
+                                                {recipe.estimated_cooking_time && (
+                                                    <div className="meta-item">
+                                                        <Clock size={14} />
+                                                        <span>{recipe.estimated_cooking_time} min</span>
+                                                    </div>
+                                                )}
+                                                <div className="meta-item">
+                                                    <Users size={14} />
+                                                    <span>{recipe.ingredients.length} Ingred.</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 
@@ -487,7 +749,7 @@ function RecipeManagement() {
                                 onClick={() => setSkip(Math.max(0, skip - LIMIT))}
                                 disabled={skip === 0}
                             >
-                                ← Previous
+                                <ArrowLeft size={16} /> Previous
                             </button>
                             <span className="page-info">Page {Math.floor(skip / LIMIT) + 1}</span>
                             <button
@@ -495,7 +757,7 @@ function RecipeManagement() {
                                 onClick={() => setSkip(skip + LIMIT)}
                                 disabled={recipes.length < LIMIT}
                             >
-                                Next →
+                                Next <ArrowLeft size={16} style={{ transform: 'rotate(180deg)' }} />
                             </button>
                         </div>
                     )}
@@ -508,7 +770,7 @@ function RecipeManagement() {
 
                     {selectedRecipe.image_url && (
                         <img
-                            src={selectedRecipe.image_url.startsWith('/') ? `http://localhost:8001${selectedRecipe.image_url}` : selectedRecipe.image_url}
+                            src={selectedRecipe.image_url.startsWith('/') ? `${API_BASE_URL}${selectedRecipe.image_url}` : selectedRecipe.image_url}
                             alt={selectedRecipe.title}
                             className="recipe-hero-img"
                             onError={e => { e.target.style.display = 'none'; }}
@@ -526,10 +788,19 @@ function RecipeManagement() {
                             )}
                             <div className="recipe-meta">
                                 {selectedRecipe.estimated_cooking_time && (
-                                    <span>{selectedRecipe.estimated_cooking_time} min cook time</span>
+                                    <div className="recipe-meta-item">
+                                        <Clock size={18} color="var(--primary)" />
+                                        <span>{selectedRecipe.estimated_cooking_time} min cook time</span>
+                                    </div>
                                 )}
-                                <span>{selectedRecipe.ingredients.length} ingredients</span>
-                                <span>{selectedRecipe.preparation_steps.length} steps</span>
+                                <div className="recipe-meta-item">
+                                    <Users size={18} color="var(--primary)" />
+                                    <span>{selectedRecipe.ingredients.length} ingredients</span>
+                                </div>
+                                <div className="recipe-meta-item">
+                                    <ChefHat size={18} color="var(--primary)" />
+                                    <span>{selectedRecipe.preparation_steps.length} steps</span>
+                                </div>
                             </div>
                         </div>
 
@@ -539,16 +810,20 @@ function RecipeManagement() {
 
                     {/* Dietary Tags */}
                     {selectedRecipe.dietary_tags?.length > 0 && (
-                        <div className="tag-chips" style={{ marginBottom: '1.5rem' }}>
+                        <div className="tag-chips">
                             {selectedRecipe.dietary_tags.map(tag => (
-                                <span key={tag} className="tag-chip">{tag}</span>
+                                <span key={tag} className="tag-chip">
+                                    <Check size={12} /> {tag}
+                                </span>
                             ))}
                         </div>
                     )}
 
                     {/* Ingredients */}
                     <section className="recipe-section">
-                        <h2>Ingredients</h2>
+                        <h2 className="recipe-section-title">
+                            <Users size={24} color="var(--primary)" /> Ingredients
+                        </h2>
                         <table className="ingredient-table">
                             <thead>
                                 <tr>
@@ -571,7 +846,9 @@ function RecipeManagement() {
 
                     {/* Preparation Steps */}
                     <section className="recipe-section">
-                        <h2>Preparation Steps</h2>
+                        <h2 className="recipe-section-title">
+                            <ChefHat size={24} color="var(--primary)" /> Preparation Steps
+                        </h2>
                         <ol className="steps-list">
                             {selectedRecipe.preparation_steps.map((step, i) => (
                                 <li key={i}>{step}</li>
@@ -583,18 +860,39 @@ function RecipeManagement() {
                     <div className="recipe-detail-actions-footer">
                         <button
                             className="action-edit detail-action-btn"
-                            onClick={() => openEdit(selectedRecipe)}
-                            id="edit-recipe-btn"
+                            onClick={handleGenerateAIRecipe}
+                            disabled={aiLoading}
+                            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', border: 'none' }}
                         >
-                            ✏️ Edit
+                            <Sparkles size={18} /> {aiLoading ? 'Generating...' : 'AI Recipe'}
                         </button>
-                        <button
-                            className="action-delete detail-action-btn"
-                            onClick={() => handleDelete(selectedRecipe)}
-                            id="delete-recipe-btn"
-                        >
-                            🗑️ Delete
-                        </button>
+                        {isOwner(selectedRecipe) && (
+                            <>
+                                <button
+                                    className="action-edit detail-action-btn"
+                                    onClick={() => openEdit(selectedRecipe)}
+                                    id="edit-recipe-btn"
+                                >
+                                    <Pencil size={18} /> Edit
+                                </button>
+                                <button
+                                    className="action-delete detail-action-btn"
+                                    onClick={() => handleDelete(selectedRecipe)}
+                                    id="delete-recipe-btn"
+                                >
+                                    <Trash2 size={18} /> Delete
+                                </button>
+                            </>
+                        )}
+                    </div>
+                    
+                    <div ref={aiPanelRef} style={{ marginTop: '2rem' }}>
+                        {(aiLoading || aiData) && (
+                            <AIRecipePanel
+                                data={aiData}
+                                loading={aiLoading}
+                            />
+                        )}
                     </div>
                 </div>
             )}
@@ -602,14 +900,19 @@ function RecipeManagement() {
             {/* ── FORM VIEW ── */}
             {view === VIEW.FORM && (
                 <div className="recipe-form-wrapper">
-                    <h1 className="recipe-page-title">{editMode ? 'Edit Recipe' : 'Add New Recipe'}</h1>
+                    <div className="recipe-form-header">
+                        <h1 className="recipe-form-title">
+                            <FormHeadingIcon size={28} />
+                            {formHeading}
+                        </h1>
+                    </div>
 
                     <form onSubmit={handleSubmit} className="recipe-form" id="recipe-form">
                         {formError && <div className="error">{formError}</div>}
 
                         {/* Row 1: Title and Category */}
-                        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                            <div className="form-group" style={{ flex: '2 1 300px' }}>
+                        <div className="recipe-form-row">
+                            <div className="form-group recipe-form-group recipe-form-group--wide">
                                 <label htmlFor="recipe-title">Title</label>
                                 <input
                                     id="recipe-title"
@@ -620,7 +923,7 @@ function RecipeManagement() {
                                     required
                                 />
                             </div>
-                            <div className="form-group" style={{ flex: '1 1 150px' }}>
+                            <div className="form-group recipe-form-group recipe-form-group--narrow">
                                 <label htmlFor="recipe-category">Category</label>
                                 <select
                                     id="recipe-category"
@@ -650,7 +953,7 @@ function RecipeManagement() {
                         </div>
 
                         {/* Cook Time */}
-                        <div className="form-group" style={{ maxWidth: '250px' }}>
+                        <div className="form-group recipe-form-group recipe-time-group">
                             <label htmlFor="recipe-time">Cook Time (min)</label>
                             <input
                                 id="recipe-time"
@@ -679,7 +982,7 @@ function RecipeManagement() {
                             {form.image_url && !imageUploading && (
                                 <div className="img-preview-wrapper">
                                     <img
-                                        src={`http://localhost:8001${form.image_url}`}
+                                        src={form.image_url.startsWith('/') ? `${API_BASE_URL}${form.image_url}` : form.image_url}
                                         alt="Preview"
                                         className="img-preview"
                                         onError={e => { e.target.style.display = 'none'; }}
@@ -705,24 +1008,30 @@ function RecipeManagement() {
                             <div className="form-section-header">
                                 <h3>Ingredients</h3>
                                 <button type="button" className="btn-add-row" onClick={addIngredient}>
-                                    + Add Ingredient
+                                    <Plus size={16} /> Add Ingredient
                                 </button>
                             </div>
+                            <datalist id="recipe-ingredient-options">
+                                {ingredientOptions.map(item => (
+                                    <option
+                                        key={item._id || item.name}
+                                        value={item.name}
+                                        label={[item.category, item.unit].filter(Boolean).join(' - ')}
+                                    />
+                                ))}
+                            </datalist>
                             {form.ingredients.map((ing, idx) => {
-                                const invMatch = inventoryItems.find(i => i.name === ing.name);
                                 return (
                                 <div key={idx} className="ingredient-row">
-                                    <select
+                                    <input
+                                        type="text"
+                                        list="recipe-ingredient-options"
                                         value={ing.name}
                                         onChange={e => handleIngredientNameChange(idx, e.target.value)}
                                         className="ing-name"
+                                        placeholder={ingredientOptions.length ? 'Choose or type ingredient' : 'Ingredient name'}
                                         required
-                                    >
-                                        <option value="">Select ingredient</option>
-                                        {inventoryItems.map(item => (
-                                            <option key={item._id} value={item.name}>{item.name}</option>
-                                        ))}
-                                    </select>
+                                    />
                                     <input
                                         type="number"
                                         placeholder="Qty"
@@ -734,11 +1043,11 @@ function RecipeManagement() {
                                     />
                                     <input
                                         type="text"
-                                        value={invMatch?.unit || ing.unit || ''}
-                                        readOnly
+                                        value={ing.unit || ''}
+                                        onChange={e => setIngredient(idx, 'unit', e.target.value)}
                                         className="ing-unit"
-                                        style={{ background: 'var(--input-bg, #f3f4f6)', cursor: 'not-allowed', color: '#6b7280' }}
-                                        placeholder="unit"
+                                        placeholder="Unit"
+                                        required
                                     />
                                     {form.ingredients.length > 1 && (
                                         <button
@@ -747,7 +1056,7 @@ function RecipeManagement() {
                                             onClick={() => removeIngredient(idx)}
                                             title="Remove ingredient"
                                         >
-                                            x
+                                            <Trash2 size={18} />
                                         </button>
                                     )}
                                 </div>
@@ -760,7 +1069,7 @@ function RecipeManagement() {
                             <div className="form-section-header">
                                 <h3>Preparation Steps</h3>
                                 <button type="button" className="btn-add-row" onClick={addStep}>
-                                    + Add Step
+                                    <Plus size={16} /> Add Step
                                 </button>
                             </div>
                             {form.preparation_steps.map((step, idx) => (
@@ -770,8 +1079,12 @@ function RecipeManagement() {
                                         className="form-textarea step-input"
                                         placeholder={`Step ${idx + 1}...`}
                                         value={step}
+                                        ref={(element) => {
+                                            stepTextareaRefs.current[idx] = element;
+                                        }}
+                                        onInput={e => resizeStepTextarea(e.currentTarget)}
                                         onChange={e => setStep(idx, e.target.value)}
-                                        rows={2}
+                                        rows={1}
                                     />
                                     {form.preparation_steps.length > 1 && (
                                         <button
@@ -780,7 +1093,7 @@ function RecipeManagement() {
                                             onClick={() => removeStep(idx)}
                                             title="Remove step"
                                         >
-                                            x
+                                            <Trash2 size={18} />
                                         </button>
                                     )}
                                 </div>
@@ -797,7 +1110,7 @@ function RecipeManagement() {
                                 Cancel
                             </button>
                             <button type="submit" className="btn-primary" disabled={formLoading} id="submit-recipe-btn">
-                                {formLoading ? 'Saving…' : editMode ? 'Update Recipe' : 'Create Recipe'}
+                                {formLoading ? 'Saving...' : editMode ? 'Update Recipe' : 'Create Recipe'}
                             </button>
                         </div>
                     </form>

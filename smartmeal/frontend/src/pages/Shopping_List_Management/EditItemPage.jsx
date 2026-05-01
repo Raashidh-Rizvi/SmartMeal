@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ShoppingAPI } from '../../api/axios';
+import ShoppingAPI from '../../services/shoppingApi';
+import { AuthContext } from '../../context/AuthContext';
 import Toast from '../../components/Toast';
+import { ArrowLeft, Edit3, Zap, Check, Clock, Trash2 } from 'lucide-react';
 
 function EditItemPage() {
   const navigate = useNavigate();
   const { itemId } = useParams();
+  const { user } = useContext(AuthContext);
+  const userId = user?.id || user?._id;
   
   const [item_name, set_item_name] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -19,38 +23,38 @@ function EditItemPage() {
   const [originalItem, setOriginalItem] = useState(null);
   const showToast = (message, type = 'success') => setToast({ message, type });
 
-  const loadItem = async () => {
-    if (!itemId) return;
+  const loadItem = useCallback(async () => {
+    if (!itemId || !userId) return;
     
     setFetching(true);
     try {
       // Get all items and find the one we need
-      const items = await ShoppingAPI.getItems('user123');
+      const items = await ShoppingAPI.getItems(userId);
       const item = items.find(i => (i.id || i._id) === itemId);
       
       if (item) {
         setOriginalItem(item);
-        set_item_name(item.item_name || '');
+        set_item_name(item.name || item.item_name || '');
         setQuantity(item.quantity || 1);
-        setUnit(item.unit || 'piece');
+        setUnit(item.unit || 'pcs');
         setSource(item.source || 'Manual');
-        setStatus(item.status || 'Pending');
+        setStatus(item.status === 'pending' ? 'Pending' : item.status === 'bought' ? 'Bought' : item.status || 'Pending');
       } else {
         showToast('Item not found', 'error');
-        navigate('/');
+        navigate('/shopping');
       }
     } catch (error) {
       console.error('Error loading item:', error);
       showToast('Failed to load item', 'error');
-      navigate('/');
+      navigate('/shopping');
     }
     setFetching(false);
-  };
+  }, [itemId, userId, navigate]);
 
   // Load item data on mount
   useEffect(() => {
     loadItem();
-  }, [itemId]);
+  }, [loadItem]);
 
 
   const handleSubmit = async (e) => {
@@ -60,14 +64,14 @@ function EditItemPage() {
     setLoading(true);
     try {
       await ShoppingAPI.updateItem(itemId, {
-        item_name: item_name.trim(),
+        name: item_name.trim(),
         quantity: parseFloat(quantity),
         unit,
         source,
         status
       });
       showToast('Item updated successfully!', 'success');
-      navigate('/');
+      navigate('/shopping');
     } catch (error) {
       console.error('Error updating item:', error);
       showToast(error.message || 'Failed to update item', 'error');
@@ -76,7 +80,7 @@ function EditItemPage() {
   };
 
   const goBack = () => {
-    navigate('/');
+    navigate('/shopping');
   };
 
   const handleDelete = async () => {
@@ -86,7 +90,7 @@ function EditItemPage() {
     try {
       await ShoppingAPI.deleteItem(itemId);
       showToast('Item deleted successfully!', 'success');
-      navigate('/');
+      navigate('/shopping');
     } catch (error) {
       console.error('Error deleting item:', error);
       showToast(error.message || 'Failed to delete item', 'error');
@@ -100,6 +104,19 @@ function EditItemPage() {
       await ShoppingAPI.markBought(itemId);
       showToast('Item marked as bought!', 'success');
       setStatus('Bought');
+    } catch (error) {
+      console.error('Error marking item:', error);
+      showToast(error.message || 'Failed to update item', 'error');
+    }
+    setLoading(false);
+  };
+
+  const handleMarkPending = async () => {
+    setLoading(true);
+    try {
+      await ShoppingAPI.updateItem(itemId, { status: 'Pending' });
+      showToast('Item marked as pending!', 'success');
+      setStatus('Pending');
     } catch (error) {
       console.error('Error marking item:', error);
       showToast(error.message || 'Failed to update item', 'error');
@@ -123,8 +140,12 @@ function EditItemPage() {
       {/* Header */}
       <header className="page-header">
         <div className="header-content">
-          <button onClick={goBack} className="btn-back">← Back to List</button>
-          <h1>✏️ Edit Item</h1>
+          <button onClick={goBack} className="btn-back" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ArrowLeft size={18} /> Back to List
+          </button>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Edit3 size={32} /> Edit Item
+          </h1>
           <p>Modify your shopping item details</p>
         </div>
       </header>
@@ -232,26 +253,39 @@ function EditItemPage() {
 
           {/* Action Buttons */}
           <section className="card actions-card">
-            <div className="card-header">
-              <h3>⚡ Quick Actions</h3>
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Zap size={20} color="var(--primary)" />
+              <h3 style={{ margin: 0 }}>Quick Actions</h3>
             </div>
             <div className="card-body">
               <div className="action-buttons">
-                {status === 'Pending' && (
+{status === 'Pending' && (
                   <button
                     onClick={handleMarkBought}
                     className="btn-success"
                     disabled={loading}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}
                   >
-                    ✓ Mark as Bought
+                    <Check size={18} /> Mark as Bought
+                  </button>
+                )}
+                {status === 'Bought' && (
+                  <button
+                    onClick={handleMarkPending}
+                    className="btn-warning"
+                    disabled={loading}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}
+                  >
+                    <Clock size={18} /> Mark as Pending
                   </button>
                 )}
                 <button
                   onClick={handleDelete}
                   className="btn-danger"
                   disabled={loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}
                 >
-                  🗑 Delete Item
+                  <Trash2 size={18} /> Delete Item
                 </button>
               </div>
             </div>
