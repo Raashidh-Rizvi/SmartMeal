@@ -66,6 +66,7 @@ function AdminDashboard() {
         api.get('/api/admin/analytics')
       ]);
       setMetrics(metricsRes.data);
+      console.log("Analytics Data:", analyticsRes.data);
       setAnalytics(analyticsRes.data);
       setError(null);
     } catch (err) {
