@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { budgetService } from '../services/budgetService';
-import { Wallet, UtensilsCrossed, ChefHat, Flame, Leaf, Banknote, TrendingUp, PieChart, Receipt } from 'lucide-react';
+import { Wallet, UtensilsCrossed, ChefHat, Flame, Leaf, Banknote, TrendingUp, PieChart, Receipt, Plus, Pencil, Trash2 } from 'lucide-react';
 
 function BudgetDashboard() {
   const [summary, setSummary] = useState(null);
@@ -192,8 +192,8 @@ function BudgetDashboard() {
             <p style={{ color: 'var(--text-muted)', margin: 0 }}>Track your food spending.</p>
           </div>
           <button onClick={() => { setEditingExpense(null); setExpenseForm(emptyExpenseForm); setShowExpenseModal(true); }}
-            style={{ width: 'auto', padding: '0.6rem 1.25rem' }}>
-            + Add Expense
+            className="btn-action btn-action--primary">
+            <Plus size={16} /> Add Expense
           </button>
         </div>
 
@@ -221,9 +221,8 @@ function BudgetDashboard() {
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{exp.notes || '-'}</td>
                   <td>
                     <div className="action-buttons">
-                      <button onClick={() => openEditExpense(exp)} className="btn-icon">Edit</button>
-                      <span style={{ color: 'var(--text-muted)' }}>|</span>
-                      <button onClick={() => handleDeleteExpense(exp.id)} className="btn-icon text-danger">Delete</button>
+                      <button onClick={() => openEditExpense(exp)} className="btn-action" title="Edit Expense"><Pencil size={14} /> Edit</button>
+                      <button onClick={() => handleDeleteExpense(exp.id)} className="btn-action btn-action--danger" title="Delete Expense"><Trash2 size={14} /> Delete</button>
                     </div>
                   </td>
                 </tr>

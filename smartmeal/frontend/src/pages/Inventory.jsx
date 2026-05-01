@@ -348,13 +348,14 @@ function Inventory() {
                     </td>
                     <td>{item.notes || '-'}</td>
                     <td>
-                      <button onClick={() => openFormModal(item)} className="btn-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Pencil size={14} /> Edit
-                      </button>
-                      {' | '}
-                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Trash2 size={14} /> Discard
-                      </button>
+                      <div className="action-buttons">
+                        <button onClick={() => openFormModal(item)} className="btn-action" title="Edit">
+                          <Pencil size={14} /> Edit
+                        </button>
+                        <button onClick={() => handleDelete(item._id)} className="btn-action btn-action--danger">
+                          <Trash2 size={14} /> Discard
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

@@ -264,6 +264,7 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
               cursor: (isFavoriting || isFavorited) ? 'default' : 'pointer',
               transition: 'all 0.2s',
               boxShadow: isFavorited ? 'none' : '0 2px 8px rgba(0,0,0,0.05)',
+              width: 'auto'
             }}
           >
             {isFavoriting ? (
@@ -354,6 +355,7 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
                     cursor: addingAll ? 'default' : 'pointer',
                     transition: 'all 0.2s',
                     boxShadow: addingAll ? 'none' : '0 3px 10px rgba(16,185,129,0.3)',
+                    width: 'auto'
                   }}
                 >
                   {addingAll
@@ -389,7 +391,7 @@ export default function AIRecipePanel({ data, onAlternativeClick, loading }) {
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             {alternatives.map((alt, i) => (
               <button key={i} onClick={() => onAlternativeClick && onAlternativeClick(alt.name)}
-                style={{ padding: '0.6rem 1.2rem', borderRadius: '50px', border: '1px solid rgba(var(--primary-rgb),0.3)', background: 'rgba(var(--primary-rgb),0.05)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ padding: '0.6rem 1.2rem', borderRadius: '50px', border: '1px solid rgba(var(--primary-rgb),0.3)', background: 'rgba(var(--primary-rgb),0.05)', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s', width: 'auto' }}
                 onMouseEnter={e => { e.target.style.background = 'var(--primary)'; e.target.style.color = '#fff'; }}
                 onMouseLeave={e => { e.target.style.background = 'rgba(var(--primary-rgb),0.05)'; e.target.style.color = 'var(--primary)'; }}>
                 ✨ {alt.name || alt}

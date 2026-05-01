@@ -811,6 +811,7 @@ function Recommendations() {
                   background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', border: 'none',
                   cursor: 'pointer', boxShadow: '0 4px 18px rgba(16,185,129,0.4)', transition: 'all 0.25s',
                   whiteSpace: 'nowrap',
+                  width: 'auto',
                 }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}

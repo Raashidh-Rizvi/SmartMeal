@@ -505,15 +505,14 @@ function Leftovers() {
                         <div className="action-buttons">
                           {!item.is_used && (
                             <>
-                              <button onClick={() => openModal(item)} className="btn-icon" title="Edit" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Pencil size={14} /> Edit</button>
-                              <span style={{ color: 'var(--text-muted)' }}>|</span>
-                              <button onClick={() => handleUseNow(item)} className="btn-icon" title="Queue ingredients for recipe generation" style={{ color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Sparkles size={14} /> Use Now</button>
-                              <span style={{ color: 'var(--text-muted)' }}>|</span>
-                              <button onClick={() => handleMarkUsed(item.id)} className="btn-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Check size={14} /> Used</button>
-                              <span style={{ color: 'var(--text-muted)' }}>|</span>
+                              <button onClick={() => openModal(item)} className="btn-action" title="Edit"><Pencil size={14} /> Edit</button>
+                              <button onClick={() => handleUseNow(item)} className="btn-action btn-action--warning" title="Queue ingredients for recipe generation"><Sparkles size={14} /> Use Now</button>
+                              <button onClick={() => handleMarkUsed(item.id)} className="btn-action btn-action--primary"><Check size={14} /> Used</button>
                             </>
                           )}
-                          <button onClick={() => handleDelete(item.id)} className="btn-icon text-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Trash2 size={14} /> Delete</button>
+                          <button onClick={() => handleDelete(item.id)} className="btn-action btn-action--danger">
+                            <Trash2 size={14} /> Delete
+                          </button>
                         </div>
                       </td>
                     </tr>

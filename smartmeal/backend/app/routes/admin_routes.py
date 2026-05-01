@@ -193,13 +193,119 @@ async def get_analytics():
 
 
 @router.get("/inventory")
-async def admin_inventory():
+async def admin_inventory(
+    page: int = Query(1, ge=1),
+    limit: int = Query(15, ge=1, le=100),
+    userEmail: Optional[str] = None,
+    expiredOnly: Optional[bool] = False,
+    expiringBefore: Optional[str] = None
+):
     db = get_db()
-    cursor = db.inventory_items.find({})
-    items = await cursor.to_list(length=None)
+    
+    # Base match for inventory items
+    match_query = {}
+    
+    if expiredOnly:
+        match_query["expiryDate"] = {"$lt": datetime.now(timezone.utc)}
+    
+    if expiringBefore:
+        try:
+            # Try parsing ISO format first
+            dt = datetime.fromisoformat(expiringBefore.replace('Z', '+00:00'))
+            match_query["expiryDate"] = {"$lte": dt}
+        except (ValueError, TypeError):
+            pass
+
+    # Aggregation pipeline
+    pipeline = []
+    
+    # 1. Initial filter for inventory fields
+    if match_query:
+        pipeline.append({"$match": match_query})
+    
+    # 2. Join with users to get email
+    pipeline.extend([
+        {
+            "$addFields": {
+                "userObjId": {
+                    "$convert": {
+                        "input": "$userId",
+                        "to": "objectId",
+                        "onError": None,
+                        "onNull": None
+                    }
+                }
+            }
+        },
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "userObjId",
+                "foreignField": "_id",
+                "as": "user_info"
+            }
+        },
+        {"$unwind": {"path": "$user_info", "preserveNullAndEmptyArrays": True}},
+        {
+            "$addFields": {
+                "userEmail": "$user_info.email"
+            }
+        }
+    ])
+    
+    # 3. Filter by userEmail if provided
+    if userEmail:
+        pipeline.append({"$match": {"userEmail": {"$regex": userEmail, "$options": "i"}}})
+    
+    # 4. Facet for total count and paginated items
+    pipeline.append({
+        "$facet": {
+            "metadata": [{"$count": "total"}],
+            "data": [
+                {"$sort": {"createdAt": -1}},
+                {"$skip": (page - 1) * limit},
+                {"$limit": limit}
+            ]
+        }
+    })
+    
+    cursor = db.inventory_items.aggregate(pipeline)
+    result = await cursor.to_list(length=1)
+    
+    if not result:
+        return {"items": [], "total": 0, "page": page, "limit": limit}
+    
+    facet_result = result[0]
+    total = facet_result["metadata"][0]["total"] if facet_result["metadata"] else 0
+    items = facet_result["data"]
+    
     for item in items:
         item["_id"] = str(item["_id"])
-    return items
+        item.pop("userObjId", None)
+        item.pop("user_info", None)
+        if item.get("expiryDate"):
+            item["expiryDate"] = item["expiryDate"].isoformat()
+        if item.get("createdAt"):
+            item["createdAt"] = item["createdAt"].isoformat()
+        if item.get("updatedAt"):
+            item["updatedAt"] = item["updatedAt"].isoformat()
+            
+    return {"items": items, "total": total, "page": page, "limit": limit}
+
+
+@router.delete("/inventory/{item_id}")
+async def delete_inventory_item(item_id: str):
+    db = get_db()
+    try:
+        obj_id = ObjectId(item_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid item ID format")
+        
+    result = await db.inventory_items.delete_one({"_id": obj_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+        
+    return {"message": "Inventory item deleted successfully"}
 
 
 def serialize_notification(notification: dict) -> dict:

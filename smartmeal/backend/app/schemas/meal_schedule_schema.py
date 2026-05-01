@@ -34,6 +34,7 @@ class MealScheduleBase(BaseModel):
     preparation_time: Optional[int] = Field(None, ge=0)
     tags: List[str] = Field(default_factory=list)
     cost_estimate: Optional[float] = Field(None, ge=0)
+    rating: Optional[int] = Field(None, ge=1, le=5)
 
 
 class MealScheduleCreate(MealScheduleBase):
@@ -50,6 +51,7 @@ class MealScheduleUpdate(BaseModel):
     preparation_time: Optional[int] = Field(None, ge=0)
     tags: Optional[List[str]] = None
     cost_estimate: Optional[float] = Field(None, ge=0)
+    rating: Optional[int] = Field(None, ge=1, le=5)
 
 
 class MealScheduleResponse(MealScheduleBase):

@@ -123,7 +123,7 @@ body {
   box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.3);
   border-radius: 0 0 100px 100px;
   margin-top: -12rem;
-  padding: 14rem 2rem 4.5rem;
+  padding: 19rem 2rem 4.5rem;
   margin-bottom: 2.5rem;
   overflow: hidden;
   overflow-x: clip;
@@ -148,7 +148,7 @@ body {
   justify-content: space-between;
   text-align: left;
   align-items: center;
-  padding-top: 13rem;
+  padding-top: 18.5rem;
   padding-left: 3rem;
   padding-right: 3rem;
   padding-bottom: 3.5rem;
@@ -1508,35 +1508,108 @@ button:active, .btn-primary:active {
   color: var(--text-muted);
 }
 
-.action-buttons { display: flex; gap: 0.75rem; flex-wrap: nowrap; }
+.action-buttons { 
+  display: flex; 
+  gap: 0.5rem; 
+  flex-wrap: wrap; 
+  align-items: center;
+}
 
 .btn-icon {
-  background: rgba(var(--primary-rgb), 0.05);
-  border: 1px solid transparent;
+  background: #ffffff;
+  border: 1px solid var(--card-border);
   color: var(--text-muted);
-  width: 38px;
+  width: auto;
+  min-width: 38px;
   height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .btn-icon:hover {
-  background: white;
-  border-color: var(--card-border);
-  box-shadow: var(--shadow-md);
+  background: #f8fafc;
+  border-color: rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.1);
   transform: translateY(-2px);
   color: var(--primary);
 }
 
 .btn-icon.text-danger:hover {
-  background: rgba(239, 68, 68, 0.05);
-  border-color: rgba(239, 68, 68, 0.2);
+  background: #fef2f2;
+  border-color: rgba(239, 68, 68, 0.3);
   color: var(--danger);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+/* Premium Action Buttons */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  border: 1px solid var(--card-border);
+  background: #ffffff;
+  color: var(--text-main);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 0 rgba(0, 0, 0, 0.04);
+  white-space: nowrap;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+  background: #f8fafc;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.btn-action--primary {
+  background: rgba(var(--primary-rgb), 0.05);
+  color: var(--primary);
+  border-color: rgba(var(--primary-rgb), 0.15);
+}
+
+.btn-action--primary:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 8px 16px var(--primary-glow);
+}
+
+.btn-action--warning {
+  background: rgba(245, 158, 11, 0.05);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.15);
+}
+
+.btn-action--warning:hover {
+  background: #f59e0b;
+  color: white;
+  border-color: #f59e0b;
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.25);
+}
+
+.btn-action--danger {
+  background: rgba(239, 68, 68, 0.05);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.btn-action--danger:hover {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.25);
 }
 
 .admin-pagination {
@@ -2290,6 +2363,14 @@ tr:hover td { background: rgba(5, 150, 105, 0.04); }
 @keyframes modalSlideUp {
   from { opacity: 0; transform: translateY(30px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Responsive Table Utility */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
 }
 
 /* â”€â”€ Subtle Hero Icon Animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

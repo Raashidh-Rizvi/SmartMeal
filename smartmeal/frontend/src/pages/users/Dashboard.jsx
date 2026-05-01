@@ -284,27 +284,30 @@ function Dashboard() {
   const handleSearch = (e) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      
-      // Heuristic to detect if the user is looking for recipes/meals
-      const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'meal', 'supper'];
-      const recipeKeywords = ['recipe', 'cook', 'make', 'ingredient', 'food', 'dish'];
-      const filterKeywords = ['veg', 'vegetarian', 'non-veg', 'spicy', 'fast', 'quick', 'min', 'minutes', 'chicken', 'beef', 'pork', 'fish', 'pasta', 'rice', 'indian', 'italian', 'chinese', 'mexican'];
-      
-      const hasMealType = mealTypes.some(m => q.includes(m));
-      const hasRecipeKeyword = recipeKeywords.some(k => q.includes(k));
-      const hasFilterKeyword = filterKeywords.some(k => q.includes(k));
-      
-      // If it doesn't look like a natural language question (who, what, where, how, why)
-      const isQuestion = q.includes('how ') || q.includes('what ') || q.includes('why ') || q.includes('where ') || q.includes('who ') || q.includes('can you') || q.includes('help');
-      
-      // Route to recommendations if it's NOT a question, AND (it has meal/recipe/filter keywords OR it's a short phrase)
-      const wordsCount = q.split(/\s+/).length;
-      
-      if (!isQuestion && (hasMealType || hasRecipeKeyword || hasFilterKeyword || wordsCount <= 5)) {
-        // Redirect to recommendations with the query
+      const words = q.split(/\s+/);
+
+      // Detect natural-language / conversational intent.
+      // These patterns suggest the user wants to TALK to the AI, not just search.
+      const conversationalPatterns = [
+        /\b(what|how|why|where|who|when|which|can|could|would|should|is|are|do|does)\b/,
+        /\b(suggest|recommend|help|give me|show me|tell me|i want|i need|i'd like|i feel like)\b/,
+        /\b(for\s+(lunch|dinner|breakfast|snack|meal|tonight|today|tomorrow))\b/,
+        /\b(something|anything|options|ideas|quick|easy|healthy)\b/,
+        /\?$/,
+      ];
+      const isConversational = conversationalPatterns.some(rx => rx.test(q));
+
+      // An "ingredient search" looks like a short comma-separated list or
+      // a bare list of food nouns with NO conversational words (e.g. "chicken rice garlic").
+      const hasComma = q.includes(',');
+      const isShortBareQuery = words.length <= 4 && !isConversational;
+      const isIngredientSearch = hasComma || isShortBareQuery;
+
+      if (isIngredientSearch) {
+        // Send directly to the TF-IDF recommendations engine
         navigate(`/recommendations?q=${encodeURIComponent(searchQuery.trim())}`);
       } else {
-        // Otherwise, it's a general question for the AI Assistant
+        // Natural language question/request → open AI Assistant chat
         setInitialQuery(searchQuery.trim());
         setShowChat(true);
         setSearchQuery('');

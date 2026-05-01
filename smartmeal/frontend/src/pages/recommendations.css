@@ -608,14 +608,28 @@
 .recommendation-action-button {
   min-height: 42px;
   flex: 0 0 auto;
-  padding: 0.7rem 1rem !important;
+  padding: 0.7rem 1.15rem !important;
   border-radius: 12px !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  border: 1px solid var(--card-border) !important;
+  background: #ffffff !important;
+  color: var(--text-main) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.recommendation-action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06) !important;
+  background: #f8fafc !important;
 }
 
 .recommendation-action-button.is-active {
-  border-color: rgba(var(--primary-rgb), 0.2) !important;
+  border-color: rgba(var(--primary-rgb), 0.25) !important;
   color: var(--primary) !important;
   background: rgba(var(--primary-rgb), 0.06) !important;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.08) !important;
 }
 
 .recommendation-scheduled-pill {

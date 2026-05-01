@@ -37,13 +37,14 @@ import {
   UtensilsCrossed,
   Flame,
   Leaf,
-  Timer
+  Timer,
+  Star
 } from "lucide-react";
 import "../styles/MealSchedule.css";
 
 const MEAL_TYPES  = ["breakfast", "lunch", "dinner", "snack"];
 const STATUS_OPTS = ["planned", "completed", "skipped"];
-const EMPTY_FORM  = { meal_date: "", meal_type: "", recipe_id: "", status: "planned", description: "" };
+const EMPTY_FORM  = { meal_date: "", meal_type: "", recipe_id: "", status: "planned", description: "", rating: 0 };
 const ICONS = { 
     breakfast: <Sun size={18} color="#f59e0b" />, 
     lunch: <Utensils size={18} color="#10b981" />, 
@@ -302,7 +303,16 @@ function DailyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, i
                             <div className="ms-cal-slot-header">
                                 <span className="ms-cal-slot-icon">{ICONS[type]}</span>
                                 <span className="ms-cal-slot-label">{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                                {meal && <StatusBadge status={meal.status || "planned"} />}
+                                {meal && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                        <StatusBadge status={meal.status || "planned"} />
+                                        {meal.status === "completed" && meal.rating > 0 && (
+                                            <div className="ms-cal-rating" style={{ display: 'flex', gap: '1px' }}>
+                                                {[...Array(meal.rating)].map((_, i) => <Star key={i} size={8} fill="#f59e0b" color="#f59e0b" />)}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="ms-cal-slot-body">
                                 {meal ? (
@@ -402,7 +412,15 @@ function WeeklyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe, 
                                             <div className="ms-week-meal-top">
                                                 <span className="ms-week-meal-icon">{ICONS[type]}</span>
                                                 <span className="ms-week-meal-type">{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                                                <MealAlertBadge meal={meal} ingredients={ingredients} />
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                    <MealAlertBadge meal={meal} ingredients={ingredients} />
+                                                    {meal.status === "completed" && meal.rating > 0 && (
+                                                        <div className="ms-week-rating" style={{ display: 'flex', gap: '1px' }}>
+                                                            {[...Array(meal.rating)].map((_, i) => <Star key={i} size={8} fill="#f59e0b" color="#f59e0b" />)}
+                                                        </div>
+                                                    )}
+                                                </div>
+
                                             </div>
                                             <p className="ms-week-meal-title">{meal.recipe_title || getRecipe(meal.recipe_id)?.title || "Unknown"}</p>
                                             <div className="ms-week-meal-btns">
@@ -522,7 +540,14 @@ function MonthlyView({ meals, allRecipes, onEdit, onDelete, onAdd, onViewRecipe,
                                                 <div className="ms-month-meal-top">
                                                     <span className="ms-month-meal-icon">{ICONS[type]}</span>
                                                     <span className="ms-month-meal-type">{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                                                    <MealAlertBadge meal={meal} ingredients={ingredients} />
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                        <MealAlertBadge meal={meal} ingredients={ingredients} />
+                                                        {meal.status === "completed" && meal.rating > 0 && (
+                                                            <div className="ms-month-rating" style={{ display: 'flex', gap: '1px' }}>
+                                                                {[...Array(meal.rating)].map((_, i) => <Star key={i} size={8} fill="#f59e0b" color="#f59e0b" />)}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <p className="ms-month-meal-title">{meal.recipe_title || getRecipe(meal.recipe_id)?.title || "Unknown"}</p>
                                                 <div className="ms-month-meal-btns">
@@ -673,6 +698,7 @@ export default function MealSchedulePage() {
                 meal_type: form.meal_type,
                 status: form.status,
                 description: form.description || null,
+                rating: form.status === "completed" ? form.rating : null,
             };
             if (editingId) {
                 const updateRes = await updateMeal(editingId, payload);
@@ -762,6 +788,7 @@ export default function MealSchedulePage() {
             recipe_id:   meal.recipe_id,
             status:      meal.status || "planned",
             description: meal.description || "",
+            rating:      meal.rating || 0,
         });
         setErrors({});
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1020,6 +1047,30 @@ export default function MealSchedulePage() {
                                 ))}
                             </select>
                         </div>
+
+                        {/* Rating ✓ only for completed meals */}
+                        {form.status === "completed" && (
+                            <div className="ms-field">
+                                <label>Rating</label>
+                                <div className="ms-rating-stars" style={{ display: 'flex', gap: '0.25rem', marginTop: '0.5rem' }}>
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setForm(p => ({ ...p, rating: star }))}
+                                            className="ms-star-btn"
+                                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                        >
+                                            <Star 
+                                                size={24} 
+                                                fill={star <= form.rating ? "#f59e0b" : "none"} 
+                                                color={star <= form.rating ? "#f59e0b" : "#cbd5e1"} 
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Description ✓ full width */}
@@ -1133,7 +1184,14 @@ export default function MealSchedulePage() {
                                                               </Tooltip>
                                                             : <span className="ms-muted">—</span>}
                                                     </td>
-                                                    <td><StatusBadge status={m.status || "planned"} /></td>
+                                                    <td>
+                                                        <StatusBadge status={m.status || "planned"} />
+                                                        {m.status === "completed" && m.rating > 0 && (
+                                                            <div className="ms-list-rating" style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '4px' }}>
+                                                                {[...Array(m.rating)].map((_, i) => <Star key={i} size={10} fill="#f59e0b" color="#f59e0b" />)}
+                                                            </div>
+                                                        )}
+                                                    </td>
                                                     <td>
                                                         {(() => {
                                                             const ings = ingredients[m._id];

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query, Depends
+import logging
 from pydantic import BaseModel
 from typing import Optional, List
 from app.services.recommendation import recommendRecipes
@@ -8,6 +9,8 @@ from app.api.deps import get_current_user
 from app.models.user import UserInDB
 from jose import JWTError, jwt
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["recommendations"])
 
@@ -156,9 +159,9 @@ async def generate_recipe(
         matched_names = [r["name"] for r in enriched]
 
     # ── Step 3: Azure OpenAI generation ─────────────────────────────────────
-    # Parse ingredient string into a list for the AI prompt
+    # Split by comma to preserve multi-word ingredients (e.g. "green chili")
     user_ingredients = [
-        i.strip() for i in body.ingredients.replace(",", " ").split() if i.strip()
+        i.strip() for i in body.ingredients.split(",") if i.strip()
     ]
 
     preferences = {
@@ -178,6 +181,7 @@ async def generate_recipe(
             f"{doc.get('quantity', 1)} {doc.get('unit', '')} {doc.get('name', '')}".strip() 
             for doc in inv_docs
         ]
+        logger.info(f"[Recommendation] User inventory for {current_user.id}: {user_inventory}")
 
     generated_recipe = generate_ai_recipe(
         user_ingredients=user_ingredients,
