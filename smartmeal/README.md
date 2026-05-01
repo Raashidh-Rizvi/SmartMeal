@@ -64,6 +64,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 ## Key Features
 
 - **Auth**: JWT login/register + Google Sign-In (Firebase)
-- **User dashboard**: Inventory tracking, meal planning, shopping lists, recipe recommendations
+- **User dashboard**: Inventory tracking, meal planning, shopping lists, [recipe recommendations](AI_SYSTEM_README.md)
+- **AI & Recommendations**: Powered by a hybrid TF-IDF engine and Azure OpenAI (see [AI Documentation](AI_SYSTEM_README.md) for details)
 - **Admin dashboard**: User management, metrics, inventory overview, notifications
 - **Dark mode**: System-aware theme toggle
