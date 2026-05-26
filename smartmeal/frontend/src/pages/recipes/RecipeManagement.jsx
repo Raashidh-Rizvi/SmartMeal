@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-=======
 import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 import { useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import {
@@ -12,12 +8,6 @@ import {
     updateRecipe,
     deleteRecipe,
     uploadRecipeImage,
-<<<<<<< HEAD
-} from '../../api/recipes';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'];
-=======
     toggleFavoriteRecipe,
     getFavoriteRecipes,
     generateAIRecipe,
@@ -47,7 +37,6 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = ['breakfast', 'lunch', 'dinner', 'snack'];
 const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 const EMPTY_INGREDIENT = { name: '', quantity: '', unit: '' };
 const EMPTY_FORM = {
@@ -60,31 +49,23 @@ const EMPTY_FORM = {
     estimated_cooking_time: '',
     image_url: '',
 };
-<<<<<<< HEAD
-=======
 const INGREDIENT_FETCH_LIMIT = 500;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 const STEP_TEXTAREA_MIN_HEIGHT = 88;
 
 const normalizeIngredientName = (name) => String(name || '').trim().toLowerCase();
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 // ─── View Enum ────────────────────────────────────────────────────────────────
 const VIEW = { LIST: 'list', DETAIL: 'detail', FORM: 'form' };
 
 // ─────────────────────────────────────────────────────────────────────────────
 function RecipeManagement() {
-<<<<<<< HEAD
-    const { user } = useContext(AuthContext);
-    const location = useLocation();
-=======
     const { user, setUser } = useContext(AuthContext);
     const location = useLocation();
     const currentUserId = useMemo(() => {
         const rawId = user?._id ?? user?.id;
         return rawId ? String(rawId) : '';
     }, [user]);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
     // UI state
     const [view, setView] = useState(VIEW.LIST);
@@ -97,11 +78,7 @@ function RecipeManagement() {
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
-<<<<<<< HEAD
-    const [activeTab, setActiveTab] = useState('all'); // 'all' or 'mine'
-=======
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'mine', or 'favorites'
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     const [skip, setSkip] = useState(0);
     const LIMIT = 12;
 
@@ -110,8 +87,6 @@ function RecipeManagement() {
     const [formError, setFormError] = useState('');
     const [formLoading, setFormLoading] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
-<<<<<<< HEAD
-=======
     const [availableIngredients, setAvailableIngredients] = useState([]);
     const stepTextareaRefs = useRef([]);
 
@@ -119,7 +94,6 @@ function RecipeManagement() {
     const [aiData, setAiData] = useState(null);
     const [aiLoading, setAiLoading] = useState(false);
     const aiPanelRef = useRef(null);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
     // Debounced search
     const [searchInput, setSearchInput] = useState('');
@@ -131,13 +105,6 @@ function RecipeManagement() {
         return () => clearTimeout(t);
     }, [searchInput]);
 
-<<<<<<< HEAD
-    // Check for ?tab=mine from Navbar link or existing parameters
-    useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        if (params.get('tab') === 'mine' || params.get('created_by_me') === '1') {
-            setActiveTab('mine');
-=======
     // Check for URL parameters
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -155,7 +122,6 @@ function RecipeManagement() {
             setSearchInput(searchParam);
             setSearch(searchParam);
             setSkip(0);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         }
     }, [location.search]);
 
@@ -170,8 +136,6 @@ function RecipeManagement() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-<<<<<<< HEAD
-=======
     const ingredientOptions = useMemo(() => {
         const byName = new Map();
         for (const item of availableIngredients) {
@@ -218,21 +182,11 @@ function RecipeManagement() {
         };
     }, [view]);
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     // ── Fetch recipes list ───────────────────────────────────────────────────
     const fetchRecipes = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
-<<<<<<< HEAD
-            const params = { skip, limit: LIMIT };
-            if (search) params.search = search;
-            if (categoryFilter) params.category = categoryFilter;
-            if (activeTab === 'mine' && user) params.created_by = user.id || user._id;
-
-            const res = await getRecipes(params);
-            setRecipes(res.data);
-=======
             const normalizedSearch = search.trim();
 
             if (activeTab === 'favorites') {
@@ -278,18 +232,13 @@ function RecipeManagement() {
 
             const res = await getRecipes(params);
             setRecipes(Array.isArray(res.data) ? res.data : []);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         } catch (err) {
             console.error('Fetch recipes error:', err);
             setError('Failed to load recipes. Please try again.');
         } finally {
             setLoading(false);
         }
-<<<<<<< HEAD
-    }, [search, categoryFilter, activeTab, skip, user]);
-=======
     }, [search, categoryFilter, activeTab, skip, currentUserId, user]);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
     useEffect(() => {
         if (view === VIEW.LIST) fetchRecipes();
@@ -298,11 +247,8 @@ function RecipeManagement() {
     // ── Open detail ──────────────────────────────────────────────────────────
     const openDetail = async (id) => {
         setError('');
-<<<<<<< HEAD
-=======
         setAiData(null);
         setAiLoading(false);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         try {
             const res = await getRecipeById(id);
             setSelectedRecipe(res.data);
@@ -320,10 +266,6 @@ function RecipeManagement() {
         setView(VIEW.FORM);
     };
 
-<<<<<<< HEAD
-    // ── Open edit form ───────────────────────────────────────────────────────
-    const openEdit = (recipe) => {
-=======
     const isOwner = useCallback((recipe) => (
         Boolean(recipe?.created_by && currentUserId && String(recipe.created_by) === currentUserId)
     ), [currentUserId]);
@@ -361,7 +303,6 @@ function RecipeManagement() {
             return;
         }
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         setForm({
             title: recipe.title,
             description: recipe.description || '',
@@ -386,13 +327,10 @@ function RecipeManagement() {
     // ── Delete recipe ────────────────────────────────────────────────────────
     const handleDelete = async (recipe, e) => {
         if (e) e.stopPropagation(); // prevent opening details when clicked from list view
-<<<<<<< HEAD
-=======
         if (!isOwner(recipe)) {
             setError('You can only delete recipes you created.');
             return;
         }
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         if (!window.confirm(`Delete "${recipe.title}"? This cannot be undone.`)) return;
         try {
             await deleteRecipe(recipe._id);
@@ -425,8 +363,6 @@ function RecipeManagement() {
         }
     };
 
-<<<<<<< HEAD
-=======
     // ── Generate AI Recipe ───────────────────────────────────────────────────
     const handleGenerateAIRecipe = async () => {
         if (!selectedRecipe) return;
@@ -454,7 +390,6 @@ function RecipeManagement() {
         }
     };
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     // ── Form field helpers ───────────────────────────────────────────────────
     const setFormField = (field, value) =>
         setForm(prev => ({ ...prev, [field]: value }));
@@ -466,8 +401,6 @@ function RecipeManagement() {
             return { ...prev, ingredients };
         });
 
-<<<<<<< HEAD
-=======
     // Suggestions come from Ingredient Management, but free-typed ingredients stay valid.
     const handleIngredientNameChange = (idx, name) => {
         const match = findIngredientOption(name);
@@ -482,7 +415,6 @@ function RecipeManagement() {
         });
     };
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     const addIngredient = () =>
         setForm(prev => ({ ...prev, ingredients: [...prev.ingredients, { ...EMPTY_INGREDIENT }] }));
 
@@ -499,8 +431,6 @@ function RecipeManagement() {
             return { ...prev, preparation_steps };
         });
 
-<<<<<<< HEAD
-=======
     const resizeStepTextarea = useCallback((element) => {
         if (!element) return;
 
@@ -508,7 +438,6 @@ function RecipeManagement() {
         element.style.height = `${Math.max(element.scrollHeight, STEP_TEXTAREA_MIN_HEIGHT)}px`;
     }, []);
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     const addStep = () =>
         setForm(prev => ({ ...prev, preparation_steps: [...prev.preparation_steps, ''] }));
 
@@ -518,8 +447,6 @@ function RecipeManagement() {
             preparation_steps: prev.preparation_steps.filter((_, i) => i !== idx),
         }));
 
-<<<<<<< HEAD
-=======
     useEffect(() => {
         stepTextareaRefs.current = stepTextareaRefs.current.slice(0, form.preparation_steps.length);
         if (view !== VIEW.FORM) return;
@@ -527,7 +454,6 @@ function RecipeManagement() {
         stepTextareaRefs.current.forEach(resizeStepTextarea);
     }, [form.preparation_steps, resizeStepTextarea, view]);
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     // ── Submit form ──────────────────────────────────────────────────────────
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -541,11 +467,7 @@ function RecipeManagement() {
         for (const ing of validIngredients) {
             if (!ing.quantity || isNaN(Number(ing.quantity)) || Number(ing.quantity) <= 0)
                 return setFormError(`Invalid quantity for ingredient "${ing.name}".`);
-<<<<<<< HEAD
-            if (!ing.unit.trim())
-=======
             if (!ing.unit)
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                 return setFormError(`Unit is required for ingredient "${ing.name}".`);
         }
         const validSteps = form.preparation_steps.filter(s => s.trim());
@@ -589,12 +511,6 @@ function RecipeManagement() {
         }
     };
 
-<<<<<<< HEAD
-    const isOwner = (recipe) =>
-        user && recipe && (recipe.created_by === user._id || recipe.created_by === user.id);
-
-    // ── Render ───────────────────────────────────────────────────────────────
-=======
     // ── Render ───────────────────────────────────────────────────────────────
     const recipeTabCount =
         1 +
@@ -607,17 +523,10 @@ function RecipeManagement() {
     const formHeading = editMode ? 'Edit Recipe' : 'Create Recipe';
     const recipeGridClassName = `recipe-grid${recipes.length === 1 ? ' recipe-grid--single' : ''}`;
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     return (
         <div className="recipe-page">
 
             {/* Header */}
-<<<<<<< HEAD
-            <div className="recipe-page-header" style={{ justifyContent: 'center' }}>
-                <div className="recipe-page-header-text" style={{ textAlign: 'center' }}>
-                    <h1 className="recipe-page-title">Recipe Repository</h1>
-                    <p className="recipe-page-subtitle">Browse, search, and manage your recipes</p>
-=======
             <div className="recipe-page-header page-hero page-hero--sub">
                 {/* Premium Decorative Background Icons - Scattered Artistically */}
                 <UtensilsCrossed size={70} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '5%', '--rotation': '-15deg', animationDelay: '0s' }} />
@@ -634,38 +543,22 @@ function RecipeManagement() {
                 <div className="recipe-page-header-text" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
                     <h1 className="recipe-page-title" style={{ margin: 0 }}>Recipe Repository</h1>
                     <p className="recipe-page-subtitle" style={{ margin: '0.5rem 0 0 0' }}>Browse, search, and manage your recipes</p>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                 </div>
             </div>
 
             {/* Top Navigation */}
             <div className="recipe-tabs-container premium-nav-bar">
-<<<<<<< HEAD
-                <div className="recipe-tabs align-side-by-side" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', padding: '0.5rem', background: 'transparent', border: 'none', boxShadow: 'none' }}>
-                    <button
-                        className={`recipe-tab ${view === VIEW.LIST && activeTab === 'all' ? 'active' : ''}`}
-                        onClick={() => { setView(VIEW.LIST); setActiveTab('all'); setSkip(0); }}
-                        style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
-                    >
-                        <span>📖</span> View Recipes
-=======
                 <div className={recipeTabsClassName}>
                     <button
                         className={`recipe-tab ${view === VIEW.LIST && activeTab === 'all' ? 'active' : ''}`}
                         onClick={() => { setView(VIEW.LIST); setActiveTab('all'); setSkip(0); }}
                     >
                         <Search size={18} /> View Recipes
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                     </button>
                     {user && (
                         <button
                             className={`recipe-tab ${view === VIEW.LIST && activeTab === 'mine' ? 'active' : ''}`}
                             onClick={() => { setView(VIEW.LIST); setActiveTab('mine'); setSkip(0); }}
-<<<<<<< HEAD
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
-                        >
-                            <span>🧑‍🍳</span> My Recipes
-=======
                         >
                             <User size={18} /> My Recipes
                         </button>
@@ -676,7 +569,6 @@ function RecipeManagement() {
                             onClick={() => { setView(VIEW.LIST); setActiveTab('favorites'); setSkip(0); }}
                         >
                             <Heart size={18} fill={activeTab === 'favorites' ? 'currentColor' : 'none'} /> Favorites
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         </button>
                     )}
                     {user && view === VIEW.LIST && (
@@ -684,28 +576,16 @@ function RecipeManagement() {
                             className="recipe-tab"
                             onClick={openCreate}
                             id="add-recipe-btn"
-<<<<<<< HEAD
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
-                        >
-                            <span className="add-icon" style={{ fontWeight: 'bold' }}>+</span> Add Recipe
-=======
                         >
                             <Plus size={18} /> Add Recipe
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         </button>
                     )}
                     {view !== VIEW.LIST && (
                         <button
                             className="recipe-tab"
                             onClick={() => setView(editMode && view === VIEW.FORM ? VIEW.DETAIL : VIEW.LIST)}
-<<<<<<< HEAD
-                            style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', padding: '0.8rem 1.5rem' }}
-                        >
-                            <span>←</span> Back
-=======
                         >
                             <ArrowLeft size={18} /> Back
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         </button>
                     )}
                 </div>
@@ -718,20 +598,12 @@ function RecipeManagement() {
                     {/* Filter Bar */}
                     <div className="filter-bar unified-filter-bar">
                         <div className="search-input-wrapper">
-<<<<<<< HEAD
-                            <span className="search-icon">🔍</span>
-=======
                             <Search className="search-icon" size={18} />
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                             <input
                                 id="recipe-search"
                                 className="filter-search premium-input"
                                 type="text"
-<<<<<<< HEAD
-                                placeholder={`Search ${activeTab === 'mine' ? 'your' : 'all'} recipes...`}
-=======
                                 placeholder={`Search ${activeTab === 'mine' ? 'your' : activeTab === 'favorites' ? 'favorite' : 'all'} recipes...`}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
                             />
@@ -753,97 +625,6 @@ function RecipeManagement() {
 
                     {/* Grid */}
                     {loading ? (
-<<<<<<< HEAD
-                        <div className="loading-state">Loading recipes...</div>
-                    ) : recipes.length === 0 ? (
-                        <div className="empty-state">
-                            <p className="empty-icon">—</p>
-                            <p>No recipes found.</p>
-                            {user && (
-                                <button className="btn-primary" onClick={openCreate}>Create your first recipe</button>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="recipe-grid">
-                            {recipes.map(recipe => (
-                                <div
-                                    key={recipe._id}
-                                    className="recipe-card"
-                                    onClick={() => openDetail(recipe._id)}
-                                    id={`recipe-card-${recipe._id}`}
-                                >
-                                    {/* Action Buttons Container (Always visible for structure) */}
-                                    {isOwner(recipe) && (
-                                        <div className="recipe-card-actions inline-actions" onClick={e => e.stopPropagation()}>
-                                            <button 
-                                                className="btn-icon-sm action-edit" 
-                                                onClick={() => openEdit(recipe)}
-                                                title="Edit Recipe"
-                                                style={{ width: '36px', height: '36px', padding: 0 }} /* Override global button block style */
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button 
-                                                className="btn-icon-sm action-delete" 
-                                                onClick={(e) => handleDelete(recipe, e)}
-                                                title="Delete Recipe"
-                                                style={{ width: '36px', height: '36px', padding: 0 }} /* Override global button block style */
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* Optional Image */}
-                                    {recipe.image_url && (
-                                        <img
-                                            src={recipe.image_url.startsWith('/') ? `http://localhost:8001${recipe.image_url}` : recipe.image_url}
-                                            alt={recipe.title}
-                                            className="recipe-card-img"
-                                            onError={e => { e.target.style.display = 'none'; }}
-                                        />
-                                    )}
-
-                                    {/* Card Content Base */}
-                                    <div className="recipe-card-body">
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                            <span className={`badge badge-${recipe.category}`}>
-                                                {recipe.category}
-                                            </span>
-                                            {recipe.estimated_cooking_time && (
-                                                <span className="recipe-time" style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                    ⏱️ {recipe.estimated_cooking_time} min
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <h3 className="recipe-card-title">{recipe.title}</h3>
-                                        
-                                        {recipe.description && (
-                                            <p className="recipe-card-desc">
-                                                {recipe.description.length > 80 ? recipe.description.slice(0, 80) + '...' : recipe.description}
-                                            </p>
-                                        )}
-
-                                        <div className="recipe-card-footer" style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span className="recipe-ingredient-count" style={{ fontSize: '0.85rem', fontWeight: '500', color: '#059669' }}>
-                                                {recipe.ingredients.length} ingredient{recipe.ingredients.length !== 1 ? 's' : ''}
-                                            </span>
-                                            
-                                            {recipe.dietary_tags?.length > 0 && (
-                                                <div className="tag-chips" style={{ display: 'flex', gap: '4px' }}>
-                                                    {recipe.dietary_tags.slice(0, 2).map(tag => (
-                                                        <span key={tag} className="tag-chip" style={{ background: '#f8fafc', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', color: '#64748b' }}>
-                                                            {tag}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-=======
                         <div className="loading-state">
                             <div className="spinner"></div>
                             <p>Loading recipes...</p>
@@ -957,7 +738,6 @@ function RecipeManagement() {
                                     </div>
                                 );
                             })}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         </div>
                     )}
 
@@ -969,11 +749,7 @@ function RecipeManagement() {
                                 onClick={() => setSkip(Math.max(0, skip - LIMIT))}
                                 disabled={skip === 0}
                             >
-<<<<<<< HEAD
-                                ← Previous
-=======
                                 <ArrowLeft size={16} /> Previous
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                             </button>
                             <span className="page-info">Page {Math.floor(skip / LIMIT) + 1}</span>
                             <button
@@ -981,11 +757,7 @@ function RecipeManagement() {
                                 onClick={() => setSkip(skip + LIMIT)}
                                 disabled={recipes.length < LIMIT}
                             >
-<<<<<<< HEAD
-                                Next →
-=======
                                 Next <ArrowLeft size={16} style={{ transform: 'rotate(180deg)' }} />
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                             </button>
                         </div>
                     )}
@@ -998,11 +770,7 @@ function RecipeManagement() {
 
                     {selectedRecipe.image_url && (
                         <img
-<<<<<<< HEAD
-                            src={selectedRecipe.image_url.startsWith('/') ? `http://localhost:8001${selectedRecipe.image_url}` : selectedRecipe.image_url}
-=======
                             src={selectedRecipe.image_url.startsWith('/') ? `${API_BASE_URL}${selectedRecipe.image_url}` : selectedRecipe.image_url}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                             alt={selectedRecipe.title}
                             className="recipe-hero-img"
                             onError={e => { e.target.style.display = 'none'; }}
@@ -1020,33 +788,6 @@ function RecipeManagement() {
                             )}
                             <div className="recipe-meta">
                                 {selectedRecipe.estimated_cooking_time && (
-<<<<<<< HEAD
-                                    <span>{selectedRecipe.estimated_cooking_time} min cook time</span>
-                                )}
-                                <span>{selectedRecipe.ingredients.length} ingredients</span>
-                                <span>{selectedRecipe.preparation_steps.length} steps</span>
-                            </div>
-                        </div>
-
-                        {isOwner(selectedRecipe) && (
-                            <div className="recipe-actions">
-                                <button
-                                    className="btn-secondary"
-                                    onClick={() => openEdit(selectedRecipe)}
-                                    id="edit-recipe-btn"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    className="btn-danger"
-                                    onClick={() => handleDelete(selectedRecipe)}
-                                    id="delete-recipe-btn"
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        )}
-=======
                                     <div className="recipe-meta-item">
                                         <Clock size={18} color="var(--primary)" />
                                         <span>{selectedRecipe.estimated_cooking_time} min cook time</span>
@@ -1063,37 +804,26 @@ function RecipeManagement() {
                             </div>
                         </div>
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                     </div>
 
                     {error && <div className="error">{error}</div>}
 
                     {/* Dietary Tags */}
                     {selectedRecipe.dietary_tags?.length > 0 && (
-<<<<<<< HEAD
-                        <div className="tag-chips" style={{ marginBottom: '1.5rem' }}>
-                            {selectedRecipe.dietary_tags.map(tag => (
-                                <span key={tag} className="tag-chip">{tag}</span>
-=======
                         <div className="tag-chips">
                             {selectedRecipe.dietary_tags.map(tag => (
                                 <span key={tag} className="tag-chip">
                                     <Check size={12} /> {tag}
                                 </span>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                             ))}
                         </div>
                     )}
 
                     {/* Ingredients */}
                     <section className="recipe-section">
-<<<<<<< HEAD
-                        <h2>Ingredients</h2>
-=======
                         <h2 className="recipe-section-title">
                             <Users size={24} color="var(--primary)" /> Ingredients
                         </h2>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         <table className="ingredient-table">
                             <thead>
                                 <tr>
@@ -1116,21 +846,15 @@ function RecipeManagement() {
 
                     {/* Preparation Steps */}
                     <section className="recipe-section">
-<<<<<<< HEAD
-                        <h2>Preparation Steps</h2>
-=======
                         <h2 className="recipe-section-title">
                             <ChefHat size={24} color="var(--primary)" /> Preparation Steps
                         </h2>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         <ol className="steps-list">
                             {selectedRecipe.preparation_steps.map((step, i) => (
                                 <li key={i}>{step}</li>
                             ))}
                         </ol>
                     </section>
-<<<<<<< HEAD
-=======
 
                     {/* Action Buttons (Moved to Bottom) */}
                     <div className="recipe-detail-actions-footer">
@@ -1170,40 +894,22 @@ function RecipeManagement() {
                             />
                         )}
                     </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                 </div>
             )}
 
             {/* ── FORM VIEW ── */}
             {view === VIEW.FORM && (
                 <div className="recipe-form-wrapper">
-<<<<<<< HEAD
-                    <h1 className="recipe-page-title">{editMode ? 'Edit Recipe' : 'Add New Recipe'}</h1>
-=======
                     <div className="recipe-form-header">
                         <h1 className="recipe-form-title">
                             <FormHeadingIcon size={28} />
                             {formHeading}
                         </h1>
                     </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
                     <form onSubmit={handleSubmit} className="recipe-form" id="recipe-form">
                         {formError && <div className="error">{formError}</div>}
 
-<<<<<<< HEAD
-                        {/* Title */}
-                        <div className="form-group">
-                            <label htmlFor="recipe-title">Title *</label>
-                            <input
-                                id="recipe-title"
-                                type="text"
-                                placeholder="e.g. Avocado Toast"
-                                value={form.title}
-                                onChange={e => setFormField('title', e.target.value)}
-                                required
-                            />
-=======
                         {/* Row 1: Title and Category */}
                         <div className="recipe-form-row">
                             <div className="form-group recipe-form-group recipe-form-group--wide">
@@ -1231,7 +937,6 @@ function RecipeManagement() {
                                     ))}
                                 </select>
                             </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         </div>
 
                         {/* Description */}
@@ -1240,34 +945,6 @@ function RecipeManagement() {
                             <textarea
                                 id="recipe-desc"
                                 className="form-textarea"
-<<<<<<< HEAD
-                                placeholder="Brief description of the recipe..."
-                                value={form.description}
-                                onChange={e => setFormField('description', e.target.value)}
-                                rows={3}
-                            />
-                        </div>
-
-                        {/* Category */}
-                        <div className="form-group">
-                            <label htmlFor="recipe-category">Category *</label>
-                            <select
-                                id="recipe-category"
-                                className="form-select"
-                                value={form.category}
-                                onChange={e => setFormField('category', e.target.value)}
-                                required
-                            >
-                                {CATEGORIES.map(c => (
-                                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Cook Time */}
-                        <div className="form-group">
-                            <label htmlFor="recipe-time">Estimated Cooking Time (minutes)</label>
-=======
                                 placeholder="Write a detailed description of the recipe..."
                                 value={form.description}
                                 onChange={e => setFormField('description', e.target.value)}
@@ -1278,7 +955,6 @@ function RecipeManagement() {
                         {/* Cook Time */}
                         <div className="form-group recipe-form-group recipe-time-group">
                             <label htmlFor="recipe-time">Cook Time (min)</label>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                             <input
                                 id="recipe-time"
                                 type="number"
@@ -1306,11 +982,7 @@ function RecipeManagement() {
                             {form.image_url && !imageUploading && (
                                 <div className="img-preview-wrapper">
                                     <img
-<<<<<<< HEAD
-                                        src={`http://localhost:8001${form.image_url}`}
-=======
                                         src={form.image_url.startsWith('/') ? `${API_BASE_URL}${form.image_url}` : form.image_url}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                                         alt="Preview"
                                         className="img-preview"
                                         onError={e => { e.target.style.display = 'none'; }}
@@ -1334,21 +1006,6 @@ function RecipeManagement() {
                         {/* Ingredients */}
                         <div className="form-section">
                             <div className="form-section-header">
-<<<<<<< HEAD
-                                <h3>Ingredients *</h3>
-                                <button type="button" className="btn-add-row" onClick={addIngredient}>
-                                    + Add Ingredient
-                                </button>
-                            </div>
-                            {form.ingredients.map((ing, idx) => (
-                                <div key={idx} className="ingredient-row">
-                                    <input
-                                        type="text"
-                                        placeholder="Name"
-                                        value={ing.name}
-                                        onChange={e => setIngredient(idx, 'name', e.target.value)}
-                                        className="ing-name"
-=======
                                 <h3>Ingredients</h3>
                                 <button type="button" className="btn-add-row" onClick={addIngredient}>
                                     <Plus size={16} /> Add Ingredient
@@ -1374,7 +1031,6 @@ function RecipeManagement() {
                                         className="ing-name"
                                         placeholder={ingredientOptions.length ? 'Choose or type ingredient' : 'Ingredient name'}
                                         required
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                                     />
                                     <input
                                         type="number"
@@ -1387,18 +1043,11 @@ function RecipeManagement() {
                                     />
                                     <input
                                         type="text"
-<<<<<<< HEAD
-                                        placeholder="Unit"
-                                        value={ing.unit}
-                                        onChange={e => setIngredient(idx, 'unit', e.target.value)}
-                                        className="ing-unit"
-=======
                                         value={ing.unit || ''}
                                         onChange={e => setIngredient(idx, 'unit', e.target.value)}
                                         className="ing-unit"
                                         placeholder="Unit"
                                         required
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                                     />
                                     {form.ingredients.length > 1 && (
                                         <button
@@ -1407,34 +1056,20 @@ function RecipeManagement() {
                                             onClick={() => removeIngredient(idx)}
                                             title="Remove ingredient"
                                         >
-<<<<<<< HEAD
-                                            x
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-=======
                                             <Trash2 size={18} />
                                         </button>
                                     )}
                                 </div>
                                 );
                             })}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                         </div>
 
                         {/* Preparation Steps */}
                         <div className="form-section">
                             <div className="form-section-header">
-<<<<<<< HEAD
-                                <h3>Preparation Steps *</h3>
-                                <button type="button" className="btn-add-row" onClick={addStep}>
-                                    + Add Step
-=======
                                 <h3>Preparation Steps</h3>
                                 <button type="button" className="btn-add-row" onClick={addStep}>
                                     <Plus size={16} /> Add Step
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                                 </button>
                             </div>
                             {form.preparation_steps.map((step, idx) => (
@@ -1444,17 +1079,12 @@ function RecipeManagement() {
                                         className="form-textarea step-input"
                                         placeholder={`Step ${idx + 1}...`}
                                         value={step}
-<<<<<<< HEAD
-                                        onChange={e => setStep(idx, e.target.value)}
-                                        rows={2}
-=======
                                         ref={(element) => {
                                             stepTextareaRefs.current[idx] = element;
                                         }}
                                         onInput={e => resizeStepTextarea(e.currentTarget)}
                                         onChange={e => setStep(idx, e.target.value)}
                                         rows={1}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                                     />
                                     {form.preparation_steps.length > 1 && (
                                         <button
@@ -1463,11 +1093,7 @@ function RecipeManagement() {
                                             onClick={() => removeStep(idx)}
                                             title="Remove step"
                                         >
-<<<<<<< HEAD
-                                            x
-=======
                                             <Trash2 size={18} />
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                                         </button>
                                     )}
                                 </div>
@@ -1484,11 +1110,7 @@ function RecipeManagement() {
                                 Cancel
                             </button>
                             <button type="submit" className="btn-primary" disabled={formLoading} id="submit-recipe-btn">
-<<<<<<< HEAD
-                                {formLoading ? 'Saving…' : editMode ? 'Update Recipe' : 'Create Recipe'}
-=======
                                 {formLoading ? 'Saving...' : editMode ? 'Update Recipe' : 'Create Recipe'}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                             </button>
                         </div>
                     </form>

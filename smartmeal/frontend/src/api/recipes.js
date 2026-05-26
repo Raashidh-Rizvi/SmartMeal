@@ -9,11 +9,7 @@ import api from './axios';
  * @param {Object} params - { search, category, created_by, skip, limit }
  */
 export const getRecipes = (params = {}) =>
-<<<<<<< HEAD
-    api.get('/api/recipes', { params });
-=======
     api.get('/api/recipes/', { params });
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 /**
  * @param {string} id - Recipe ObjectId string
@@ -41,8 +37,6 @@ export const deleteRecipe = (id) =>
     api.delete(`/api/recipes/${id}`);
 
 /**
-<<<<<<< HEAD
-=======
  * Get filtered recipe recommendations
  * @param {Object} filters - { spicy, cooking_time_max, diet, limit }
  */
@@ -66,7 +60,6 @@ export const searchRecommendations = (query, opts = {}) =>
     api.post('/api/recommendations/search', { query, top_n: opts.top_n ?? 5, ...opts });
 
 /**
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
  * Upload an image file and receive back a hosted URL.
  * @param {File} file - The image File object from an <input type="file">
  */
@@ -77,8 +70,6 @@ export const uploadRecipeImage = (file) => {
         headers: { 'Content-Type': 'multipart/form-data' },
     });
 };
-<<<<<<< HEAD
-=======
 
 /**
  * Toggle favorite status for a recipe
@@ -113,4 +104,3 @@ export const chatAboutRecipe = (body = {}) =>
  */
 export const generalAppChat = (body = {}) =>
     api.post('/api/recommendations/general-chat', body);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

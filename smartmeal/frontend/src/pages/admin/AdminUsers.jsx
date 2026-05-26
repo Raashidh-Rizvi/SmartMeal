@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../../api/axios';
-=======
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
@@ -20,7 +15,6 @@ import {
   Lock,
   UserCog
 } from 'lucide-react';
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -31,11 +25,7 @@ function AdminUsers() {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
 
-<<<<<<< HEAD
-  const fetchUsers = async () => {
-=======
   const fetchUsers = useCallback(async () => {
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     try {
       setLoading(true);
       let url = `/api/admin/users?page=${page}&limit=${limit}`;
@@ -47,17 +37,6 @@ function AdminUsers() {
       setTotalPages(Math.ceil(res.data.total / limit));
     } catch (err) {
       console.error(err);
-<<<<<<< HEAD
-      alert('Error fetching users');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, [page, roleFilter]); // Trigger when page or role changes. search is manual on submit
-=======
     } finally {
       setLoading(false);
     }
@@ -66,7 +45,6 @@ function AdminUsers() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -87,22 +65,6 @@ function AdminUsers() {
 
   return (
     <div className="admin-page">
-<<<<<<< HEAD
-      <header className="admin-header">
-        <h1>Users Management</h1>
-      </header>
-
-      <div className="admin-filters">
-        <form onSubmit={handleSearch} className="search-form">
-          <input 
-            type="text" 
-            placeholder="Search name/email..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="admin-input"
-          />
-          <button type="submit" className="btn btn-primary">Search</button>
-=======
       <div className="page-hero page-hero--sub">
         {/* Premium Decorative Background Icons */}
         <Users size={80} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '10%', left: '6%', '--rotation': '-15deg', animationDelay: '0s' }} />
@@ -137,71 +99,37 @@ function AdminUsers() {
           <button type="submit" className="btn btn-primary" style={{ width: 'auto' }}>
             Search
           </button>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         </form>
         
         <select 
           value={roleFilter} 
           onChange={(e) => setRoleFilter(e.target.value)}
           className="admin-input"
-<<<<<<< HEAD
-        >
-          <option value="">All Roles</option>
-          <option value="USER">USER</option>
-          <option value="ADMIN">ADMIN</option>
-=======
           style={{ width: 'auto', minWidth: '150px' }}
         >
           <option value="">All Roles</option>
           <option value="USER">User Role</option>
           <option value="ADMIN">Admin Role</option>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         </select>
       </div>
 
       {loading ? (
-<<<<<<< HEAD
-        <p>Loading users...</p>
-=======
         <div className="admin-loading"><div className="loader"></div><p>Loading users...</p></div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       ) : (
         <div className="admin-table-container">
           <table className="admin-table">
             <thead>
               <tr>
-<<<<<<< HEAD
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Created At</th>
-                <th>Actions</th>
-=======
                 <th>User Identity</th>
                 <th>Access Level</th>
                 <th>Status</th>
                 <th>Joined Date</th>
                 <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
               </tr>
             </thead>
             <tbody>
               {users.map(u => (
                 <tr key={u._id}>
-<<<<<<< HEAD
-                  <td>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td>
-                    <span className={`badge ${u.role === 'ADMIN' ? 'badge-admin' : 'badge-user'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <Link to={`/admin/users/${u._id}`} className="btn-icon text-primary">Edit</Link>
-                      <button onClick={() => handleDelete(u._id)} className="btn-icon text-danger">Delete</button>
-=======
                   <td>
                     <div className="user-identity">
                       <div className="user-avatar">
@@ -252,20 +180,15 @@ function AdminUsers() {
                       <button onClick={() => handleDelete(u._id)} className="btn-icon text-danger" title="Revoke Access">
                         <Trash2 size={16} />
                       </button>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                     </div>
                   </td>
                 </tr>
               ))}
               {users.length === 0 && (
                 <tr>
-<<<<<<< HEAD
-                  <td colSpan="5" className="text-center">No users found</td>
-=======
                   <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No users found matching your criteria
                   </td>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                 </tr>
               )}
             </tbody>
@@ -276,12 +199,6 @@ function AdminUsers() {
               disabled={page === 1} 
               onClick={() => setPage(p => Math.max(1, p - 1))}
               className="btn btn-secondary"
-<<<<<<< HEAD
-            >
-              Previous
-            </button>
-            <span>Page {page} of {totalPages || 1}</span>
-=======
               style={{ width: 'auto' }}
             >
               <ChevronLeft size={18} /> Prev
@@ -289,19 +206,13 @@ function AdminUsers() {
             <span style={{ fontWeight: 700, minWidth: '100px', textAlign: 'center' }}>
               {page} / {totalPages || 1}
             </span>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
             <button 
               disabled={page >= totalPages} 
               onClick={() => setPage(p => p + 1)}
               className="btn btn-secondary"
-<<<<<<< HEAD
-            >
-              Next
-=======
               style={{ width: 'auto' }}
             >
               Next <ChevronRight size={18} />
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
             </button>
           </div>
         </div>

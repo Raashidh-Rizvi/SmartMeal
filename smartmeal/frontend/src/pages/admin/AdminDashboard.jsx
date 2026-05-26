@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
-<<<<<<< HEAD
-=======
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -45,40 +43,18 @@ ChartJS.register(
   Legend,
   Filler
 );
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 function AdminDashboard() {
   const [metrics, setMetrics] = useState({
     totalUsers: 0,
-<<<<<<< HEAD
-    totalInventoryItems: 0,
-    itemsExpiringSoon: 0,
-    expiredItems: 0
-  });
-=======
     totalRecipes: 0,
     totalMeals: 0
   });
   const [analytics, setAnalytics] = useState(null);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-<<<<<<< HEAD
-    fetchMetrics();
-  }, []);
-
-  const fetchMetrics = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/api/admin/metrics');
-      setMetrics(res.data);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load metrics');
-=======
     fetchData();
   }, []);
 
@@ -96,40 +72,11 @@ function AdminDashboard() {
     } catch (err) {
       console.error(err);
       setError('Failed to load dashboard data');
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     } finally {
       setLoading(false);
     }
   };
 
-<<<<<<< HEAD
-  if (loading) return <div className="admin-loading">Loading metrics...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
-
-  return (
-    <div className="admin-page">
-      <header className="admin-header">
-        <h1>Dashboard Overview</h1>
-        <button onClick={fetchMetrics} className="btn btn-secondary">Refresh</button>
-      </header>
-
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <h3>Total Users</h3>
-          <p className="metric-value">{metrics.totalUsers}</p>
-        </div>
-        <div className="metric-card">
-          <h3>Total Inventory Items</h3>
-          <p className="metric-value">{metrics.totalInventoryItems}</p>
-        </div>
-        <div className="metric-card warning">
-          <h3>Items Expiring Soon (3 days)</h3>
-          <p className="metric-value">{metrics.itemsExpiringSoon}</p>
-        </div>
-        <div className="metric-card danger">
-          <h3>Expired Items</h3>
-          <p className="metric-value">{metrics.expiredItems}</p>
-=======
   if (loading) return (
     <div className="admin-loading">
       <div className="loader"></div>
@@ -396,7 +343,6 @@ function AdminDashboard() {
               </div>
             ))}
           </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         </div>
       </div>
     </div>

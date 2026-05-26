@@ -1,11 +1,4 @@
 from datetime import datetime, timezone
-<<<<<<< HEAD
-from typing import List, Optional
-from bson import ObjectId
-from bson.errors import InvalidId
-from fastapi import HTTPException, status
-from app.models.recipe import RecipeCreate, RecipeUpdate, RecipeResponse
-=======
 from typing import Any, List, Optional
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -16,25 +9,12 @@ import logging
 from .image_mapper import get_cuisine_image
 
 logger = logging.getLogger(__name__)
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 
 def _validate_object_id(recipe_id: str) -> ObjectId:
     """Validate and return ObjectId or raise 422."""
     try:
         return ObjectId(recipe_id)
-<<<<<<< HEAD
-    except (InvalidId, Exception):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid recipe ID format: '{recipe_id}'"
-        )
-
-
-def _serialize(doc: dict) -> dict:
-    """Convert MongoDB document _id to string for response."""
-    doc["_id"] = str(doc["_id"])
-=======
     except (InvalidId, Exception) as e:
         logger.warning(f"Invalid recipe ID format: {recipe_id}")
         raise HTTPException(
@@ -54,24 +34,10 @@ def _serialize(doc: dict) -> dict:
     """Convert MongoDB document _id to string for response."""
     if doc and "_id" in doc:
         doc["_id"] = str(doc["_id"])
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     return doc
 
 
 async def create_recipe(db, data: RecipeCreate, user_id: str) -> RecipeResponse:
-<<<<<<< HEAD
-    now = datetime.now(timezone.utc)
-    recipe_dict = data.model_dump()
-    # Serialize nested Ingredient objects
-    recipe_dict["ingredients"] = [ing.model_dump() for ing in data.ingredients]
-    recipe_dict["created_by"] = user_id
-    recipe_dict["created_at"] = now
-    recipe_dict["updated_at"] = now
-
-    result = await db["recipes"].insert_one(recipe_dict)
-    created = await db["recipes"].find_one({"_id": result.inserted_id})
-    return RecipeResponse(**_serialize(created))
-=======
     """
     Create a new recipe with validated data.
     
@@ -157,7 +123,6 @@ async def get_recipes_by_meal_type(db, meal_type: str) -> List[dict[str, Any]]:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch recipes"
         )
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 
 async def get_all_recipes(
@@ -167,39 +132,6 @@ async def get_all_recipes(
     created_by: Optional[str] = None,
     skip: int = 0,
     limit: int = 20,
-<<<<<<< HEAD
-) -> List[RecipeResponse]:
-    query: dict = {}
-
-    if search:
-        query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}},
-        ]
-
-    if category:
-        query["category"] = category
-
-    if created_by:
-        query["created_by"] = created_by
-
-    cursor = db["recipes"].find(query).sort("created_at", -1).skip(skip).limit(limit)
-    recipes = []
-    async for doc in cursor:
-        recipes.append(RecipeResponse(**_serialize(doc)))
-    return recipes
-
-
-async def get_recipe_by_id(db, recipe_id: str) -> RecipeResponse:
-    oid = _validate_object_id(recipe_id)
-    doc = await db["recipes"].find_one({"_id": oid})
-    if not doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Recipe with ID '{recipe_id}' not found."
-        )
-    return RecipeResponse(**_serialize(doc))
-=======
 ) -> List[dict]:
     """
    Get all recipes with optional filtering and search - returns raw dictionaries.
@@ -306,63 +238,11 @@ async def get_recipe_by_id(db, recipe_id: str) -> RecipeResponseRaw:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch recipe"
         )
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 
 async def update_recipe(
     db, recipe_id: str, data: RecipeUpdate, user_id: str
 ) -> RecipeResponse:
-<<<<<<< HEAD
-    oid = _validate_object_id(recipe_id)
-
-    existing = await db["recipes"].find_one({"_id": oid})
-    if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Recipe with ID '{recipe_id}' not found."
-        )
-
-    if existing["created_by"] != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to modify this recipe."
-        )
-
-    update_fields = data.model_dump(exclude_unset=True)
-
-    # Serialize Ingredient objects if present
-    if "ingredients" in update_fields and update_fields["ingredients"] is not None:
-        update_fields["ingredients"] = [
-            ing.model_dump() if hasattr(ing, "model_dump") else ing
-            for ing in update_fields["ingredients"]
-        ]
-
-    update_fields["updated_at"] = datetime.now(timezone.utc)
-
-    await db["recipes"].update_one({"_id": oid}, {"$set": update_fields})
-    updated = await db["recipes"].find_one({"_id": oid})
-    return RecipeResponse(**_serialize(updated))
-
-
-async def delete_recipe(db, recipe_id: str, user_id: str) -> bool:
-    oid = _validate_object_id(recipe_id)
-
-    existing = await db["recipes"].find_one({"_id": oid})
-    if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Recipe with ID '{recipe_id}' not found."
-        )
-
-    if existing["created_by"] != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete this recipe."
-        )
-
-    await db["recipes"].delete_one({"_id": oid})
-    return True
-=======
     """
     Update a recipe. Only the creator can update.
     
@@ -574,4 +454,3 @@ async def get_favorite_recipes(db, user_id: str, skip: int = 0, limit: int = 20,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch favorite recipes"
         )
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

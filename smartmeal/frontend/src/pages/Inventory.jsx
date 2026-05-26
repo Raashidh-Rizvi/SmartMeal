@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import api from '../api/axios';
-=======
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../api/axios';
@@ -54,7 +50,6 @@ const getExpiryStatus = (expiryDate) => {
   }
   return { status: 'ok', daysLeft, label: `${daysLeft} days left`, icon: <CheckCircle size={14} /> };
 };
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 function Inventory() {
   const [items, setItems] = useState([]);
@@ -62,15 +57,11 @@ function Inventory() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-<<<<<<< HEAD
-  
-=======
   const [sortBy, setSortBy] = useState('name'); // 'name' | 'expiry'
   
 
   // Modal state
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -78,19 +69,13 @@ function Inventory() {
     name: '',
     category: '',
     quantity: 1,
-<<<<<<< HEAD
-=======
     unit: '',
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     expiryDate: '',
     notes: ''
   });
 
   const limit = 15;
 
-<<<<<<< HEAD
-  const fetchInventory = async () => {
-=======
 
   // Calculate summary of expiring items
   const getExpirySummary = () => {
@@ -128,7 +113,6 @@ function Inventory() {
   };
 
   const fetchInventory = useCallback(async () => {
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     try {
       setLoading(true);
       const res = await api.get(`/api/inventory?page=${page}&limit=${limit}`);
@@ -136,15 +120,6 @@ function Inventory() {
       setTotalPages(Math.ceil(res.data.total / limit));
     } catch (err) {
       console.error(err);
-<<<<<<< HEAD
-      alert('Error fetching inventory');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchGlobalIngredients = async () => {
-=======
       // Removed alert, using console instead as per repo pattern for silent errors
     } finally {
       setLoading(false);
@@ -152,7 +127,6 @@ function Inventory() {
   }, [page, limit]);
 
   const fetchGlobalIngredients = useCallback(async () => {
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     try {
       // Fetch all global ingredients for suggestions
       const res = await api.get('/api/admin/ingredients?limit=100');
@@ -160,21 +134,12 @@ function Inventory() {
     } catch (err) {
       console.error('Failed to load ingredient suggestions', err);
     }
-<<<<<<< HEAD
-  };
-=======
   }, []);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   useEffect(() => {
     fetchInventory();
     fetchGlobalIngredients();
-<<<<<<< HEAD
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
-=======
   }, [fetchInventory, fetchGlobalIngredients]);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const handleDelete = async (itemId) => {
     if (window.confirm("Remove this item from your inventory?")) {
@@ -194,11 +159,7 @@ function Inventory() {
         name: item.name,
         category: item.category || '',
         quantity: item.quantity || 1,
-<<<<<<< HEAD
-        // Format date string for the input
-=======
         unit: item.unit || '',
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : '',
         notes: item.notes || ''
       });
@@ -208,17 +169,11 @@ function Inventory() {
         name: '',
         category: '',
         quantity: 1,
-<<<<<<< HEAD
-        expiryDate: '',
-        notes: ''
-      });
-=======
         unit: '',
         expiryDate: '',
         notes: ''
       });
       // Modal will be centered via CSS, no need to scroll
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     }
     setShowModal(true);
   };
@@ -262,16 +217,6 @@ function Inventory() {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: '600px' }}>
-      <div className="flex justify-between align-center mb-4">
-        <div>
-          <h2>My Inventory</h2>
-          <p className="text-muted">Manage your ingredients here. Add items you have in your kitchen.</p>
-        </div>
-        <button onClick={() => openFormModal()} className="btn btn-primary">Add Item</button>
-      </div>
-=======
     <>
     <div className="page-hero page-hero--sub">
       {/* Premium Decorative Background Icons - Scattered Artistically */}
@@ -325,14 +270,11 @@ function Inventory() {
         }
         return null;
       })()}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
       {loading ? (
         <p>Loading your kitchen items...</p>
       ) : (
         <>
-<<<<<<< HEAD
-=======
           <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
               <span>Sort by:</span>
@@ -352,7 +294,6 @@ function Inventory() {
             </label>
           </div>
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           <div className="table-responsive" style={{ flexGrow: 1 }}>
           <table className="admin-table">
             <thead>
@@ -360,34 +301,13 @@ function Inventory() {
                 <th>Item</th>
                 <th>Category</th>
                 <th>Quantity</th>
-<<<<<<< HEAD
-=======
                 <th>Unit</th>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                 <th>Expiry Date</th>
                 <th>Notes</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-<<<<<<< HEAD
-              {items.map(item => {
-                const isExpired = item.expiryDate && new Date(item.expiryDate) < new Date();
-                return (
-                  <tr key={item._id} className={isExpired ? 'row-danger' : ''}>
-                    <td><strong>{item.name}</strong></td>
-                    <td>{item.category || '-'}</td>
-                    <td>{item.quantity}</td>
-                    <td>
-                      {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'None'}
-                      {isExpired && <span className="text-danger ms-2">Expired</span>}
-                    </td>
-                    <td>{item.notes || '-'}</td>
-                    <td>
-                      <button onClick={() => openFormModal(item)} className="btn-icon">Edit</button>
-                      {' | '}
-                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger">Discard</button>
-=======
               {getSortedItems().map(item => {
                 const expiryInfo = getExpiryStatus(item.expiryDate);
                 const rowStyle = {
@@ -436,35 +356,24 @@ function Inventory() {
                           <Trash2 size={14} /> Discard
                         </button>
                       </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                     </td>
                   </tr>
                 );
               })}
               {items.length === 0 && (
                 <tr>
-<<<<<<< HEAD
-                  <td colSpan="6" className="text-center">Your kitchen is empty. Add some ingredients!</td>
-=======
                   <td colSpan="7" className="text-center">
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '3rem' }}>
                       <Inbox size={48} color="#cbd5e1" />
                       <p>Your kitchen is empty. Add some ingredients!</p>
                     </div>
                   </td>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                 </tr>
               )}
             </tbody>
           </table>
         </div>
           
-<<<<<<< HEAD
-        <div className="admin-pagination mt-4">
-            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary mr-2">Prev</button>
-            <span>Page {page} of {totalPages || 1}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary ml-2">Next</button>
-=======
         <div className="admin-pagination mt-4" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
             <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: 'auto' }}>
               <ChevronLeft size={16} /> Prev
@@ -473,22 +382,10 @@ function Inventory() {
             <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: 'auto' }}>
               Next <ChevronRight size={16} />
             </button>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           </div>
         </>
       )}
 
-<<<<<<< HEAD
-      {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{maxWidth: '500px'}}>
-            <h2>{editingItem ? 'Edit Kitchen Item' : 'Add Kitchen Item'}</h2>
-            <form onSubmit={handleFormSubmit} className="auth-form mt-4">
-              
-              <div className="form-group mb-3">
-                <label>Ingredient Name</label>
-                <div style={{ position: 'relative' }}>
-=======
     </div>
       {showModal && createPortal(
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>
@@ -498,16 +395,11 @@ function Inventory() {
               <div className="form-grid">
                 <div className="form-group form-group-full">
                   <label>Ingredient Name</label>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                   <input 
                     type="text" 
                     value={formData.name} 
                     onChange={e => handleIngredientSelect(e.target.value)}
                     required
-<<<<<<< HEAD
-                    className="auth-input"
-=======
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                     list="ingredient-suggestions"
                     placeholder="E.g., Apples, Milk, Chicken"
                   />
@@ -517,56 +409,6 @@ function Inventory() {
                     ))}
                   </datalist>
                 </div>
-<<<<<<< HEAD
-              </div>
-
-              <div className="form-group mb-3">
-                <label>Category (Optional)</label>
-                <input 
-                  type="text" 
-                  value={formData.category} 
-                  onChange={e => setFormData({...formData, category: e.target.value})}
-                  className="auth-input"
-                  placeholder="Produce, Dairy, Meat etc."
-                />
-              </div>
-
-              <div className="form-group mb-3">
-                <label>Quantity</label>
-                <input 
-                  type="number" 
-                  min="1"
-                  value={formData.quantity} 
-                  onChange={e => setFormData({...formData, quantity: parseInt(e.target.value) || 1})}
-                  required
-                  className="auth-input"
-                />
-              </div>
-
-              <div className="form-group mb-3">
-                <label>Expiry Date (Optional)</label>
-                <input 
-                  type="date" 
-                  value={formData.expiryDate} 
-                  onChange={e => setFormData({...formData, expiryDate: e.target.value})}
-                  className="auth-input"
-                />
-              </div>
-
-              <div className="form-group mb-4">
-                <label>Notes (Optional)</label>
-                <textarea 
-                  value={formData.notes} 
-                  onChange={e => setFormData({...formData, notes: e.target.value})}
-                  className="auth-input"
-                  rows="2"
-                  placeholder="Low fat, organic, etc."
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button type="submit" className="btn btn-primary flex-1">{editingItem ? 'Update Item' : 'Add to Kitchen'}</button>
-=======
 
                 <div className="form-group form-group-full">
                   <label>Category (Optional)</label>
@@ -624,21 +466,14 @@ function Inventory() {
 
               <div className="flex gap-2 mt-4">
                 <button type="submit" className="btn btn-primary flex-1">{editingItem ? 'Update' : 'Add to Kitchen'}</button>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">Cancel</button>
               </div>
             </form>
           </div>
-<<<<<<< HEAD
-        </div>
-      )}
-    </div>
-=======
         </div>,
         document.body
       )}
     </>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   );
 }
 

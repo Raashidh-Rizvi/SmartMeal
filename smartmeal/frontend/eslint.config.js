@@ -26,8 +26,6 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
-<<<<<<< HEAD
-=======
   {
     files: ['src/context/**/*.{js,jsx}'],
     rules: {
@@ -41,5 +39,4 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 ])

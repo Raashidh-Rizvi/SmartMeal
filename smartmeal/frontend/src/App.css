@@ -1,15 +1,8 @@
 #root {
-<<<<<<< HEAD
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-=======
   width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 }
 
 .logo {
@@ -47,8 +40,6 @@
 .read-the-docs {
   color: #888;
 }
-<<<<<<< HEAD
-=======
 
 /* Modal Backdrop */
 .modal-backdrop {
@@ -86,4 +77,3 @@
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #fff;
 }
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

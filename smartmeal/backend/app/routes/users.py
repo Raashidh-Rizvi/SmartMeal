@@ -45,16 +45,6 @@ async def update_password_me(
     password_data: PasswordUpdate,
     current_user: UserInDB = Depends(get_current_user),
 ) -> Any:
-<<<<<<< HEAD
-    if not verify_password(password_data.oldPassword, current_user.password_hash):
-        raise HTTPException(status_code=400, detail="Incorrect old password")
-        
-    db = get_db()
-    new_password_hash = get_password_hash(password_data.newPassword)
-    
-    await db["users"].update_one(
-        {"_id": ObjectId(current_user.id)},
-=======
     db = get_db()
     
     if password_data.otp:
@@ -87,7 +77,6 @@ async def update_password_me(
     
     await db["users"].update_one(
         {"_id": query_id},
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         {"$set": {
             "password_hash": new_password_hash,
             "updatedAt": datetime.now(timezone.utc)
@@ -102,12 +91,8 @@ async def delete_user_me(
 ) -> Any:
     db = get_db()
     
-<<<<<<< HEAD
-    await db["users"].delete_one({"_id": ObjectId(current_user.id)})
-=======
     user_id_val = str(current_user.id)
     query_id = ObjectId(user_id_val) if len(user_id_val) == 24 else user_id_val
     await db["users"].delete_one({"_id": query_id})
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     
     return {"message": "deleted"}

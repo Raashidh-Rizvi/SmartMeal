@@ -1,25 +1,3 @@
-<<<<<<< HEAD
-/**
- * FilterSection Component
- * Provides status filter dropdown and action buttons (Clear Bought Items)
- */
-import React from 'react';
-
-function FilterSection({ statusFilter, onFilterChange, onClearBought }) {
-  return (
-    <section className="filter-section">
-      <div className="filter-group">
-        <label>Filter by Status:</label>
-        <select value={statusFilter} onChange={(e) => onFilterChange(e.target.value)}>
-          <option value="">All Items</option>
-          <option value="Pending">Pending</option>
-          <option value="Bought">Bought</option>
-        </select>
-      </div>
-      <div className="action-buttons">
-        <button onClick={onClearBought} className="btn-secondary btn-small">
-          🗑 Clear Bought
-=======
 import React from 'react';
 import { Search, FolderOpen, Trash2 } from 'lucide-react';
 
@@ -110,7 +88,6 @@ function FilterSection({ statusFilter, sourceFilter, onStatusChange, onSourceCha
       <div className="action-buttons" style={groupStyle}>
         <button onClick={onClearBought} style={buttonStyle}>
           <Trash2 size={18} /> Clear Bought
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         </button>
       </div>
     </section>

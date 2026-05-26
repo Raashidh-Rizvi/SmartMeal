@@ -1,13 +1,4 @@
 from typing import Any, List, Optional
-<<<<<<< HEAD
-from fastapi import APIRouter, Depends, Query, status
-from fastapi.responses import Response
-from app.db.database import get_db
-from app.models.recipe import Category, RecipeCreate, RecipeUpdate, RecipeResponse
-from app.models.user import UserInDB
-from app.api.deps import get_current_user
-import app.services.recipe_service as recipe_service
-=======
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, ValidationError
@@ -28,13 +19,10 @@ class RecommendationRequest(BaseModel):
     diet: Optional[str] = ""
     course: Optional[str] = ""
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 router = APIRouter()
 
 
-<<<<<<< HEAD
-=======
 def _format_validation_error(error: dict) -> str:
     """Format a single validation error into a user-friendly message."""
     loc = error.get("loc")
@@ -54,46 +42,12 @@ def _format_validation_error(error: dict) -> str:
 
 
 # ─── POST / (create) ────────────────────────────────────────────────────────
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 @router.post("/", response_model=RecipeResponse, status_code=status.HTTP_201_CREATED)
 async def create_recipe(
     recipe_in: RecipeCreate,
     current_user: UserInDB = Depends(get_current_user),
 ) -> Any:
     """Create a new recipe (authenticated users only)."""
-<<<<<<< HEAD
-    db = get_db()
-    return await recipe_service.create_recipe(db, recipe_in, current_user.id)
-
-
-@router.get("/", response_model=List[RecipeResponse], status_code=status.HTTP_200_OK)
-async def list_recipes(
-    search: Optional[str] = Query(None, description="Case-insensitive search on title/description"),
-    category: Optional[Category] = Query(None, description="Filter by category"),
-    created_by: Optional[str] = Query(None, description="Filter by creator user ID"),
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(20, ge=1, le=100, description="Maximum records to return"),
-) -> Any:
-    """List recipes. Supports search, category filter, and created_by filter."""
-    db = get_db()
-    return await recipe_service.get_all_recipes(
-        db,
-        search=search,
-        category=category,
-        created_by=created_by,
-        skip=skip,
-        limit=limit,
-    )
-
-
-@router.get("/{recipe_id}", response_model=RecipeResponse, status_code=status.HTTP_200_OK)
-async def get_recipe(recipe_id: str) -> Any:
-    """Retrieve a single recipe by its ID."""
-    db = get_db()
-    return await recipe_service.get_recipe_by_id(db, recipe_id)
-
-
-=======
     try:
         db = get_db()
         return await recipe_service.create_recipe(db, recipe_in, current_user.id)
@@ -240,20 +194,12 @@ async def get_recipe(recipe_id: str) -> Any:
 
 
 # ─── PUT /{recipe_id} ────────────────────────────────────────────────────────
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 @router.put("/{recipe_id}", response_model=RecipeResponse, status_code=status.HTTP_200_OK)
 async def update_recipe(
     recipe_id: str,
     recipe_in: RecipeUpdate,
     current_user: UserInDB = Depends(get_current_user),
 ) -> Any:
-<<<<<<< HEAD
-    """Update a recipe. Only the creator can update their recipe."""
-    db = get_db()
-    return await recipe_service.update_recipe(db, recipe_id, recipe_in, current_user.id)
-
-
-=======
     """Update a recipe. Only the creator can update."""
     try:
         db = get_db()
@@ -275,18 +221,11 @@ async def update_recipe(
 
 
 # ─── DELETE /{recipe_id} ─────────────────────────────────────────────────────
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 @router.delete("/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_recipe(
     recipe_id: str,
     current_user: UserInDB = Depends(get_current_user),
 ) -> Response:
-<<<<<<< HEAD
-    """Delete a recipe. Only the creator can delete their recipe."""
-    db = get_db()
-    await recipe_service.delete_recipe(db, recipe_id, current_user.id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-=======
     """Delete a recipe. Only the creator can delete."""
     try:
         db = get_db()
@@ -321,4 +260,3 @@ async def toggle_recipe_favorite(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to toggle favorite"
         )
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

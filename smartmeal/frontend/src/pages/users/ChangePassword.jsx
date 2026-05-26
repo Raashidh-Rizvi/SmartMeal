@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../../api/axios';
-
-function ChangePassword() {
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-=======
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, RefreshCcw, Key, ShieldCheck, UtensilsCrossed, ChefHat, Flame, Leaf } from 'lucide-react';
@@ -68,17 +54,12 @@ function ChangePassword() {
       setVerifyingOtp(false);
     }
   };
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-<<<<<<< HEAD
-    if (newPassword !== confirmPassword) {
-      setError("New passwords do not match");
-=======
     // Client-side policy
     const policies = validatePassword(newPassword, { name: user?.name, email: user?.email });
     if (policies.length > 0) { setError(policies[0]); return; }
@@ -92,24 +73,11 @@ function ChangePassword() {
     
     if (method === 'otp' && !isVerified) {
       setError('Please verify your OTP code first');
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       return;
     }
 
     setLoading(true);
     try {
-<<<<<<< HEAD
-      await api.put('/api/users/me/password', {
-        oldPassword,
-        newPassword
-      });
-      setSuccess("Password updated successfully. You will be redirected to profile...");
-      setTimeout(() => {
-        navigate('/profile');
-      }, 2000);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update password');
-=======
       const payload = { newPassword };
       if (method === 'password') payload.oldPassword = oldPassword;
       else payload.otp = otp;
@@ -119,60 +87,12 @@ function ChangePassword() {
       setTimeout(() => navigate('/profile'), 2000);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update password. Please check your inputs.');
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     } finally {
       setLoading(false);
     }
   };
 
   return (
-<<<<<<< HEAD
-    <div className="auth-container card">
-      <h2>Change Password</h2>
-      {error && <p className="error alert-error">{error}</p>}
-      {success && <p className="success alert-success">{success}</p>}
-      
-      <form onSubmit={handleSubmit} className="profile-form">
-        <div className="form-group">
-          <label>Current Password</label>
-          <input 
-            type="password" 
-            value={oldPassword} 
-            onChange={(e) => setOldPassword(e.target.value)} 
-            required 
-          />
-        </div>
-        
-        <div className="form-group">
-          <label>New Password</label>
-          <input 
-            type="password" 
-            value={newPassword} 
-            onChange={(e) => setNewPassword(e.target.value)} 
-            required 
-          />
-        </div>
-        
-        <div className="form-group">
-          <label>Confirm New Password</label>
-          <input 
-            type="password" 
-            value={confirmPassword} 
-            onChange={(e) => setConfirmPassword(e.target.value)} 
-            required 
-          />
-        </div>
-        
-        <div className="form-actions">
-          <button type="submit" disabled={loading || success} className="btn-primary">
-            {loading ? 'Updating...' : 'Update Password'}
-          </button>
-          <button type="button" onClick={() => navigate('/profile')} className="btn-secondary">
-            Cancel
-          </button>
-        </div>
-      </form>
-=======
     <div className="auth-page-wrapper" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Premium Hero Header */}
       <div className="page-hero">
@@ -363,7 +283,6 @@ function ChangePassword() {
         </form>
         </div>
       </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     </div>
   );
 }

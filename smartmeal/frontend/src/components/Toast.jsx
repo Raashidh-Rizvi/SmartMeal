@@ -1,31 +1,13 @@
-<<<<<<< HEAD
-/**
- * Toast Component
- * Displays a temporary notification message (success / error / warning).
- * Auto-dismisses after 3 seconds.
- */
-import React, { useEffect } from 'react';
-
-function Toast({ message, type, onClose }) {
-=======
 import React, { useState, useEffect } from 'react';
 import './Toast.css'; // We will create this just in case
 
 export function ToastItem({ message, type, onClose }) {
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   useEffect(() => {
     const timer = setTimeout(onClose, 3000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
   return (
-<<<<<<< HEAD
-    <div className={`toast toast-${type}`}>{message}</div>
-  );
-}
-
-export default Toast;
-=======
     <div className={`toast-alert toast-${type}`} onClick={onClose}>
       {message}
     </div>
@@ -64,4 +46,3 @@ export default function Toast(props) {
     </div>
   );
 }
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

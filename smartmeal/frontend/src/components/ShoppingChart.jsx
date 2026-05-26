@@ -66,11 +66,7 @@ function ShoppingChart({ stats }) {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-<<<<<<< HEAD
-          title: { display: true, text: 'Items by Source', font: { size: 16 } },
-=======
           title: { display: true, text: 'Items by Pending Source', font: { size: 16 } },
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         },
         scales: {
           y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, max: Math.max(manual, mealPlan) + 1 || 5 },

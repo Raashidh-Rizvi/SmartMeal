@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from pydantic import BaseModel, Field
-=======
 from pydantic import BaseModel, Field, field_validator, HttpUrl
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -16,22 +12,6 @@ class Category(str, Enum):
 
 
 class Ingredient(BaseModel):
-<<<<<<< HEAD
-    name: str
-    quantity: float
-    unit: str
-
-
-class RecipeBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    ingredients: List[Ingredient] = []
-    preparation_steps: List[str] = []
-    category: Category
-    dietary_tags: List[str] = []
-    estimated_cooking_time: Optional[int] = None  # in minutes
-    image_url: Optional[str] = None  # External image URL
-=======
     name: str = Field(..., min_length=1, max_length=100)
     quantity: float = Field(..., gt=0, le=9999)
     unit: str = Field(..., min_length=1, max_length=50)
@@ -144,7 +124,6 @@ class RecipeBase(BaseModel):
             if len(v) > 2000:
                 raise ValueError("Image URL must not exceed 2000 characters")
         return v
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 
 class RecipeCreate(RecipeBase):
@@ -172,8 +151,6 @@ class RecipeInDB(RecipeBase):
         populate_by_name = True
 
 
-<<<<<<< HEAD
-=======
 # For reading from database - no validation on existing data
 class RecipeResponseRaw(BaseModel):
     """Response model for reading recipes from database without re-validating"""
@@ -194,7 +171,6 @@ class RecipeResponseRaw(BaseModel):
         populate_by_name = True
 
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 class RecipeResponse(RecipeBase):
     id: str = Field(alias="_id")
     created_by: str
@@ -202,8 +178,4 @@ class RecipeResponse(RecipeBase):
     updated_at: datetime
 
     class Config:
-<<<<<<< HEAD
         populate_by_name = True
-=======
-        populate_by_name = True
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

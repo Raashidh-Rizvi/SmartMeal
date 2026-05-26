@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-import React from 'react';
-
-function Recommendations() {
-  return (
-    <div className="card">
-      <h2>Recipe Recommendations</h2>
-      <p className="text-muted">Get smart recipe recommendations based on your profile preferences and available inventory.</p>
-      
-      <div className="alert alert-success mt-4">
-        Feature coming soon!
-      </div>
-=======
 import React, { useContext, useRef, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -1140,13 +1127,9 @@ function Recommendations() {
           )}
         </section>
       )}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     </div>
   );
 }
 
 export default Recommendations;
-<<<<<<< HEAD
-=======
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

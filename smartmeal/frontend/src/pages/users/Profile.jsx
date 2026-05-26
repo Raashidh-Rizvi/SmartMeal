@@ -2,8 +2,6 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../api/axios';
-<<<<<<< HEAD
-=======
 import { budgetService } from '../../services/budgetService';
 import { 
   Check, 
@@ -22,7 +20,6 @@ import {
   Flame,
   Leaf
 } from 'lucide-react';
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 function Profile() {
   const { user, setUser } = useContext(AuthContext);
@@ -34,13 +31,8 @@ function Profile() {
     dietType: '',
     allergies: '',
     cuisinePreferences: '',
-<<<<<<< HEAD
-    budgetLevel: '',
-    householdSize: 1
-=======
     householdSize: 1,
     budgetLevel: ''
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -52,23 +44,14 @@ function Profile() {
         dietType: user.preferences?.dietType || '',
         allergies: user.preferences?.allergies?.join(', ') || '',
         cuisinePreferences: user.preferences?.cuisinePreferences?.join(', ') || '',
-<<<<<<< HEAD
-        budgetLevel: user.preferences?.budgetLevel || '',
-        householdSize: user.preferences?.householdSize || 1
-=======
         householdSize: user.preferences?.householdSize || 1,
         budgetLevel: user.preferences?.budgetLevel || ''
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       });
     }
   }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-<<<<<<< HEAD
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-=======
     
     if (name === 'budgetLevel') {
       const existingBudget = user?.preferences?.budgetLevel;
@@ -85,7 +68,6 @@ function Profile() {
   // Map budget tier → amount (midpoint of each range)
   // Low: 35K–50K → 42,500 | Medium: 55K–80K → 67,500 | High: 90K–140K → 115,000
   const BUDGET_AMOUNTS = { low: 42500, medium: 67500, high: 115000 };
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,16 +82,6 @@ function Profile() {
           dietType: formData.dietType,
           allergies: formData.allergies.split(',').map(i => i.trim()).filter(i => i),
           cuisinePreferences: formData.cuisinePreferences.split(',').map(i => i.trim()).filter(i => i),
-<<<<<<< HEAD
-          budgetLevel: formData.budgetLevel,
-          householdSize: parseInt(formData.householdSize, 10) || 1
-        }
-      };
-
-      const response = await api.put('/api/users/me', updatePayload);
-      setUser(response.data.user);
-      setMessage({ type: 'success', text: isNewUser ? '🎉 Preferences saved! You\'re all set.' : 'Profile updated successfully!' });
-=======
           householdSize: parseInt(formData.householdSize, 10) || 1,
           budgetLevel: formData.budgetLevel
         }
@@ -143,7 +115,6 @@ function Profile() {
       }
 
       setMessage({ type: 'success', text: isNewUser ? 'Preferences saved! You\'re all set.' : 'Profile updated successfully!' });
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
       // Remove the welcome flag from the URL once they save
       if (isNewUser) {
@@ -159,115 +130,6 @@ function Profile() {
   if (!user) return <div className="loading">Loading profile...</div>;
 
   return (
-<<<<<<< HEAD
-    <div className="profile-container card">
-
-      {/* Welcome / Onboarding Banner for new users */}
-      {isNewUser && (
-        <div className="onboarding-banner">
-          <div className="onboarding-banner__icon">🎉</div>
-          <div className="onboarding-banner__body">
-            <h3>Welcome to Smart Meal, {user.name}!</h3>
-            <p>
-              To get personalised recipe recommendations, please fill in your dietary preferences below.
-              This only takes a minute and helps us suggest meals you'll love.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <h2>{isNewUser ? 'Set Up Your Dietary Preferences' : 'My Profile'}</h2>
-
-      {message.text && (
-        <div className={`alert alert-${message.type}`}>
-          {message.text}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="profile-form">
-        <div className="form-group">
-          <label>Name</label>
-          <input 
-            type="text" 
-            name="name" 
-            value={formData.name} 
-            onChange={handleChange} 
-            required 
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Email (cannot be changed here)</label>
-          <input 
-            type="email" 
-            value={user.email} 
-            disabled 
-            readOnly 
-          />
-        </div>
-
-        <h3>Dietary Preferences</h3>
-        
-        <div className="form-group">
-          <label>Diet Type</label>
-          <select name="dietType" value={formData.dietType} onChange={handleChange}>
-            <option value="">None</option>
-            <option value="vegetarian">Vegetarian</option>
-            <option value="vegan">Vegan</option>
-            <option value="pescatarian">Pescatarian</option>
-            <option value="keto">Keto</option>
-            <option value="paleo">Paleo</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Allergies (comma-separated)</label>
-          <input 
-            type="text" 
-            name="allergies" 
-            value={formData.allergies} 
-            onChange={handleChange} 
-            placeholder="e.g. peanuts, dairy, gluten"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Cuisine Preferences (comma-separated)</label>
-          <input 
-            type="text" 
-            name="cuisinePreferences" 
-            value={formData.cuisinePreferences} 
-            onChange={handleChange} 
-            placeholder="e.g. Italian, Mexican, Asian"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Budget Level</label>
-          <select name="budgetLevel" value={formData.budgetLevel} onChange={handleChange}>
-            <option value="">Select...</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Household Size</label>
-          <input 
-            type="number" 
-            name="householdSize" 
-            value={formData.householdSize} 
-            onChange={handleChange} 
-            min="1"
-            max="20"
-          />
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Saving...' : isNewUser ? '✓ Save & Get Started' : 'Save Changes'}
-=======
     <div className="profile-page-wrapper">
       {/* Premium Hero Header */}
       <div className="page-hero">
@@ -535,19 +397,10 @@ function Profile() {
                 {isNewUser ? 'Complete Setup' : 'Save Changes'}
               </>
             )}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           </button>
         </div>
       </form>
 
-<<<<<<< HEAD
-      {!isNewUser && (
-        <div className="profile-links">
-           <Link to="/change-password">Change Password</Link>
-           <Link to="/delete-account" className="text-danger">Delete Account</Link>
-        </div>
-      )}
-=======
       {/* Security & Danger Zone */}
       {!isNewUser && (
         <div style={{ marginTop: '4rem', padding: '2rem', borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'center', gap: '2rem' }}>
@@ -581,7 +434,6 @@ function Profile() {
         </div>
       )}
       </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     </div>
   );
 }

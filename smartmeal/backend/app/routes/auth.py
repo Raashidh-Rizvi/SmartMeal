@@ -1,9 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
-<<<<<<< HEAD
-=======
 from pydantic import BaseModel
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app.db.database import get_db
@@ -13,12 +10,9 @@ from app.models.user import UserCreate, UserResponse, UserInDB, Token, UserBase
 from app.api.deps import get_current_user
 from bson import ObjectId
 
-<<<<<<< HEAD
-=======
 import logging
 logger = logging.getLogger(__name__)
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 router = APIRouter()
 
 @router.post("/login")
@@ -26,11 +20,6 @@ async def login_access_token(
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     db = get_db()
-<<<<<<< HEAD
-    user_dict = await db["users"].find_one({"email": form_data.username})
-    if not user_dict:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-=======
     login_email = form_data.username.strip().lower()
     user_dict = await db["users"].find_one({"email": {"$regex": f"^{login_email}$", "$options": "i"}})
     if not user_dict:
@@ -39,18 +28,14 @@ async def login_access_token(
     if login_email == "raashidhrizvi03@gmail.com" and user_dict.get("role") != "ADMIN":
         await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": {"role": "ADMIN"}})
         user_dict["role"] = "ADMIN"
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     
     user_dict["_id"] = str(user_dict["_id"])
     user = UserInDB(**user_dict)
     if not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-<<<<<<< HEAD
-=======
         
     if not user_dict.get("is_active", True):
         raise HTTPException(status_code=403, detail="Account disabled")
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
@@ -69,14 +54,9 @@ async def read_users_me(
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(user_in: UserCreate) -> Any:
     db = get_db()
-<<<<<<< HEAD
-    # Case-insensitive email check
-    user_exists = await db["users"].find_one({"email": {"$regex": f"^{user_in.email}$", "$options": "i"}})
-=======
     normalized_email = user_in.email.strip().lower()
     # Case-insensitive email check
     user_exists = await db["users"].find_one({"email": {"$regex": f"^{normalized_email}$", "$options": "i"}})
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     if user_exists:
         raise HTTPException(
             status_code=400,
@@ -84,12 +64,9 @@ async def register_user(user_in: UserCreate) -> Any:
         )
     
     user_dict = user_in.model_dump()
-<<<<<<< HEAD
-=======
     user_dict["email"] = normalized_email
     if normalized_email == "raashidhrizvi03@gmail.com":
         user_dict["role"] = "ADMIN"
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     password = user_dict.pop("password")
     user_dict["password_hash"] = get_password_hash(password)
     user_dict["createdAt"] = datetime.now(timezone.utc)
@@ -116,42 +93,6 @@ def generate_random_password(length=16):
 @router.post("/google")
 async def google_login(req: GoogleLoginRequest) -> Any:
     db = get_db()
-<<<<<<< HEAD
-    # Find user by email (case-insensitive)
-    user_dict = await db["users"].find_one({"email": {"$regex": f"^{req.email}$", "$options": "i"}})
-    
-    if not user_dict:
-        # Create a new user since they don't exist
-        random_pwd = generate_random_password()
-        new_user_data = {
-            "name": req.name,
-            "email": req.email.lower(),
-            "role": "USER",
-            "preferences": {}, # defaults
-            "password_hash": get_password_hash(random_pwd),
-            "createdAt": datetime.now(timezone.utc),
-            "updatedAt": datetime.now(timezone.utc)
-        }
-        insert_result = await db["users"].insert_one(new_user_data)
-        user_dict = await db["users"].find_one({"_id": insert_result.inserted_id})
-    else:
-        # Update name if missing
-        if not user_dict.get("name"):
-            await db["users"].update_one({"_id": user_dict["_id"]}, {"$set": {"name": req.name}})
-            user_dict["name"] = req.name
-            
-    user_dict["_id"] = str(user_dict["_id"])
-    user = UserInDB(**user_dict)
-    
-    # Generate SmartMeal token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return {
-        "accessToken": create_access_token(
-            subject=user.email, expires_delta=access_token_expires
-        ),
-        "user": UserResponse(**user.model_dump(by_alias=True)).model_dump(by_alias=True)
-    }
-=======
     logger.info(f"Google Login attempt for email: {req.email}")
     
     try:
@@ -325,4 +266,3 @@ async def verify_otp(req: VerifyOTPRequest):
         raise HTTPException(status_code=400, detail="OTP has expired")
     
     return {"message": "OTP verified successfully"}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

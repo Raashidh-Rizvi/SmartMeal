@@ -1,16 +1,4 @@
 fastapi
-<<<<<<< HEAD
-uvicorn
-motor
-pydantic
-passlib[bcrypt]
-bcrypt==4.0.1
-python-jose[cryptography]
-python-dotenv
-fastapi-cors
-python-multipart
-certifi
-=======
 uvicorn[standard]
 motor
 pymongo
@@ -25,4 +13,3 @@ numpy
 scikit-learn
 deep-translator
 openai
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

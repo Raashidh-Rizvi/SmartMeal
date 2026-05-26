@@ -1,13 +1,7 @@
-<<<<<<< HEAD
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
-import ShoppingAPI from '../services/shoppingApi';
-=======
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import ShoppingAPI from '../services/shoppingApi';
 import { getUserId } from '../utils/userUtils';
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 import ShoppingForm from '../components/ShoppingForm';
 import StatsSection from '../components/StatsSection';
 import FilterSection from '../components/FilterSection';
@@ -15,13 +9,6 @@ import ShoppingTable from '../components/ShoppingTable';
 import ShoppingChart from '../components/ShoppingChart';
 import Toast from '../components/Toast';
 import EditItemForm from '../components/EditItemForm';
-<<<<<<< HEAD
-
-function ShoppingList() {
-  const { user } = useContext(AuthContext);
-  // Backend returns id as _id (Pydantic alias). Firebase users have uid.
-  const userId = user?.uid || user?.id || user?._id || '';
-=======
 import { 
   ShoppingBasket, 
   Plus, 
@@ -38,7 +25,6 @@ import {
 function ShoppingList() {
   const { user } = useContext(AuthContext);
   const userId = getUserId(user);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [items, setItems] = useState([]);
@@ -61,31 +47,6 @@ function ShoppingList() {
     if (reload) loadItems();
   };
   const showEditView = (itemId) => { setEditingItemId(itemId); setCurrentView('edit'); };
-<<<<<<< HEAD
-
-  // ── Data ──────────────────────────────────────────────────────────────────
-  const loadStats = async () => {
-    if (!userId) return;
-    try { setStats(await ShoppingAPI.getStats(userId)); }
-    catch (e) { console.error('Stats error:', e); }
-  };
-
-  const loadItems = async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      setItems(await ShoppingAPI.getItems(userId, statusFilter));
-      await loadStats();
-    } catch (e) {
-      console.error('Load error:', e);
-      showToast('Failed to connect to server', 'error');
-    }
-    setLoading(false);
-  };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadItems(); }, [userId, statusFilter]);
-=======
   
   // ── Data ──────────────────────────────────────────────────────────────────
   const loadStats = useCallback(async () => {
@@ -188,17 +149,12 @@ function ShoppingList() {
       console.log("🛑 Stopped auto-refresh");
     };
   }, [loadItems]);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const addItem = async (itemData) => {
     try {
       await ShoppingAPI.addItem({ ...itemData, user_id: userId });
-<<<<<<< HEAD
-      showToast(`"${itemData.item_name}" added!`, 'success');
-=======
       showToast(`"${itemData.name || itemData.item_name}" added!`, 'success');
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       showListView();
       loadItems();
       return true;
@@ -254,11 +210,6 @@ function ShoppingList() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="shopping-page">
-<<<<<<< HEAD
-      <div className="shopping-page-header">
-        <h1>🛒 Shopping List</h1>
-        <p className="text-muted">Your personal grocery planning assistant</p>
-=======
       <div className="page-hero">
         {/* Decorative Background Icons - Scattered */}
         <UtensilsCrossed size={48} className="hero-sway" style={{ position: 'absolute', opacity: 0.08, color: '#10b981', pointerEvents: 'none', top: '15%', left: '8%', '--rotation': '-18deg' }} />
@@ -271,24 +222,17 @@ function ShoppingList() {
           <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Shopping List</h1>
           <p style={{ margin: '0.5rem 0 0', fontSize: '1rem' }}>Your personal grocery planning assistant</p>
         </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       </div>
 
       {/* LIST VIEW */}
       {currentView === 'list' && (
         <div>
-<<<<<<< HEAD
-          <div className="shopping-add-btn-wrap">
-            <button onClick={showAddView} className="btn-primary shopping-add-btn">
-              ➕ Add New Item
-=======
           <div className="shopping-add-btn-wrap" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
             <button onClick={showAddView} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Plus size={18} /> Add New Item
             </button>
             <button onClick={loadItems} className="btn-secondary" title="Refresh shopping list" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <RefreshCw size={18} className={loading ? 'spinner' : ''} /> Refresh
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
             </button>
           </div>
 
@@ -314,13 +258,6 @@ function ShoppingList() {
 
       {/* ADD VIEW */}
       {currentView === 'add' && (
-<<<<<<< HEAD
-        <div className="shopping-single-view">
-          <button onClick={showListView} className="btn-secondary btn-small shopping-back-btn">
-            ← Back to List
-          </button>
-          <h2>➕ Add New Item</h2>
-=======
         <div className="shopping-single-view card" style={{ padding: '2rem' }}>
           <button onClick={showListView} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', width: 'fit-content' }}>
             <ArrowLeft size={16} /> Back to List
@@ -328,20 +265,12 @@ function ShoppingList() {
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <Plus size={24} color="var(--primary)" /> Add New Item
           </h2>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           <ShoppingForm onAddItem={addItem} onCancel={showListView} />
         </div>
       )}
 
       {/* EDIT VIEW */}
       {currentView === 'edit' && (
-<<<<<<< HEAD
-        <div className="shopping-single-view">
-          <button onClick={showListView} className="btn-secondary btn-small shopping-back-btn">
-            ← Back to List
-          </button>
-          <h2>✏️ Edit Item</h2>
-=======
         <div className="shopping-single-view card" style={{ padding: '2rem' }}>
           <button onClick={showListView} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', width: 'fit-content' }}>
             <ArrowLeft size={16} /> Back to List
@@ -349,7 +278,6 @@ function ShoppingList() {
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <Pencil size={24} color="var(--primary)" /> Edit Item
           </h2>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           <EditItemForm
             itemId={editingItemId}
             onSave={() => { showToast('Item updated!', 'success'); showListView(true); }}

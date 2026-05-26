@@ -12,16 +12,6 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-<<<<<<< HEAD
-      if (token) {
-        try {
-          // api.js automatically attaches the token interceptor
-          const response = await api.get('/api/auth/me');
-          setUser(response.data.user);
-        } catch (error) {
-          console.error("Failed to fetch user profile", error);
-          // Token might be invalid or expired
-=======
       const currentToken = localStorage.getItem('token');
       if (currentToken && !user) {
         try {
@@ -30,7 +20,6 @@ export const AuthProvider = ({ children }) => {
           setToken(currentToken);
         } catch (error) {
           console.error("Failed to fetch user profile", error);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           setToken(null);
           localStorage.removeItem('token');
         }
@@ -38,15 +27,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
 
-<<<<<<< HEAD
-    fetchUser();
-  }, [token]);
-
-  const login = (userData, jwtToken) => {
-    setUser(userData);
-    setToken(jwtToken);
-    localStorage.setItem('token', jwtToken);
-=======
     // Always resolve loading within 5 seconds even if backend is down
     const timeout = setTimeout(() => setLoading(false), 5000);
     fetchUser().finally(() => clearTimeout(timeout));
@@ -61,7 +41,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', jwtToken);
     setToken(jwtToken);
     setUser(userData);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   };
 
   const logout = () => {
@@ -98,15 +77,11 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, setUser, token, login, logout, loginWithGoogle, loading }}>
-<<<<<<< HEAD
-      {!loading && children}
-=======
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: '1.1rem', color: '#16a34a' }}>
           Loading...
         </div>
       ) : children}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     </AuthContext.Provider>
   );
 };

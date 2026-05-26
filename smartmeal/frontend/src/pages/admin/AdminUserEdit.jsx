@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../api/axios';
-=======
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
@@ -22,7 +17,6 @@ import {
   Activity,
   Lock
 } from 'lucide-react';
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 function AdminUserEdit() {
   const { id } = useParams();
@@ -30,17 +24,11 @@ function AdminUserEdit() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-<<<<<<< HEAD
-  const [formData, setFormData] = useState({
-    name: '',
-    role: 'USER',
-=======
   const [message, setMessage] = useState({ type: '', text: '' });
   const [formData, setFormData] = useState({
     name: '',
     role: 'USER',
     is_active: true,
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     preferences: {
       dietType: '',
       budgetLevel: '',
@@ -48,25 +36,14 @@ function AdminUserEdit() {
     }
   });
 
-<<<<<<< HEAD
-  useEffect(() => {
-    fetchUser();
-  }, [id]);
-
-  const fetchUser = async () => {
-=======
   const fetchUser = useCallback(async () => {
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     try {
       const res = await api.get(`/api/admin/users/${id}`);
       setUser(res.data);
       setFormData({
         name: res.data.name || '',
         role: res.data.role || 'USER',
-<<<<<<< HEAD
-=======
         is_active: res.data.is_active !== undefined ? res.data.is_active : true,
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         preferences: {
           dietType: res.data.preferences?.dietType || '',
           budgetLevel: res.data.preferences?.budgetLevel || '',
@@ -75,14 +52,6 @@ function AdminUserEdit() {
       });
     } catch (err) {
       console.error(err);
-<<<<<<< HEAD
-      alert('Failed to load user');
-      navigate('/admin/users');
-    } finally {
-      setLoading(false);
-    }
-  };
-=======
       setMessage({ type: 'error', text: 'Failed to load user details' });
       setTimeout(() => navigate('/admin/users'), 3000);
     } finally {
@@ -93,28 +62,20 @@ function AdminUserEdit() {
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.startsWith('pref_')) {
       const prefName = name.replace('pref_', '');
-<<<<<<< HEAD
-=======
       let finalValue = value;
       if (prefName === 'householdSize') {
           finalValue = parseInt(value, 10) || 0;
       }
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       setFormData(prev => ({
         ...prev,
         preferences: {
           ...prev.preferences,
-<<<<<<< HEAD
-          [prefName]: value
-=======
           [prefName]: finalValue
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         }
       }));
     } else {
@@ -122,18 +83,6 @@ function AdminUserEdit() {
     }
   };
 
-<<<<<<< HEAD
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await api.put(`/api/admin/users/${id}`, formData);
-      alert('User updated successfully');
-      navigate('/admin/users');
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.detail || 'Failed to update user');
-=======
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: checked }));
@@ -154,93 +103,11 @@ function AdminUserEdit() {
         type: 'error', 
         text: Array.isArray(errorMsg) ? 'Validation error occurred' : (errorMsg || 'Failed to update user') 
       });
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     } finally {
       setSaving(false);
     }
   };
 
-<<<<<<< HEAD
-  if (loading) return <div>Loading user details...</div>;
-
-  return (
-    <div className="admin-page">
-      <header className="admin-header">
-        <h1>Edit User: {user?.email}</h1>
-        <button className="btn btn-secondary" onClick={() => navigate('/admin/users')}>Back</button>
-      </header>
-
-      <div className="admin-card">
-        <form onSubmit={handleSubmit} className="admin-form">
-          <div className="form-group">
-            <label>Name</label>
-            <input 
-              type="text" 
-              name="name" 
-              value={formData.name} 
-              onChange={handleChange} 
-              required 
-              className="admin-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Role</label>
-            <select 
-              name="role" 
-              value={formData.role} 
-              onChange={handleChange} 
-              className="admin-input"
-            >
-              <option value="USER">USER</option>
-              <option value="ADMIN">ADMIN</option>
-            </select>
-          </div>
-
-          <h3 className="section-title">Preferences</h3>
-          
-          <div className="form-group">
-            <label>Diet Type</label>
-            <input 
-              type="text" 
-              name="pref_dietType" 
-              value={formData.preferences.dietType} 
-              onChange={handleChange} 
-              className="admin-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Budget Level</label>
-            <select 
-              name="pref_budgetLevel" 
-              value={formData.preferences.budgetLevel} 
-              onChange={handleChange} 
-              className="admin-input"
-            >
-              <option value="">None</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Household Size</label>
-            <input 
-              type="number" 
-              name="pref_householdSize" 
-              value={formData.preferences.householdSize} 
-              onChange={handleChange} 
-              min="1"
-              className="admin-input"
-            />
-          </div>
-
-          <div className="form-actions mt-4">
-            <button type="submit" disabled={saving} className="btn btn-primary">
-              {saving ? 'Saving...' : 'Save Changes'}
-=======
   if (loading) {
     return (
       <div className="loading-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -464,7 +331,6 @@ function AdminUserEdit() {
                   <Save size={20} /> Save Changes
                 </>
               )}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
             </button>
           </div>
         </form>

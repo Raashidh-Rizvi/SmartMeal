@@ -6,15 +6,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import ShoppingAPI from '../services/shoppingApi';
 
-<<<<<<< HEAD
-function EditItemForm({ itemId, onSave, onCancel, onDelete }) {
-  const { user } = useContext(AuthContext);
-  const userId = user?.uid || user?.id || user?._id || '';
-
-  const [item_name, set_item_name] = useState('');
-  const [quantity, setQuantity]   = useState(1);
-  const [unit, setUnit]           = useState('piece');
-=======
 function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete }) {
   const { user } = useContext(AuthContext);
   const userId = propUserId || user?.uid || user?.id || user?._id || '1';
@@ -23,32 +14,17 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
   const [quantity, setQuantity]   = useState(1);
   const [unit, setUnit]           = useState('pcs');
   const UNITS = ['kg', 'g', 'mg', 'L', 'mL', 'pcs', 'Piece', 'Pack', 'Dozen', 'slice', 'bottle', 'jar', 'cup', 'tbsp', 'tsp', 'pinch'];
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   const [source, setSource]       = useState('Manual');
   const [status, setStatus]       = useState('Pending');
   const [loading, setLoading]     = useState(false);
   const [fetching, setFetching]   = useState(true);
   const [originalItem, setOriginalItem] = useState(null);
-<<<<<<< HEAD
-=======
   const [isCombined, setIsCombined] = useState(false);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const loadItem = async () => {
     if (!itemId) return;
     setFetching(true);
     try {
-<<<<<<< HEAD
-      const items = await ShoppingAPI.getItems(userId);
-      const item = items.find(i => (i.id || i._id) === itemId);
-      if (item) {
-        setOriginalItem(item);
-        set_item_name(item.item_name || '');
-        setQuantity(item.quantity || 1);
-        setUnit(item.unit || 'piece');
-        setSource(item.source || 'Manual');
-        setStatus(item.status || 'Pending');
-=======
       let item;
       const isMultiId = String(itemId).includes(',');
       
@@ -95,7 +71,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
         // Convert backend status value to frontend format
         const itemStatus = (item.status || '').toLowerCase();
         setStatus(itemStatus === 'bought' ? 'Bought' : 'Pending');
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       } else {
         alert('Item not found');
         onCancel();
@@ -116,15 +91,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
     if (!item_name.trim()) return;
     setLoading(true);
     try {
-<<<<<<< HEAD
-      await ShoppingAPI.updateItem(itemId, {
-        item_name: item_name.trim(),
-        quantity: parseFloat(quantity),
-        unit,
-        source,
-        status,
-      });
-=======
       // Build update payload, omitting quantity and source if combined
       const payload = {
         name: item_name.trim(),
@@ -138,7 +104,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
       }
 
       await ShoppingAPI.updateItem(itemId, payload);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
       onSave();
     } catch (error) {
       alert(error.message || 'Failed to update item');
@@ -169,8 +134,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
     setLoading(false);
   };
 
-<<<<<<< HEAD
-=======
   const handleMarkPending = async () => {
     setLoading(true);
     try {
@@ -182,7 +145,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
     setLoading(false);
   };
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
   if (fetching) {
     return (
       <div className="loading-container">
@@ -195,8 +157,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
   return (
     <section className="card edit-item-card">
       <div className="card-body">
-<<<<<<< HEAD
-=======
         
         {isCombined && (
           <div style={{ padding: '0.75rem', marginBottom: '1.25rem', backgroundColor: '#e2f5ec', color: '#10643b', borderRadius: '8px', fontSize: '0.9rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', border: '1px solid #16a34a' }}>
@@ -207,7 +167,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
           </div>
         )}
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-group">
@@ -230,13 +189,9 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
                 min="0.1"
                 step="0.1"
                 required
-<<<<<<< HEAD
-                disabled={loading}
-=======
                 disabled={loading || isCombined}
                 title={isCombined ? "Quantity cannot be edited for aggregated items." : ""}
                 style={isCombined ? { backgroundColor: '#f3f4f6', color: '#6b7280' } : {}}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
               />
             </div>
           </div>
@@ -245,27 +200,12 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
             <div className="form-group">
               <label>Unit</label>
               <select value={unit} onChange={(e) => setUnit(e.target.value)} disabled={loading}>
-<<<<<<< HEAD
-                <option value="piece">Piece</option>
-                <option value="kg">Kg</option>
-                <option value="g">Grams</option>
-                <option value="L">Liter</option>
-                <option value="ml">ML</option>
-                <option value="pack">Pack</option>
-                <option value="dozen">Dozen</option>
-=======
                 <option value="">Select unit</option>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
               </select>
             </div>
             <div className="form-group">
               <label>Source</label>
-<<<<<<< HEAD
-              <select value={source} onChange={(e) => setSource(e.target.value)} disabled={loading}>
-                <option value="Manual">Manual</option>
-                <option value="MealPlan">Meal Plan</option>
-=======
               <select value={source} onChange={(e) => setSource(e.target.value)} 
                 disabled={loading || isCombined}
                 title={isCombined ? "Source cannot be edited for aggregated items." : ""}
@@ -274,7 +214,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
                 <option value="Manual">Manual</option>
                 <option value="MealPlan">Meal Plan</option>
                 {isCombined && <option value="Combined">Manual / Meal Plan</option>}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
               </select>
             </div>
           </div>
@@ -293,10 +232,7 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
                 type="text"
                 value={originalItem ? new Date(originalItem.created_at).toLocaleDateString() : ''}
                 disabled
-<<<<<<< HEAD
-=======
                 style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
               />
             </div>
           </div>
@@ -313,12 +249,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
 
         <div className="edit-action-buttons">
           {status === 'Pending' && (
-<<<<<<< HEAD
-            <button onClick={handleMarkBought} className="btn-primary btn-small" disabled={loading}>
-              ✓ Mark as Bought
-            </button>
-          )}
-=======
             <button onClick={handleMarkBought} className="btn-success btn-small" disabled={loading}>
               ✓ Mark as Bought
             </button>
@@ -328,7 +258,6 @@ function EditItemForm({ itemId, user_id: propUserId, onSave, onCancel, onDelete 
               ⏳ Mark as Pending
             </button>
           )}
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           <button onClick={handleDelete} className="btn-danger btn-small" disabled={loading}>
             🗑 Delete Item
           </button>

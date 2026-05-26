@@ -13,16 +13,11 @@
     "axios": "^1.13.5",
     "chart.js": "^4.5.1",
     "firebase": "^12.9.0",
-<<<<<<< HEAD
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-=======
     "lucide-react": "^1.7.0",
     "react": "^19.2.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {

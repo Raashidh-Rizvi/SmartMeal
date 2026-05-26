@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
-=======
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import Optional, List, Any
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 from datetime import datetime
 
 class UserPreferences(BaseModel):
@@ -19,21 +14,14 @@ class UserBase(BaseModel):
     email: str
     role: str = "USER"
     preferences: UserPreferences = Field(default_factory=UserPreferences)
-<<<<<<< HEAD
-=======
     favoriteRecipes: List[str] = []
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 class UserCreate(UserBase):
     password: str
 
 class PasswordUpdate(BaseModel):
-<<<<<<< HEAD
-    oldPassword: str
-=======
     oldPassword: Optional[str] = None
     otp: Optional[str] = None
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     newPassword: str
 
 class UserInDB(UserBase):
@@ -44,8 +32,6 @@ class UserInDB(UserBase):
     createdAt: datetime
     updatedAt: datetime
 
-<<<<<<< HEAD
-=======
     @model_validator(mode='before')
     @classmethod
     def handle_legacy_password(cls, data: Any) -> Any:
@@ -61,7 +47,6 @@ class UserInDB(UserBase):
                 data["updatedAt"] = data.get("updated_at")
         return data
 
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 class UserResponse(UserBase):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -82,8 +67,6 @@ class GoogleLoginRequest(BaseModel):
     name: str
     firebaseToken: str
     uid: str
-<<<<<<< HEAD
-=======
 
 class ForgotPasswordRequest(BaseModel):
     email: str
@@ -92,4 +75,3 @@ class ResetPasswordRequest(BaseModel):
     email: str
     otp: str
     newPassword: str
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

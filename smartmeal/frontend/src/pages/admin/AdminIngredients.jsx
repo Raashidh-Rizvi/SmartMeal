@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import api from '../../api/axios';
-=======
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/axios';
 import { 
@@ -18,7 +14,6 @@ import {
   LayoutList,
   BookMarked
 } from 'lucide-react';
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 function AdminIngredients() {
   const [items, setItems] = useState([]);
@@ -39,11 +34,7 @@ function AdminIngredients() {
 
   const limit = 15;
 
-<<<<<<< HEAD
-  const fetchIngredients = async () => {
-=======
   const fetchIngredients = useCallback(async () => {
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     try {
       setLoading(true);
       let params = new URLSearchParams({ page, limit });
@@ -54,18 +45,6 @@ function AdminIngredients() {
       setTotalPages(Math.ceil(res.data.total / limit));
     } catch (err) {
       console.error(err);
-<<<<<<< HEAD
-      alert('Error fetching ingredients');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchIngredients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
-=======
       // alert removed
     } finally {
       setLoading(false);
@@ -75,7 +54,6 @@ function AdminIngredients() {
   useEffect(() => {
     fetchIngredients();
   }, [fetchIngredients]);
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -138,12 +116,6 @@ function AdminIngredients() {
 
   return (
     <div className="admin-page">
-<<<<<<< HEAD
-      <header className="admin-header flex justify-between align-center">
-        <h1>Ingredient Management</h1>
-        <button onClick={() => openFormModal()} className="btn btn-primary">Add Ingredient</button>
-      </header>
-=======
       <div className="page-hero page-hero--sub">
         {/* Premium Decorative Background Icons */}
         <Database size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '10%', left: '6%', '--rotation': '-15deg', animationDelay: '0s' }} />
@@ -166,7 +138,6 @@ function AdminIngredients() {
           </button>
         </div>
       </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
       <div className="admin-filters">
         <form onSubmit={handleSearchSubmit} className="search-form flex gap-3 flex-wrap">
@@ -177,17 +148,12 @@ function AdminIngredients() {
             onChange={(e) => setSearch(e.target.value)}
             className="admin-input"
           />
-<<<<<<< HEAD
-          <button type="submit" className="btn btn-primary">Search</button>
-          <button type="button" onClick={handleClearSearch} className="btn btn-secondary">Clear</button>
-=======
           <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Search size={16} /> Search
           </button>
           <button type="button" onClick={handleClearSearch} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <X size={16} /> Clear
           </button>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         </form>
       </div>
 
@@ -198,34 +164,16 @@ function AdminIngredients() {
           <table className="admin-table">
             <thead>
               <tr>
-<<<<<<< HEAD
-                <th>Ingredient Name</th>
-                <th>Category</th>
-                <th>Unit</th>
-                <th>Calories</th>
-                <th>Actions</th>
-=======
                 <th>Ingredient Identity</th>
                 <th>Category</th>
                 <th>Standard Unit</th>
                 <th>Nutrition (Cal)</th>
                 <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
               </tr>
             </thead>
             <tbody>
               {items.map(item => (
                 <tr key={item._id}>
-<<<<<<< HEAD
-                  <td>{item.name}</td>
-                  <td>{item.category || '-'}</td>
-                  <td>{item.unit}</td>
-                  <td>{item.calories}</td>
-                  <td>
-                    <button onClick={() => openFormModal(item)} className="btn-icon">Edit</button>
-                    {' | '}
-                    <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger">Delete</button>
-=======
                   <td>
                     <div className="user-identity">
                       <div className="user-avatar" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' }}>
@@ -259,7 +207,6 @@ function AdminIngredients() {
                         <Trash2 size={16} />
                       </button>
                     </div>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                   </td>
                 </tr>
               ))}
@@ -271,12 +218,6 @@ function AdminIngredients() {
             </tbody>
           </table>
           
-<<<<<<< HEAD
-          <div className="admin-pagination mt-4">
-            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary mr-2">Prev</button>
-            <span>Page {page} of {totalPages || 1}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary ml-2">Next</button>
-=======
           <div className="admin-pagination mt-4" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
             <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <ChevronLeft size={16} /> Prev
@@ -285,7 +226,6 @@ function AdminIngredients() {
             <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               Next <ChevronRight size={16} />
             </button>
->>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           </div>
         </div>
       )}
