@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timezone
@@ -113,4 +114,66 @@ async def delete_ingredient(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Ingredient not found")
         
+=======
+from fastapi import APIRouter, HTTPException
+from typing import Optional
+from bson import ObjectId
+from datetime import datetime, timezone
+from ..db.database import get_db
+from ..schemas.ingredient_schema import IngredientCreate, IngredientUpdate
+
+router = APIRouter()
+
+
+@router.get("/ingredients")
+async def admin_list_ingredients(
+    page: int = 1,
+    limit: int = 15,
+    search: Optional[str] = None
+):
+    db = get_db()
+    query = {}
+    if search:
+        query["name"] = {"$regex": search, "$options": "i"}
+    skip = (page - 1) * limit
+    cursor = db.ingredients.find(query).skip(skip).limit(limit)
+    items = await cursor.to_list(length=limit)
+    total = await db.ingredients.count_documents(query)
+    for item in items:
+        item["_id"] = str(item["_id"])
+    return {"items": items, "total": total, "page": page, "limit": limit}
+
+
+@router.post("/ingredients")
+async def admin_create_ingredient(data: IngredientCreate):
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    doc = data.model_dump()
+    doc["createdAt"] = now
+    doc["updatedAt"] = now
+    result = await db.ingredients.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return doc
+
+
+@router.put("/ingredients/{ingredient_id}")
+async def admin_update_ingredient(ingredient_id: str, data: IngredientUpdate):
+    db = get_db()
+    update = data.model_dump(exclude_unset=True)
+    update["updatedAt"] = datetime.now(timezone.utc)
+    result = await db.ingredients.update_one({"_id": ObjectId(ingredient_id)}, {"$set": update})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Ingredient not found")
+    doc = await db.ingredients.find_one({"_id": ObjectId(ingredient_id)})
+    doc["_id"] = str(doc["_id"])
+    return doc
+
+
+@router.delete("/ingredients/{ingredient_id}")
+async def admin_delete_ingredient(ingredient_id: str):
+    db = get_db()
+    result = await db.ingredients.delete_one({"_id": ObjectId(ingredient_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Ingredient not found")
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     return {"message": "deleted"}

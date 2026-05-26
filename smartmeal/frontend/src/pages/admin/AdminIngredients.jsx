@@ -1,5 +1,24 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
+=======
+import React, { useState, useEffect, useCallback } from 'react';
+import api from '../../api/axios';
+import { 
+  Plus, 
+  Search, 
+  Trash2, 
+  Pencil, 
+  ChevronLeft, 
+  ChevronRight,
+  X,
+  Database,
+  FlaskConical,
+  Tag,
+  LayoutList,
+  BookMarked
+} from 'lucide-react';
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 function AdminIngredients() {
   const [items, setItems] = useState([]);
@@ -20,7 +39,11 @@ function AdminIngredients() {
 
   const limit = 15;
 
+<<<<<<< HEAD
   const fetchIngredients = async () => {
+=======
+  const fetchIngredients = useCallback(async () => {
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
     try {
       setLoading(true);
       let params = new URLSearchParams({ page, limit });
@@ -31,6 +54,7 @@ function AdminIngredients() {
       setTotalPages(Math.ceil(res.data.total / limit));
     } catch (err) {
       console.error(err);
+<<<<<<< HEAD
       alert('Error fetching ingredients');
     } finally {
       setLoading(false);
@@ -41,6 +65,17 @@ function AdminIngredients() {
     fetchIngredients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+=======
+      // alert removed
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, search]);
+
+  useEffect(() => {
+    fetchIngredients();
+  }, [fetchIngredients]);
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -103,10 +138,35 @@ function AdminIngredients() {
 
   return (
     <div className="admin-page">
+<<<<<<< HEAD
       <header className="admin-header flex justify-between align-center">
         <h1>Ingredient Management</h1>
         <button onClick={() => openFormModal()} className="btn btn-primary">Add Ingredient</button>
       </header>
+=======
+      <div className="page-hero page-hero--sub">
+        {/* Premium Decorative Background Icons */}
+        <Database size={76} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '10%', left: '6%', '--rotation': '-15deg', animationDelay: '0s' }} />
+        <FlaskConical size={68} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', top: '45%', left: '3%', '--rotation': '10deg', animationDelay: '1.2s' }} />
+        <Tag size={56} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', bottom: '15%', left: '14%', '--rotation': '25deg', animationDelay: '2.5s' }} />
+        <LayoutList size={74} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', top: '12%', right: '10%', '--rotation': '-20deg', animationDelay: '0.8s' }} />
+        <BookMarked size={62} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '55%', right: '5%', '--rotation': '18deg', animationDelay: '3.1s' }} />
+        <Search size={66} className="hero-sway" style={{ position: 'absolute', opacity: 0.05, color: '#10b981', pointerEvents: 'none', bottom: '12%', right: '16%', '--rotation': '-12deg', animationDelay: '1.5s' }} />
+        <FlaskConical size={80} className="hero-sway" style={{ position: 'absolute', opacity: 0.07, color: '#10b981', pointerEvents: 'none', top: '32%', right: '26%', '--rotation': '30deg', animationDelay: '4.2s' }} />
+        <Database size={52} className="hero-sway" style={{ position: 'absolute', opacity: 0.06, color: '#10b981', pointerEvents: 'none', bottom: '38%', left: '28%', '--rotation': '-25deg', animationDelay: '0.4s' }} />
+
+        <Database size={46} color="#10b981" style={{ position: 'relative', zIndex: 1 }} />
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ margin: '0.25rem 0 0.1rem' }}>Ingredient Management</h1>
+          <p style={{ margin: 0, opacity: 0.75, fontSize: '1rem' }}>Manage the global ingredient database and nutritional data</p>
+        </div>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'flex-end', width: '100%', padding: '0 1.5rem', boxSizing: 'border-box' }}>
+          <button onClick={() => openFormModal()} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: 'auto' }}>
+            <Plus size={18} /> Add Ingredient
+          </button>
+        </div>
+      </div>
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
       <div className="admin-filters">
         <form onSubmit={handleSearchSubmit} className="search-form flex gap-3 flex-wrap">
@@ -117,8 +177,17 @@ function AdminIngredients() {
             onChange={(e) => setSearch(e.target.value)}
             className="admin-input"
           />
+<<<<<<< HEAD
           <button type="submit" className="btn btn-primary">Search</button>
           <button type="button" onClick={handleClearSearch} className="btn btn-secondary">Clear</button>
+=======
+          <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Search size={16} /> Search
+          </button>
+          <button type="button" onClick={handleClearSearch} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <X size={16} /> Clear
+          </button>
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
         </form>
       </div>
 
@@ -129,16 +198,25 @@ function AdminIngredients() {
           <table className="admin-table">
             <thead>
               <tr>
+<<<<<<< HEAD
                 <th>Ingredient Name</th>
                 <th>Category</th>
                 <th>Unit</th>
                 <th>Calories</th>
                 <th>Actions</th>
+=======
+                <th>Ingredient Identity</th>
+                <th>Category</th>
+                <th>Standard Unit</th>
+                <th>Nutrition (Cal)</th>
+                <th style={{ textAlign: 'right', minWidth: '120px' }}>Actions</th>
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
               </tr>
             </thead>
             <tbody>
               {items.map(item => (
                 <tr key={item._id}>
+<<<<<<< HEAD
                   <td>{item.name}</td>
                   <td>{item.category || '-'}</td>
                   <td>{item.unit}</td>
@@ -147,6 +225,41 @@ function AdminIngredients() {
                     <button onClick={() => openFormModal(item)} className="btn-icon">Edit</button>
                     {' | '}
                     <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger">Delete</button>
+=======
+                  <td>
+                    <div className="user-identity">
+                      <div className="user-avatar" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' }}>
+                        {item.name.charAt(0)}
+                      </div>
+                      <div className="user-info-stack">
+                        <div className="user-name">{item.name}</div>
+                        <div className="user-email">ID: {item._id.slice(-6)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge" style={{ background: 'rgba(54, 162, 235, 0.08)', color: '#36A2EB' }}>
+                      {item.category || 'General'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.unit}</div>
+                  </td>
+                  <td>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      {item.calories} kcal
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button onClick={() => openFormModal(item)} className="btn-icon" title="Edit Ingredient">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(item._id)} className="btn-icon text-danger" title="Remove Item">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
                   </td>
                 </tr>
               ))}
@@ -158,10 +271,21 @@ function AdminIngredients() {
             </tbody>
           </table>
           
+<<<<<<< HEAD
           <div className="admin-pagination mt-4">
             <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary mr-2">Prev</button>
             <span>Page {page} of {totalPages || 1}</span>
             <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary ml-2">Next</button>
+=======
+          <div className="admin-pagination mt-4" style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'center' }}>
+            <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ChevronLeft size={16} /> Prev
+            </button>
+            <span style={{ fontWeight: 500 }}>Page {page} of {totalPages || 1}</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              Next <ChevronRight size={16} />
+            </button>
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
           </div>
         </div>
       )}

@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+<<<<<<< HEAD
+=======
+
+
+__pycache__/
+*.pyc
+.env
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

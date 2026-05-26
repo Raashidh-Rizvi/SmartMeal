@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SmartMeal — Backend
 
 FastAPI backend for SmartMeal. Connects to MongoDB Atlas via Motor (async driver). Supports JWT authentication, Google / Firebase sign-in, and a full admin API.
@@ -13,11 +14,28 @@ FastAPI backend for SmartMeal. Connects to MongoDB Atlas via Motor (async driver
 - **Firebase Admin SDK** — Google ID token verification
 - **certifi** — TLS certificates for MongoDB Atlas
 - **MongoDB Atlas** — hosted database
+=======
+# SmartMeal Backend
+
+FastAPI backend for SmartMeal. It connects to MongoDB Atlas through Motor and exposes authentication, inventory, meal planning, recommendations, leftovers, budgeting, shopping list, and admin APIs.
+
+## Stack
+
+- Python 3.12+
+- FastAPI
+- Motor
+- Pydantic v2
+- passlib + bcrypt
+- python-jose
+- Firebase Admin SDK
+- MongoDB Atlas
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 ## Setup
 
 ### 1. Activate the virtual environment
 
+<<<<<<< HEAD
 From the backend directory:
 
 ```powershell
@@ -31,6 +49,13 @@ cd d:\Project\SmartRecipe\smartmeal\backend
 > Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 > ```
 
+=======
+```powershell
+cd smartmeal/backend
+.\.venv\Scripts\Activate.ps1
+```
+
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 ### 2. Install dependencies
 
 ```powershell
@@ -39,7 +64,11 @@ pip install -r requirements.txt
 
 ### 3. Configure environment variables
 
+<<<<<<< HEAD
 Create a `.env` file in `backend/`:
+=======
+Create `smartmeal/backend/.env`:
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 
 ```env
 MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority
@@ -48,17 +77,21 @@ SECRET_KEY=your-secret-key-change-in-production
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
+<<<<<<< HEAD
 > **Atlas tips:**
 >
 > - URL-encode special characters in your password (e.g. `P@ss` → `P%40ss`)
 > - Go to **Atlas → Network Access** and add your IP to the allowlist
 
+=======
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1
 ### 4. Run the development server
 
 ```powershell
 uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
+<<<<<<< HEAD
 | Endpoint   | URL                           |
 | ---------- | ----------------------------- |
 | API root   | `http://127.0.0.1:8001/`      |
@@ -132,3 +165,41 @@ The following origins are allowed by default (configured in `app/main.py`):
 
 - **Google Sign-In**: The `/api/auth/google` endpoint expects a Firebase `id_token` in the request body. It verifies the token with Firebase Admin SDK and creates or syncs the user in MongoDB.
 - **TLS / MongoDB Atlas**: The Motor client uses `tls=True` with `tlsCAFile=certifi.where()` for compatibility with Python 3.14+ and OpenSSL 3.x.
+=======
+- API root: `http://127.0.0.1:8001/`
+- Swagger UI: `http://127.0.0.1:8001/docs`
+- ReDoc: `http://127.0.0.1:8001/redoc`
+
+## Project Structure
+
+```text
+backend/
+|-- app/
+|   |-- api/
+|   |-- core/
+|   |-- db/
+|   |-- models/
+|   |-- routes/
+|   |-- schemas/
+|   |-- services/
+|   `-- utils/
+|-- scripts/
+|   `-- seed_all.py
+|-- requirements.txt
+`-- README.md
+```
+
+## Operational Scripts
+
+Run the seed utility from the backend directory:
+
+```powershell
+python scripts/seed_all.py
+```
+
+## Notes
+
+- Default allowed frontend origins are configured in `smartmeal/backend/app/main.py`.
+- Google Sign-In uses Firebase Admin verification on the backend.
+- Recommendation and AI-related behavior lives under `smartmeal/backend/app/services/`.
+>>>>>>> dc84f03c8a83754d8e5b2f9f50379c2d4a5e20d1

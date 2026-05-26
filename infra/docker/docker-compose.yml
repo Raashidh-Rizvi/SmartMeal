@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ../../smartmeal/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - ../../smartmeal/backend/.env
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../../smartmeal/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "7001:80"
+    env_file:
+      - ../../smartmeal/frontend/.env
+    restart: unless-stopped
+    depends_on:
+      - backend
